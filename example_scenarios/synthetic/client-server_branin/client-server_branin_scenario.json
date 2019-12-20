@@ -1,0 +1,20 @@
+{
+    "application_name": "client-server_branin",
+    "optimization_objectives": ["Value"],
+    "hypermapper_mode": {
+        "mode": "client-server"
+    },
+    "optimization_iterations": 50,
+    "input_parameters" : {
+        "x1": {
+            "parameter_type" : "real",
+            "values" : [-5, 10],
+            "parameter_default" : 0
+        },
+        "x2": {
+            "parameter_type" : "real",
+            "values" : [0, 15],
+            "parameter_default" : 0
+        }
+    }
+}

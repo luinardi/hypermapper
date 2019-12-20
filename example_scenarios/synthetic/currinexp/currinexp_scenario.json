@@ -1,0 +1,17 @@
+{
+    "application_name": "currinexp",
+    "optimization_objectives": ["Value"],
+    "optimization_iterations": 50,
+    "input_parameters" : {
+        "x1": {
+            "parameter_type" : "ordinal",
+            "values" : [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1],
+            "parameter_default" : 0
+        },
+        "x2": {
+            "parameter_type" : "ordinal",
+            "values" : [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1],
+            "parameter_default" : 0.1
+        }
+    }
+}

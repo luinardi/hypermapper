@@ -1,0 +1,31 @@
+{
+    "application_name": "client-server_chakong_haimes",
+    "optimization_objectives": ["f1_value", "f2_value"],
+    "hypermapper_mode": {
+        "mode": "client-server"
+    },
+    "feasible_output": {
+        "enable_feasible_predictor": true,
+        "name": "Valid",
+        "true_value": "True",
+        "false_value": "False"
+    },
+    "design_of_experiment": {
+        "doe_type": "random sampling",
+        "number_of_samples": 20
+    },
+    "optimization_iterations": 50,
+    "input_parameters" : {
+        "x1": {
+            "parameter_type" : "real",
+            "values" : [-20, 20],
+            "parameter_default" : 0
+        },
+        "x2": {
+            "parameter_type" : "real",
+            "values" : [-20, 20],
+            "parameter_default" : 0
+        }
+    }
+}
+

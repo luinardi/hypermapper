@@ -1,0 +1,17 @@
+{
+    "application_name": "ordinal_branin",    
+    "optimization_objectives": ["Value", "Energy"],
+    "optimization_iterations": 50,
+    "input_parameters" : {
+        "x1": {
+            "parameter_type" : "ordinal",
+            "values" : [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+            "parameter_default" : 0
+        },
+        "x2": {
+            "parameter_type" : "ordinal",
+            "values" : [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+            "parameter_default" : 0
+        }
+    }
+}

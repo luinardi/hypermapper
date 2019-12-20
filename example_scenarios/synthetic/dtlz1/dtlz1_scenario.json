@@ -1,0 +1,35 @@
+{
+    "application_name": "dtlz1",
+    "optimization_objectives": ["f1_value", "f2_value"],    
+    "optimization_iterations": 185,
+    "design_of_experiment": {
+        "doe_type": "standard latin hypercube",
+        "number_of_samples": 65
+    },
+    "input_parameters" : {
+        "x1": {
+            "parameter_type" : "real",
+            "values" : [0, 1]
+        },
+        "x2": {
+            "parameter_type" : "real",
+            "values" : [0, 1]
+        },
+        "x3": {
+            "parameter_type" : "real",
+            "values" : [0, 1]
+        },
+        "x4": {
+            "parameter_type" : "real",
+            "values" : [0, 1]
+        },
+        "x5": {
+            "parameter_type" : "real",
+            "values" : [0, 1]
+        },
+        "x6": {
+            "parameter_type" : "real",
+            "values" : [0, 1]
+        }
+    }
+}
