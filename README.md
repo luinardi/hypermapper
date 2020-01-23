@@ -1,6 +1,6 @@
 # HyperMapper
 
-[![Build Status](https://travis-ci.com/luinardi/hypermapper.svg?token=M6zvmm9MfYxcXMHzHgk7&branch=travis)](https://travis-ci.com/luinardi/hypermapper)
+[![Build Status](https://travis-ci.com/luinardi/hypermapper.svg?branch=master)](https://travis-ci.com/luinardi/hypermapper)
 
 ## Software
 See the wiki for the [quick start guide](https://github.com/luinardi/hypermapper/wiki).
