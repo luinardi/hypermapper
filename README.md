@@ -13,7 +13,7 @@ HyperMapper was succesfully applied to real-world problems involving design sear
 2) database management systems (DBMS) parameters configuration, 
 3) domain-specific language (DSL) compilers and hardware design. 
 
-To learn about the core principles of HyperMapper refer to the papers section in the bottom. 
+To learn about the core principles of HyperMapper refer to the papers section at the bottom. 
 
 ## Contact and Info
 For any questions please contact [Luigi Nardi](lnardi@stanford.edu).
