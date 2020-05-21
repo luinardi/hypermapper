@@ -1487,8 +1487,8 @@ class Space :
         """
         new_data_array = defaultdict(list)
         for configuration in configurations:
-            if list(configuration.keys()) != self.get_input_parameters():
-                print("Missing input parameters in configuration")
+            if sorted(list(configuration.keys())) != sorted(self.get_input_parameters()):
+                print("Configuration does not match input parameters")
                 print("Expected:", self.get_input_parameters())
                 print("Got:", list(configuration.keys()))
                 raise SystemExit
