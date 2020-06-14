@@ -20,5 +20,6 @@ install:
   - pip install six==1.12.0
   - pip install statsmodels==0.9.0
   - pip install pyDOE==0.3.8
+  - pip install GPy==1.9.9
 
 script: travis_wait 40 pytest tests/
