@@ -198,10 +198,10 @@ def are_all_elements_equal(data_list):
 # Visualization
 ####################################################
 def get_next_color():
-    get_next_color.ccycle = [(0, 0, 255), (255, 0, 0), (0, 0, 0), (0, 200, 0), (0, 0, 0),
+    get_next_color.ccycle = [(255, 0, 0), (0, 0, 255), (0, 0, 0), (0, 200, 0), (0, 0, 0),
     #get_next_color.ccycle = [(101, 153, 255), (0, 0, 0), (100, 100, 100), (150, 100, 150), (150, 150, 150),
                              #(192, 192, 192), (255, 0, 0), (255, 153, 0), (199, 233, 180), (9, 112, 84),
-                             (0, 128, 0),(0, 128, 0),(0, 128, 0),(0, 128, 0),    (0, 128, 0), (0, 0, 0), (0, 0, 0), (199, 233, 180), (9, 112, 84),
+                             (0, 128, 0), (0, 0, 0), (199, 233, 180), (9, 112, 84),
                              (170, 163, 57), (255, 251, 188), (230, 224, 123), (110, 104, 14), (49, 46, 0),
                              (138, 162, 54), (234, 248, 183), (197, 220, 118), (84, 105, 14), (37, 47, 0),
                              (122, 41, 106), (213, 157, 202), (165, 88, 150), (79, 10, 66), (35, 0, 29),
@@ -437,7 +437,7 @@ def compute_data_array_scalarization(data_array, objective_weights, objective_li
         for run_index in range(data_array_len):
             for objective in normalized_weights:
                 scalarized_objectives[run_index] += normalized_weights[objective] * normalized_data_array[objective][run_index]
-    # The paper does not propose this, I applied their methodology to the original tchebyshev to get the approach below
+    # The paper does not propose this, we apply their methodology to the original tchebyshev to get the approach below
     # Important: since this was not proposed in the paper, their proofs and bounds for the modified_tchebyshev may not be valid here.
     elif(scalarization_method == "tchebyshev"):
         scalarized_objectives = np.zeros(data_array_len)

@@ -15,7 +15,7 @@ def sequential_is_pareto_efficient_dumb(costs):
     :param costs: An (n_points, n_costs) array
     :return: A (n_points, ) boolean array, indicating whether each point is Pareto efficient
     """
-    isString = isinstance(costs[0][0], str) # Not sure this works for python 3 (for python 3 this should work: isinstance(s, str))
+    isString = isinstance(costs[0][0], str) 
     if isString :
         costs = costs.astype(np.float)
     is_efficient = np.ones(costs.shape[0], dtype = bool)
@@ -29,12 +29,6 @@ def sequential_is_pareto_efficient_dumb(costs):
     return is_efficient
 
 
-## I should tweak this function to include the x_operator, y_operator.
-################# Test this function using:
-#rng = np.random.RandomState(1234)
-#costs = rng.rand(5, 2)
-#less_dumb__ixs = sequential_is_pareto_efficient(costs)
-#################
 def sequential_is_pareto_efficient(costs):
     """ This function is in general more efficient for low-dimensional Pareto fronts. 
         Use sequential_is_pareto_efficient_dumb(costs) for high-dimensional Pareto fronts
@@ -44,12 +38,10 @@ def sequential_is_pareto_efficient(costs):
 
     isString = isinstance(costs[0][0], str)
     if isString : 
-        #costs = costs.astype(np.int) # It doesn't seem that this speeds the conversion up by any good factor
         costs = costs.astype(np.float)
     is_efficient = np.ones(costs.shape[0], dtype = bool)
     for i, c in enumerate(costs):
         if is_efficient[i]:
-            #is_efficient[is_efficient] = np.any(costs[is_efficient]<=c, axis=1)  # Remove dominated points
             tmp1 = costs[is_efficient]<=c
             tmp = np.any(tmp1, axis=1)
             is_efficient[is_efficient] = tmp
@@ -59,17 +51,6 @@ def sequential_is_pareto_efficient(costs):
         if is_efficient[i]:
             if np.any(np.logical_and(np.any(costs[is_efficient] == c, axis=1), np.any(costs[is_efficient] < c, axis=1))) :
                 is_efficient[i] = False
-
-    # This part cleans up, removing points that have one metric that is equal while the second metric is different (and worse than the first one)
-#     for i, c in enumerate(costs):
-#         if is_efficient[i]:
-#             tmp1 = costs[is_efficient] == c
-#             tmp2 = costs[is_efficient] < c
-#             tmp1_any = np.any(tmp1, axis=1)
-#             tmp2_any = np.any(tmp2, axis=1)
-#             tmp = np.logical_and(tmp1_any, tmp2_any)
-#             if np.any(tmp) :
-#                 is_efficient[i] = False
 
     return is_efficient
 

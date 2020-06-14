@@ -61,13 +61,7 @@ def compute_hvi(standard_deviation_optimization_metrics, input_files, dir, total
         metric_data_aux = []
         for i, metric in enumerate(param_space.get_optimization_parameters()):
             X = np.array(data_array[metric])
-            # print("Before normalization")
-            # print(X)
-            # Make the data normal
             X /= standard_deviation_optimization_metrics[i]
-            # print("After normalization")
-            # print(X)
-            # metric_data_aux.append(np.array(data_array[metric]))
             metric_data_aux.append(X)
 
         reformatted_data_aux_timestamp[file] = np.array(data_array[param_space.get_timestamp_parameter()[0]])
@@ -78,7 +72,7 @@ def compute_hvi(standard_deviation_optimization_metrics, input_files, dir, total
             exit(1)
 
     # Compute global maximum time in seconds over the multiple files
-    max_time_all = np.max(max_time) # Luigi: How are we sure that using the max of each curve to create the bins, the bins are actually comparable for the two curves that we are plotting?
+    max_time_all = np.max(max_time)
     print("############# max_time_all %f" %max_time_all)
 
     # Decompose the data in number_of_bins bins
@@ -110,7 +104,7 @@ def compute_hvi(standard_deviation_optimization_metrics, input_files, dir, total
         comulative_bin[file] = []
 
     hvi = {}
-    number_or_runs_in_bins = [0] * number_of_bins # Initialize list with number_of_bins of zeros. Functional programming, yes!
+    number_or_runs_in_bins = [0] * number_of_bins # Initialize list with number_of_bins of zeros.
     for file in input_files:
         hvi[file] = {}
         for bin in range(number_of_bins):
@@ -125,7 +119,6 @@ def compute_hvi(standard_deviation_optimization_metrics, input_files, dir, total
             else:
                 hvi[file][bin] = HVI(comulative_bin[file], max_point, hv_all_data)
 
-        #print H(comulative_bin, max_point)
     return hvi, bin_array_X, number_or_runs_in_bins
 
 # Hypervolume of objective space dominated by d
@@ -140,13 +133,6 @@ def HVI(d, r, hv_all_data):
         print("Error: HVI cannot be negative. Exit.")
         exit()
     return hvi_tmp
-
-####################################################################
-####################################################################
-#### hv_real should be equal to hv_all_data.
-#### they are slightly different, why? Explore why
-####################################################################
-####################################################################
 
 def HVI_from_files(real_pareto_file, parameters_file):
     """
@@ -233,17 +219,17 @@ def lineplotCI(input_files, application_name, x_data, y_data, low_CI, upper_CI, 
     ax.set_title(title)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
-    my_suptitle = fig.suptitle(application_name, fontsize=20, y=1.1) # Bigger title of the figure on the top part
+    my_suptitle = fig.suptitle(application_name, fontsize=20, y=1.1)
 
     xlog = False
     ylog = True
     # Symlog sets a small interval near zero (both above and below) to use a linear scale.
     # This allows things to cross 0 without causing log(x) to explode (or go to -inf, rather).
     if xlog:
-        ax.set_xscale('symlog')  # ax1.set_xscale('log')
+        ax.set_xscale('symlog')
         xlabel = "Log " + xlabel
     if ylog:
-        ax.set_yscale('symlog')  # ax1.set_yscale('log')
+        ax.set_yscale('symlog')
         ylabel = "Log " + ylabel
     plt.ylabel(ylabel)
     plt.xlabel(xlabel)
@@ -251,9 +237,9 @@ def lineplotCI(input_files, application_name, x_data, y_data, low_CI, upper_CI, 
     for dir in input_files:
         name_line_legend = os.path.basename(dir)
         # Plot the data, set the linewidth, color and transparency of the line, provide a label for the legend
-        ax.plot(x_data[dir], y_data[dir], lw = 1, alpha = 1, label = name_line_legend) # Add color: color = '#539caf'
+        ax.plot(x_data[dir], y_data[dir], lw = 1, alpha = 1, label = name_line_legend) 
         # Shade the confidence interval
-        ax.fill_between(x_data[dir], low_CI[dir], upper_CI[dir], alpha = 0.4) # Add label: label = '95% CI'; Add color: color = '#539caf'
+        ax.fill_between(x_data[dir], low_CI[dir], upper_CI[dir], alpha = 0.4)
 
     ax.yaxis.grid(b=True, which='major', color="#CCCCCC", linestyle='-')
     ax.legend(loc = 'best') # Display legend
@@ -279,14 +265,13 @@ def boxplot(X, Y, application_name, number_of_bins, xlabel, ylabel, output_filen
 
     fig = plt.figure()
     ax1 = plt.subplot(1, 1, 1)
-    # print_legend = True
     # Symlog sets a small interval near zero (both above and below) to use a linear scale.
     # This allows things to cross 0 without causing log(x) to explode (or go to -inf, rather).
     if xlog:
-        ax1.set_xscale('symlog')  # ax1.set_xscale('log')
+        ax1.set_xscale('symlog') 
         xlabel = "Log " + xlabel
     if ylog:
-        ax1.set_yscale('symlog')  # ax1.set_yscale('log')
+        ax1.set_yscale('symlog') 
         ylabel = "Log " + ylabel
     plt.ylabel(ylabel)
     plt.xlabel(xlabel)
@@ -303,9 +288,9 @@ def boxplot(X, Y, application_name, number_of_bins, xlabel, ylabel, output_filen
                 i += 1
             else:
                 final_array_ticks.append('')
-    #final_array_ticks[number_of_bins - 1] = X[number_of_bins - 1]
+    
     ax1.set_xticklabels(final_array_ticks, rotation=45, fontsize=11)
-    # Now add the legend with some customizations.
+    # Add the legend with some customizations.
     my_suptitle = fig.suptitle("Five-number summary " + application_name, fontsize=20, y=1.1)
     print("$$ Saving file " + output_filename)
     fig.savefig(output_filename, dpi=120, bbox_inches='tight', bbox_extra_artists=[my_suptitle])
@@ -420,14 +405,11 @@ def main(parameters_file, output_hvi_file_name, list_of_dirs):
     # Get bounds of objective space
     for metric in optimization_metrics:
         X = np.array(concatenated_all_data_array[metric])
-        # print("Before normalization")
-        # print(X)
-        # Make the data normal
+
         standard_deviation = np.std(X, axis=0)
         standard_deviation_optimization_metrics.append(standard_deviation)
         X /= standard_deviation
-        # print("After normalization")
-        #  print(X)
+
         concatenated_all_data_array[metric] = X
         bounds[metric] = (min(concatenated_all_data_array[metric]), max(concatenated_all_data_array[metric]))
         max_point.append(bounds[metric][1])
@@ -448,11 +430,7 @@ def main(parameters_file, output_hvi_file_name, list_of_dirs):
     hvi = {}
     for dir in input_files:
         print("Compute HVI for %s" %dir)
-        #if "heuristic" not in dir:
-        #    convert_in_seconds = 1.0
-        #else :
         convert_in_seconds = 1000.0
-        # The result of the this function is hvi[dir][bin][file]
         hvi[dir], bin_array_X[dir], number_or_runs_in_bins[dir] = compute_hvi(standard_deviation_optimization_metrics
                                                                               , input_files[dir]
                                                                               , dir
@@ -472,7 +450,6 @@ def main(parameters_file, output_hvi_file_name, list_of_dirs):
     ###################################################################################################################
     ########### Plot all the HVIs (using box plots bin_array_X and hvi)
     ###################################################################################################################
-    # X, Y = get_HVIs_for_datasets(metric_data, reformatted_all_data, max_point, hv_all_data)
 
     for dir in input_files:
         hvi_list_of_lists = []
@@ -503,21 +480,12 @@ def main(parameters_file, output_hvi_file_name, list_of_dirs):
             y_data_lower[dir].append(low)
             y_data_upper[dir].append(up)
 
-        # Clean lower and upper bounds, they are sometimes negative but it doesn't make sense when the optimization
-        # objectives are positive. Change this in the future if some of the optimization objectives can be negative.
         for bin_number, bin_value in enumerate(y_data_lower[dir]):
                 if not math.isnan(bin_value) and bin_value < 0:
                     y_data_lower[dir][bin_number] = 0
         for bin_number, bin_value in enumerate(y_data_upper[dir]):
                 if not math.isnan(bin_value) and bin_value < 0:
                     y_data_upper[dir][bin_number] = 0
-
-            # Alternative way of computing the mean, lower and upper bounds.
-            # Use this code to debug.
-            #for hvi_list in hvi_list_of_lists:
-            #    hvi_list_array = np.array(hvi_list)
-            #    mean, low, up = mean_confidence_interval(hvi_list_array)
-            #    y_data_mean.append(mean); y_data_lower.append(low); y_data_upper.append(up)
 
         print_stats_on_a_txt(dir
                              , str(dir + "/" + os.path.basename(dir) + "_stats" + ".txt")

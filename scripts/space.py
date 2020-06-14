@@ -15,13 +15,10 @@ from random import shuffle
 from scipy import stats
 import pandas as pd
 from numbers import Number
-
-#import affinity
 import multiprocessing as mp
-#affinity.set_process_affinity_mask(0,2**mp.cpu_count()-1)
 
 ################# PARAMETERS CLASSES ##################
-# The input search space like in the SMAC software supports four types of parameters: Categorical, Ordinal, Integer and Real.
+# The input search space supports four types of parameters: Categorical, Ordinal, Integer and Real.
 class Parameter() :
     """
     Super class of the different parameter classes.
@@ -169,10 +166,6 @@ class OrdinalParameter(Parameter):
         self.distribution = []
         if isinstance(probability_distribution, str):
             self.prior = probability_distribution
-            #if probability_distribution == "uniform": # In this case give equal probability to all possible parameter levels
-            #    probability = 1.0 / self.get_discrete_size()
-            #    for i in range(self.get_discrete_size()):
-            #        self.distribution.append(probability)
         else:
             self.prior = "distribution"
             self.distribution = probability_distribution
@@ -261,10 +254,6 @@ class CategoricalParameter(Parameter):
         :param default: default value.
         :param probability_distribution: the string "uniform" for the uniform probability density function or a list of values describing the probability distribution.
         """
-        # For now we transform the strings in integers.
-        # Example 1: boolean: "false" = 0, "true" = 1.
-        # Example 2: versions: "cpp" = 0, "opencl" = 1, "openmp" = 2.
-        # Random Forest works this way but other models may need to change this code.
         Parameter.__init__(self)
         self.values = values
         self.default = default
@@ -369,7 +358,7 @@ class Space :
             self.parameters_type[metric] = "optimization_metric"
             self.parameters_python_type[metric] = "float" # Metrics are always float (at least for now)
         self.parameters_type[self.timestamp_name] = "timestamp"
-        self.parameters_python_type[self.timestamp_name] = "float"  # Timestamps are always floats (?)
+        self.parameters_python_type[self.timestamp_name] = "float"  # Timestamps are always floats
         self.output_metrics = self.get_output_parameters()
         self.input_output_parameter_names = self.get_input_parameters() + self.output_metrics
         self.time_metrics = self.get_timestamp_parameter()
@@ -381,17 +370,6 @@ class Space :
         hypermapper_mode = config['hypermapper_mode']["mode"]
         if (hypermapper_mode == 'exhaustive'):
             self.exhaustive_search_file = deal_with_relative_and_absolute_path("", config['hypermapper_mode']["exhaustive_search_file"])
-
-        # self.timestamp_name = None
-        # if "timestamp" in config :
-        #     self.timestamp_name = config["timestamp"]
-        #     self.parameters_type[self.timestamp_name] = "timestamp"
-        #     self.parameters_python_type[self.timestamp_name] = "float"  # Timestamps are always floats (?)
-        #     self.output_metrics += [self.timestamp_name]
-        #
-        #     self.output_metrics += [self.feasible_output_name]
-        #
-        # self.input_output_parameter_names = self.get_input_parameters() + self.output_metrics
 
     def parse_input_parameters(self, input_parameters_json):
         """
@@ -450,7 +428,7 @@ class Space :
                 self.parameters_python_type[param_name] = "int"
             elif param_type == "real":
                 param_min, param_max = param["values"]
-                param_discretization = np.linspace(param_min, param_max, num=10) # TODO: Allow users to specify discretization in the json later
+                param_discretization = np.linspace(param_min, param_max, num=10) 
                 self.all_input_parameters[param_name] = RealParameter(min_value=param_min, max_value=param_max, preferred_discretization=param_discretization, default=param_default, probability_distribution=param_distribution)
                 self.input_non_categorical_parameters[param_name] = self.all_input_parameters[param_name]
                 self.parameters_type[param_name] = "real"
@@ -1109,7 +1087,7 @@ class Space :
         for i in range(len(X[0])):
             configuration={}
             for j, param_name in enumerate(self.get_input_non_categorical_parameters(input_parameters_names_list)):
-                configuration[param_name] = X[j][i]  # Need to test this line for real and integer parameters.
+                configuration[param_name] = X[j][i]  
             tmp_configurations.append(configuration)
 
         # Dealing with categorical parameters
@@ -1358,7 +1336,7 @@ class Space :
         if not debug:
             import os
             try:
-                os.remove(file_to_receive_from_interactive_system) # print("File Removed!")
+                os.remove(file_to_receive_from_interactive_system)
             except OSError:
                 pass
 
@@ -1416,7 +1394,6 @@ class Space :
             else :
                 # Read from stdin
                 print("Communication protocol: receiving message....")
-                #print("Input a line:");
                 line = sys.stdin.readline()
                 sys.stdout.write(line)
                 parameters_header = [x.strip() for x in line.split(',')]

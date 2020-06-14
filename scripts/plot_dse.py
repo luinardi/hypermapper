@@ -17,23 +17,12 @@ from utility_functions import *
 
 debug = False
 
-# Luigi
-# # Hardcoded default for ODROID-XU3:
-# baseline = { "total_duration" :  (1000 / 6.01180456301) /1000 ,
-#              "fps"            :  6.01180456301 ,
-#              "max_ATE"        :  0.0441337292494,
-#              "pow_total"      :  2.76825517148,
-#             }
-
-
 def main(parameters_file, list_of_pairs_of_files=[], image_output_file = None):
     """
     Plot the results of the previously run design space exploration.
     """
 
     show_samples = False
-    #For ASPLOS
-    # show_samples = True
 
     filename, file_extension = os.path.splitext(parameters_file)
     if file_extension != ".json":
@@ -57,10 +46,6 @@ def main(parameters_file, list_of_pairs_of_files=[], image_output_file = None):
 
     xlog = config["output_image"]["image_xlog"]
     ylog = config["output_image"]["image_ylog"]
-
-    # For ASPLOS
-    #xlog = False
-    #ylog = True
 
     if "optimization_objectives_labels_image_pdf" in config["output_image"]:
         optimization_objectives_labels_image_pdf = config["output_image"]["optimization_objectives_labels_image_pdf"]
@@ -124,8 +109,6 @@ def main(parameters_file, list_of_pairs_of_files=[], image_output_file = None):
 
     print_legend = True
     fig = plt.figure()
-    #ccycle = [(float(a)/255,float(b)/255,float(c)/255) for (a, b, c) in get_color_cycle(3)]
-    #plt.rc('axes', color_cycle=ccycle)
     ax1 = plt.subplot(1, 1, 1)
 
     if xlog :
@@ -147,20 +130,8 @@ def main(parameters_file, list_of_pairs_of_files=[], image_output_file = None):
     non_valid_optimization_obj_1 = defaultdict(list)
     non_valid_optimization_obj_2 = defaultdict(list)
 
-    # For ASPLOS
-    #counter=-1
-    #label_counter = 0
-    #labels = ["w/o Feasibility", "w/ Feasibility"]
     for file_pair in list_of_pairs_of_files: # file_pair is tuple containing: (pareto file, DSE file)
-        if "heuristic" in file_pair[1]:
-            next_color = (0, 0, 0)
-        else :
-            next_color = (1, 0, 0)
-
-        # For ASPLOS
-        #counter += 1
-        #if not counter % 1:
-        #    next_color = get_next_color()
+        next_color = get_next_color()
 
 
         #############################################################################
@@ -180,7 +151,7 @@ def main(parameters_file, list_of_pairs_of_files=[], image_output_file = None):
             if objective_2_is_percentage :
                 input_data_array[file][yelem] = [input_data_array[file][yelem][i] * 100 for i in range(len(input_data_array[file][yelem]))]
 
-            x_max, x_min, y_max, y_min = compute_min_max_samples(input_data_array[file], x_max, x_min, xelem, y_max, y_min, yelem) # Luigi: have a look here to see if these boundaries work well.
+            x_max, x_min, y_max, y_min = compute_min_max_samples(input_data_array[file], x_max, x_min, xelem, y_max, y_min, yelem) 
 
             input_data_array_size = len(input_data_array[file][list(input_data_array[file].keys())[0]])
             print("Size of the data file %s is %d" % (file, input_data_array_size))
@@ -201,8 +172,6 @@ def main(parameters_file, list_of_pairs_of_files=[], image_output_file = None):
                         del input_data_array[file][key][i]
                 else : i += 1
 
-            # For ASPLOS
-            #label_is = "Valid Samples - " + labels[counter]
             label_is = get_last_dir_and_file_names(file_pareto)
             all_samples, = plt.plot(input_data_array[file_search][xelem], input_data_array[file_search][yelem], color=next_color, linestyle='None', marker='.', mew=0.5, markersize=3, fillstyle="none", label=label_is)
             plt.plot(input_data_array[file_pareto][xelem], input_data_array[file_pareto][yelem], linestyle='None', marker='.', mew=0.5, markersize=3, fillstyle="none")
@@ -226,36 +195,17 @@ def main(parameters_file, list_of_pairs_of_files=[], image_output_file = None):
 
         label_is = "Pareto - " + get_last_dir_and_file_names(file_pareto)
 
-        # For ASPLOS
-        #label_is = ""
-        #if not counter % 1:
-        #    label_is = labels[label_counter]
-        #    label_counter += 1
-
-        # This is just for the final paper plot last minute adjustment
-        # if file_pareto=="example_scenarios/spatial/BlackScholes_pareto_real.csv":
-        #     label_is = "Pareto - Exhaustive"
-        # else :
-        #     label_is = "Pareto - HyperMapper"
         pareto_front, = plt.plot(straight_pareto_x, straight_pareto_y, label=label_is, linewidth=1, color=next_color)
         handler_map_for_legend[pareto_front] = HandlerLine2D(numpoints=1)
 
-        # For ASPLOS
-        #label_is = "Invalid Samples - " + labels[counter]
         label_is = "Invalid Samples - " + get_last_dir_and_file_names(file_search)
         if show_samples:
-            # For ASPLOS
-            #non_valid, = plt.plot(non_valid_optimization_obj_1[file_search], non_valid_optimization_obj_2[file_search],
-            #                      linestyle='None', marker='.', mew=0.5, markersize=3, fillstyle="none", label=label_is, color=get_next_color())
-
             non_valid, = plt.plot(non_valid_optimization_obj_1[file_search], non_valid_optimization_obj_2[file_search],
                                   linestyle='None', marker='.', mew=0.5, markersize=3, fillstyle="none", label=label_is)
             handler_map_for_legend[non_valid] = HandlerLine2D(numpoints=1)
 
     plt.ylabel(ylabel, fontsize=16)
     plt.xlabel(xlabel, fontsize=16)
-    #print("(xmin, xmax, ymin, ymax) = ")
-    #print(plt.axis())
     for tick in ax1.xaxis.get_major_ticks():
         tick.label.set_fontsize(14) # Set the fontsize of the label on the ticks of the x axis
     for tick in ax1.yaxis.get_major_ticks():
@@ -263,11 +213,9 @@ def main(parameters_file, list_of_pairs_of_files=[], image_output_file = None):
 
     # Add the legend with some customizations
     if print_legend :
-        # For ASPLOS
-        #lgd = ax1.legend(handler_map=handler_map_for_legend, loc='upper right', bbox_to_anchor=(1, 1),  fancybox=True, shadow=True, ncol=1, prop={'size':10}) # Display legend. You can do: loc='upper right'
-        lgd = ax1.legend(handler_map=handler_map_for_legend, loc='best', bbox_to_anchor=(1, 1),  fancybox=True, shadow=True, ncol=1, prop={'size':14}) # Display legend. You can do: loc='upper right'
+        lgd = ax1.legend(handler_map=handler_map_for_legend, loc='best', bbox_to_anchor=(1, 1),  fancybox=True, shadow=True, ncol=1, prop={'size':14}) # Display legend.
 
-    font = {'size'   : 16} #'family' : 'normal', #'weight' : 'bold',
+    font = {'size'   : 16}
     matplotlib.rc('font', **font)
 
     fig.savefig(output_image_pdf_file_with_all_samples, dpi=120, bbox_inches='tight')
@@ -306,57 +254,6 @@ def compute_min_max_samples(input_data_array, x_max, x_min, xelem, y_max, y_min,
     if y_max == float("-inf") :
         print("Warning: y_max is - infinity. Execution not interrupted.")
     return x_max, x_min, y_max, y_min
-
-
-# def compute_min_max_on_valid_samples(input_data_array, feasible_output_name, feasible_output_true,
-#                                      objective_1_is_percentage, objective_2_is_percentage, x_max, x_min, xelem, y_max,
-#                                      y_min, yelem):
-#     """
-#     Compute the min and max on the x and y axis excluding invalid samples.
-#
-#     :param input_data_array: computes the max and min on this data.
-#     :param feasible_output_name: example: "Valid".
-#     :param feasible_output_true: examples: "true" or "1" or "True".
-#     :param objective_1_is_percentage: is objective one to be shown as a percentage?
-#     :param objective_2_is_percentage: is objective two to be shown as a percentage?
-#     :param x_max: input and output variable.
-#     :param x_min: input and output variable.
-#     :param xelem: variable to select the column that refers to the objective one in the array input_data_array.
-#     :param y_max: input and output variable.
-#     :param y_min: input and output variable.
-#     :param yelem: variable to select the column that refers to the objective two in the array input_data_array.
-#     :return: min and max on both axes
-#     """
-#     if objective_1_is_percentage:
-#         x_max = 1
-#         x_min = 0
-#     if objective_2_is_percentage:
-#         y_max = 1
-#         y_min = 0
-#     for elem in zip(input_data_array[xelem], input_data_array[yelem], input_data_array[feasible_output_name]):
-#         if elem[2] == feasible_output_true:
-#             if not objective_1_is_percentage and not objective_2_is_percentage:
-#                 x_max = max(x_max, elem[0])
-#                 y_max = max(y_max, elem[1])
-#                 x_min = min(x_min, elem[0])
-#                 y_min = min(y_min, elem[1])
-#             elif objective_1_is_percentage and not objective_2_is_percentage:
-#                 if elem[0] <= 1 and elem[0] >= 0:
-#                     y_max = max(y_max, elem[1])
-#                     y_min = min(y_min, elem[1])
-#             elif not objective_1_is_percentage and objective_2_is_percentage:
-#                 if elem[1] <= 1 and elem[1] >= 0:
-#                     x_max = max(x_max, elem[1])
-#                     x_min = min(x_min, elem[1])
-#     if x_min == float("inf") :
-#         print("Error: x_min is infinity. Execution not interrupted.")
-#     if y_min == float("inf") :
-#         print("Error: y_min is infinity. Execution not interrupted.")
-#     if x_max == float("-inf") :
-#         print("Error: x_max is - infinity. Execution not interrupted.")
-#     if y_max == float("-inf") :
-#         print("Error: y_max is - infinity. Execution not interrupted.")
-#     return x_max, x_min, y_max, y_min
 
 
 if __name__ == "__main__":
