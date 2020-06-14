@@ -92,6 +92,7 @@ def run_acquisition_function(acquisition_function,
                             objective_limits,
                             iteration_number,
                             data_array,
+                            model_type,
                             classification_model=None,
                             tree_means_per_leaf=None,
                             tree_vars_per_leaf=None,
@@ -126,6 +127,7 @@ def run_acquisition_function(acquisition_function,
                                                                     scalarization_method,
                                                                     objective_bounds,
                                                                     objective_limits,
+                                                                    model_type,
                                                                     classification_model,
                                                                     number_of_cpus)
     elif acquisition_function == "UCB":
@@ -138,6 +140,7 @@ def run_acquisition_function(acquisition_function,
                                                         objective_bounds,
                                                         objective_limits,
                                                         iteration_number,
+                                                        model_type,
                                                         classification_model,
                                                         tree_means_per_leaf,
                                                         tree_vars_per_leaf,
@@ -152,6 +155,7 @@ def run_acquisition_function(acquisition_function,
                                                         objective_bounds,
                                                         objective_limits,
                                                         iteration_number,
+                                                        model_type,
                                                         classification_model,
                                                         tree_means_per_leaf,
                                                         tree_vars_per_leaf,
@@ -176,6 +180,7 @@ def ucb(bufferx,
         objective_bounds,
         objective_limits,
         iteration_number,
+        model_type,
         classification_model=None,
         tree_means_per_leaf=None,
         tree_vars_per_leaf=None,
@@ -205,20 +210,19 @@ def ucb(bufferx,
     number_of_predictions = len(bufferx)
     tmp_objective_limits = copy.deepcopy(objective_limits)
 
-    tree_predictions = models.tree_predictions(bufferx, regression_models, param_space)
-    leaf_per_sample = models.get_leaves_per_sample(bufferx, regression_models, param_space)
-    for objective in regression_models:
-        tmp_min = np.amin(tree_predictions[objective])
-        tmp_objective_limits[objective][0] = min(tmp_min, tmp_objective_limits[objective][0])
-        tmp_max = np.amax(tree_predictions[objective])
-        tmp_objective_limits[objective][1] = max(tmp_max, tmp_objective_limits[objective][1])
-
-        prediction_means[objective] = models.compute_rf_prediction(leaf_per_sample[objective], tree_means_per_leaf[objective])
-        prediction_variances[objective] = models.compute_rf_prediction_variance(
-                                                                            leaf_per_sample[objective],
-                                                                            prediction_means[objective],
-                                                                            tree_means_per_leaf[objective],
-                                                                            tree_vars_per_leaf[objective])
+    if model_type == "random_forest":
+        leaf_per_sample = models.get_leaves_per_sample(bufferx, regression_models, param_space)
+        for objective in regression_models:
+            prediction_means[objective] = models.compute_rf_prediction(leaf_per_sample[objective], tree_means_per_leaf[objective])
+            prediction_variances[objective] = models.compute_rf_prediction_variance(
+                                                                        leaf_per_sample[objective],
+                                                                        prediction_means[objective],
+                                                                        tree_means_per_leaf[objective],
+                                                                        tree_vars_per_leaf[objective])
+    elif model_type == "gaussian_process":
+        prediction_means, prediction_stds = models.compute_gp_prediction_mean_and_std(bufferx, regression_models, param_space)
+        for objective in objective_weights:
+            prediction_variances[objective] = prediction_stds[objective]**2
 
 
     # Normalize weights to [0, 1] and sum(weights) = 1
@@ -262,7 +266,7 @@ def ucb(bufferx,
                 beta_factor += normalized_weights[objective]*prediction_variances[objective][x_index]
             scalarized_predictions[x_index] -= beta*np.sqrt(beta_factor)
             scalarized_predictions[x_index] = scalarized_predictions[x_index]*feasibility_indicator[x_index]
-    # The paper does not propose this, I applied their methodology to the original tchebyshev to get the approach below
+    # The paper does not propose this, we apply their methodology to the original tchebyshev to get the approach below
     # Important: since this was not proposed in the paper, their proofs and bounds for the modified_tchebyshev may not be valid here.
     elif(scalarization_method == "tchebyshev"):
         scalarized_predictions = scalarized_predictions = np.zeros(number_of_predictions)
@@ -282,7 +286,7 @@ def ucb(bufferx,
                 scalarized_value = reciprocated_weights[objective] * (prediction_means[objective][x_index] - beta*np.sqrt(prediction_variances[objective][x_index]))
                 scalarized_predictions[x_index] = min(scalarized_value, scalarized_predictions[x_index])
             scalarized_predictions[x_index] = scalarized_predictions[x_index]*feasibility_indicator[x_index]
-            scalarized_predictions[x_index] = -scalarized_predictions[x_index] # We will minimize later, but we want to maximize instead, so we invert the sign
+            scalarized_predictions[x_index] = -scalarized_predictions[x_index] # We will minimize later, but we want to maximize in this case, so we invert the sign
     else:
         print("Error: unrecognized scalarization method:", scalarization_method)
         raise SystemExit
@@ -297,7 +301,8 @@ def thompson_sampling(
                     scalarization_method,
                     objective_bounds,
                     objective_limits,
-                    classification_model,
+                    model_type,
+                    classification_model=None,
                     number_of_cpus=0):
     """
     Multi-objective thompson sampling acquisition function as detailed in https://arxiv.org/abs/1805.12168.
@@ -312,11 +317,14 @@ def thompson_sampling(
     :return: a list of scalarized values for each point in bufferx.
     """
     tmp_objective_limits = copy.deepcopy(objective_limits)
+    model_predictions = {}
 
-    # For now, running on parallel slows down the local search because of the number of small prediction batches
-    # regression_prediction_results = models.parallel_model_prediction(regression_models, bufferx, number_of_cpus=number_of_cpus)
-    regression_prediction_results = models.model_prediction(bufferx, regression_models, param_space)
-    number_of_predictions = len(regression_prediction_results[list(regression_prediction_results.keys())[0]])
+    t0 = datetime.datetime.now()
+    if model_type == "random_forest":
+        model_predictions = models.model_prediction(bufferx, regression_models, param_space)
+    elif model_type == "gaussian_process":
+        model_predictions = models.sample_gp_posterior(bufferx, regression_models, param_space)
+    number_of_predictions = len(model_predictions[list(model_predictions.keys())[0]])
 
     if classification_model != None:
         classification_prediction_results = models.model_probabilities(bufferx, classification_model, param_space)
@@ -325,21 +333,6 @@ def thompson_sampling(
         feasibility_indicator = classification_prediction_results[feasible_parameter][:,true_value_index]
     else:
         feasibility_indicator = [1]*number_of_predictions # if no classification model is used, then all points are feasible
-
-    # Normalize predictions to [0, 1]
-    normalized_predictions = {}
-    for objective in regression_prediction_results:
-        tmp_min = min(regression_prediction_results[objective])
-        tmp_objective_limits[objective][0] = min(tmp_min, tmp_objective_limits[objective][0])
-        tmp_max = max(regression_prediction_results[objective])
-        tmp_objective_limits[objective][1] = max(tmp_max, tmp_objective_limits[objective][1])
-        # Both limits are the same only if all elements in the array are equal. This causes the normalization to divide by 0.
-        # We cannot optimize an objective when all values are the same, so we set it to 0
-        if objective_limits[objective][1] == objective_limits[objective][0]:
-            normalized_predictions[objective] = [0]*len(regression_prediction_results[objective])
-        else:
-            normalized_predictions[objective] = (regression_prediction_results[objective] - tmp_objective_limits[objective][0]) \
-                                            /(tmp_objective_limits[objective][1] - tmp_objective_limits[objective][0])
 
     total_weight = 0
     normalized_weights = {}
@@ -364,16 +357,16 @@ def thompson_sampling(
         scalarized_predictions = np.zeros(number_of_predictions)
         for run_index in range(number_of_predictions):
             for objective in regression_models:
-                scalarized_predictions[run_index] += normalized_weights[objective] * normalized_predictions[objective][run_index]
+                scalarized_predictions[run_index] += normalized_weights[objective] * model_predictions[objective][run_index]
             scalarized_predictions[run_index] = scalarized_predictions[run_index]*feasibility_indicator[run_index]
-    # The paper does not propose this, I applied their methodology to the original tchebyshev to get the approach below
+    # The paper does not propose this, we apply their methodology to the original tchebyshev to get the approach below
     # Important: since this was not proposed in the paper, their proofs and bounds for the modified_tchebyshev may not be valid here.
     elif(scalarization_method == "tchebyshev"):
         scalarized_predictions = scalarized_predictions = np.zeros(number_of_predictions)
         for run_index in range(number_of_predictions):
             total_value = 0
             for objective in regression_models:
-                scalarized_value = normalized_weights[objective] * abs(normalized_predictions[objective][run_index])
+                scalarized_value = normalized_weights[objective] * abs(model_predictions[objective][run_index])
                 scalarized_predictions[run_index] = max(scalarized_value, scalarized_predictions[run_index])
                 total_value += scalarized_value
             scalarized_predictions[run_index] += 0.05*total_value
@@ -383,10 +376,10 @@ def thompson_sampling(
         reciprocated_weights = reciprocate_weights(normalized_weights)
         for run_index in range(number_of_predictions):
             for objective in regression_models:
-                scalarized_value = reciprocated_weights[objective] * abs(normalized_predictions[objective][run_index])
+                scalarized_value = reciprocated_weights[objective] * abs(model_predictions[objective][run_index])
                 scalarized_predictions[run_index] = min(scalarized_value, scalarized_predictions[run_index])
             scalarized_predictions[run_index] = scalarized_predictions[run_index]*feasibility_indicator[run_index]
-            scalarized_predictions[run_index] = -scalarized_predictions[run_index] # We will minimize later, but we want to maximize instead, so we invert the sign
+            scalarized_predictions[run_index] = -scalarized_predictions[run_index] # We will minimize later, but we want to maximize in this case, so we invert the sign
     else:
         print("Error: unrecognized scalarization method:", scalarization_method)
         raise SystemExit
@@ -403,6 +396,7 @@ def EI(
     objective_bounds,
     objective_limits,
     iteration_number,
+    model_type,
     classification_model=None,
     tree_means_per_leaf=None,
     tree_vars_per_leaf=None,
@@ -431,20 +425,21 @@ def EI(
     prediction_variances = {}
     number_of_predictions = len(bufferx)
     tmp_objective_limits = copy.deepcopy(objective_limits)
-    tree_predictions = models.tree_predictions(bufferx, regression_models, param_space)
-    leaf_per_sample = models.get_leaves_per_sample(bufferx, regression_models, param_space)
-    for objective in regression_models:
-        tmp_min = np.amin(tree_predictions[objective])
-        tmp_objective_limits[objective][0] = min(tmp_min, tmp_objective_limits[objective][0])
-        tmp_max = np.amax(tree_predictions[objective])
-        tmp_objective_limits[objective][1] = max(tmp_max, tmp_objective_limits[objective][1])
 
-        prediction_means[objective] = models.compute_rf_prediction(leaf_per_sample[objective], tree_means_per_leaf[objective])
-        prediction_variances[objective] = models.compute_rf_prediction_variance(
-                                                                    leaf_per_sample[objective],
-                                                                    prediction_means[objective],
-                                                                    tree_means_per_leaf[objective],
-                                                                    tree_vars_per_leaf[objective])
+    if model_type == "random_forest":
+        leaf_per_sample = models.get_leaves_per_sample(bufferx, regression_models, param_space)
+        for objective in regression_models:
+            prediction_means[objective] = models.compute_rf_prediction(leaf_per_sample[objective], tree_means_per_leaf[objective])
+            prediction_variances[objective] = models.compute_rf_prediction_variance(
+                                                                        leaf_per_sample[objective],
+                                                                        prediction_means[objective],
+                                                                        tree_means_per_leaf[objective],
+                                                                        tree_vars_per_leaf[objective])
+    elif model_type == "gaussian_process":
+        prediction_means, prediction_stds = models.compute_gp_prediction_mean_and_std(bufferx, regression_models, param_space)
+        for objective in objective_weights:
+            prediction_variances[objective] = prediction_stds[objective]**2
+
     # Normalize weights to [0, 1] and sum(weights) = 1
     total_weight = 0
     normalized_weights = {}
@@ -499,7 +494,7 @@ def EI(
                 scalarized_value += objective_ei*normalized_weights[objective]
             scalarized_predictions[x_index] = scalarized_value*feasibility_indicator[x_index]
             scalarized_predictions[x_index] = -1*scalarized_predictions[x_index]
-    # The paper does not propose this, I applied their methodology to the original tchebyshev to get the approach below
+    # The paper does not propose this, we apply their methodology to the original tchebyshev to get the approach below
     # Important: since this was not proposed in the paper, their proofs and bounds for the modified_tchebyshev may not be valid here.
     elif(scalarization_method == "tchebyshev"):
         scalarized_predictions = scalarized_predictions = np.zeros(number_of_predictions)
@@ -618,9 +613,24 @@ def main(config, black_box_function=None, output_file=""):
     doe_type = config["design_of_experiment"]["doe_type"]
     number_of_doe_samples = config["design_of_experiment"]["number_of_samples"]
 
-    model = config["models"]["model"]
-    if model == "random_forest":
+    model_type = config["models"]["model"]
+    if (model_type == "gaussian_process") and (acquisition_function == "TS"):
+        print("Error: The TS acquisition function with Gaussian Process models is still under implementation")
+        print("Using EI acquisition function instead")
+        acquisition_function = "EI"
+
+    number_of_trees = config["models"]["number_of_trees"]
+    regression_model_parameters = {}
+    if model_type == "random_forest":
         number_of_trees = config["models"]["number_of_trees"]
+        regression_model_parameters["n_estimators"] = config["models"]["number_of_trees"]
+        regression_model_parameters["max_features"] = config["models"]["max_features"]
+        regression_model_parameters["bootstrap"] = config["models"]["bootstrap"]
+        regression_model_parameters["min_samples_split"] = config["models"]["min_samples_split"]
+        tree_means_per_leaf=None
+        tree_vars_per_leaf=None
+
+
 
     log_file = deal_with_relative_and_absolute_path(run_directory, config["log_file"])
     sys.stdout.change_log_file(log_file)
@@ -707,48 +717,56 @@ def main(config, black_box_function=None, output_file=""):
     optimization_function_parameters['param_space'] = param_space
     optimization_function_parameters['objective_bounds'] = objective_bounds
     optimization_function_parameters['scalarization_method'] = scalarization_method
+    optimization_function_parameters['model_type'] = model_type
     iteration_number = 0
     bo_t0 = datetime.datetime.now()
     while iteration_number < optimization_iterations:
         print("Starting optimization iteration", iteration_number+1)
         iteration_t0 = datetime.datetime.now()
         model_t0 = datetime.datetime.now()
+        normalized_data_array = copy.deepcopy(data_array)
+        for objective in optimization_metrics:
+            # Both limits are the same only if all elements in the array are equal. This causes the normalization to divide by 0.
+            # We cannot optimize an objective when all values are the same, so we set it to 0
+            if objective_limits[objective][1] == objective_limits[objective][0]:
+                normalized_objective = [0]*len(data_array[objective])
+            else:
+                normalized_objective = [(x - objective_limits[objective][0]) \
+                                        /(objective_limits[objective][1] - objective_limits[objective][0]) for x in data_array[objective]]
+            normalized_data_array[objective] = normalized_objective
         regression_models,_,_ = models.generate_mono_output_regression_models(
-                                                                            data_array,
+                                                                            normalized_data_array,
                                                                             param_space,
                                                                             input_params,
                                                                             optimization_metrics,
                                                                             1.00,
-                                                                            n_estimators=number_of_trees,
-                                                                            max_features=0.5,
+                                                                            model_type=model_type,
                                                                             number_of_cpus=number_of_cpus,
-                                                                            print_importances=print_importances)
-        # If using ucb, get means and vars per leaf
-        if (acquisition_function == "UCB") or (acquisition_function == "EI"):
-            bufferx = [data_array[input_param] for input_param in input_params]
-            bufferx = list(map(list, list(zip(*bufferx))))
-            tree_means_per_leaf = {}
-            tree_vars_per_leaf = {}
-            leaf_per_sample = models.get_leaves_per_sample(bufferx, regression_models, param_space)
-            for objective in optimization_metrics:
-                # Both limits are the same only if all elements in the array are equal. This causes the normalization to divide by 0.
-                # We cannot optimize an objective when all values are the same, so we set it to 0
-                if objective_limits[objective][1] == objective_limits[objective][0]:
-                    normalized_objective = [0]*len(data_array[objective])
-                else:
-                    normalized_objective = [(x - objective_limits[objective][0]) \
-                                            /(objective_limits[objective][1] - objective_limits[objective][0]) for x in data_array[objective]]
-                tree_means_per_leaf[objective] = models.get_mean_per_leaf(normalized_objective, leaf_per_sample[objective])
-                tree_vars_per_leaf[objective] = models.get_var_per_leaf(normalized_objective, leaf_per_sample[objective])
+                                                                            print_importances=print_importances,
+                                                                            **regression_model_parameters)
 
-        # Change splits of each node from (lower_bound + upper_bound)/2 to a uniformly sampled split in (lower_bound, upper_bound)
-        regression_models = models.transform_rf_using_uniform_splits(regression_models, data_array, param_space)
+        if model_type == "random_forest":
+            # If using EI or UCB, get means and vars per leaf
+            if (acquisition_function == "UCB") or (acquisition_function == "EI"):
+                bufferx = [normalized_data_array[input_param] for input_param in input_params]
+                bufferx = list(map(list, list(zip(*bufferx))))
+                tree_means_per_leaf = {}
+                tree_vars_per_leaf = {}
+                leaf_per_sample = models.get_leaves_per_sample(bufferx, regression_models, param_space)
+                for objective in optimization_metrics:
+                    tree_means_per_leaf[objective] = models.get_mean_per_leaf(normalized_data_array[objective], leaf_per_sample[objective])
+                    tree_vars_per_leaf[objective] = models.get_var_per_leaf(normalized_data_array[objective], leaf_per_sample[objective])
+
+            # Change splits of each node from (lower_bound + upper_bound)/2 to a uniformly sampled split in (lower_bound, upper_bound)
+            regression_models = models.transform_rf_using_uniform_splits(regression_models, normalized_data_array, param_space)
+            optimization_function_parameters['tree_means_per_leaf'] = tree_means_per_leaf
+            optimization_function_parameters['tree_vars_per_leaf'] = tree_vars_per_leaf
 
         classification_model = None
         if enable_feasible_predictor:
             classification_model,_,_ = models.generate_classification_model(application_name,
                                                                             param_space,
-                                                                            data_array,
+                                                                            normalized_data_array,
                                                                             input_params,
                                                                             feasible_parameter,
                                                                             1.00,
@@ -779,8 +797,6 @@ def main(config, black_box_function=None, output_file=""):
             optimization_function_parameters['iteration_number'] = iteration_number
             optimization_function_parameters['data_array'] = data_array
             optimization_function_parameters['classification_model'] = classification_model
-            optimization_function_parameters['tree_means_per_leaf'] = tree_means_per_leaf
-            optimization_function_parameters['tree_vars_per_leaf'] = tree_vars_per_leaf
             data_array_scalarization, objective_limits = compute_data_array_scalarization(
                                                                                         data_array,
                                                                                         objective_weights,

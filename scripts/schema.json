@@ -56,13 +56,18 @@
       },
       "models": {
         "type": "object",
-        "description": "HyperMapper is meant to use multiple models: Random Forest, Gaussian Processes, Parzen Estimators, etc.",
+        "description": "HyperMapper currently supports Random Forests and Gaussian Processes",
         "oneOf": [
           {
             "$ref": "#/models/randomForest"
+          },
+          {
+            "$ref": "#/models/gaussianProcess"
           }
         ],
-        "default": {"model": "random_forest", "number_of_trees": 10}
+        "default": {
+          "model": "random_forest"
+        }
       },
       "output_image": {
         "type": "object",
@@ -285,15 +290,23 @@
         }
     },
     "models": {
-        "randomForest": {
-            "properties": {
-                "model": { "enum": [ "random_forest" ] },
-                "number_of_trees": {"description": "Not yet implemented.", "type": "integer", "minimum": 1, "maximum": 1000}
-            },
-            "required": ["model"],
-            "additionalProperties": false
-        }
-    },
+      "randomForest": {
+          "properties": {
+              "model": { "enum": [ "random_forest" ] },
+              "number_of_trees": {"description": "Number of trees in the forest.", "type": "integer", "minimum": 1, "maximum": 1000, "default": 10},
+              "max_features": {"description": "Percentage of the features to be used when fitting the forest.", "type": "number", "minimum": 0, "maximum": 1, "default": 0.5},
+              "bootstrap": {"description": "Whether to use bagging when fitting the forest.", "type": "boolean", "default": false},
+              "min_samples_split": {"description": "Minimum number of samples required to split a node.", "type": "integer", "minimum": 2, "default": 5}
+          },
+          "required": ["model"]
+      },
+      "gaussianProcess": {
+        "properties": {
+            "model": { "enum": [ "gaussian_process" ] }
+        },
+        "required": ["model"]
+    }
+  },
     "output_image": {
         "image": {
             "properties": {

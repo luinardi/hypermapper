@@ -8,18 +8,8 @@ from sklearn.metrics import classification_report
 from sklearn.preprocessing import OneHotEncoder
 from utility_functions import *
 from scipy import stats
+import GPy
 
-#from sklearn import cross_validation, linear_model, svm
-#from sklearn.naive_bayes import MultinomialNB
-#from sklearn.metrics import confusion_matrix, roc_curve, auc
-#from sklearn.ensemble import ExtraTreesClassifier,BaggingClassifier,RandomForestClassifier,AdaBoostClassifier
-#from sklearn.ensemble.forest import RandomForestRegressor
-#from sklearn import cross_validation
-#import operator
-#import affinity
-#import multiprocessing as mp
-#affinity.set_process_affinity_mask(0,2**mp.cpu_count()-1)
-#os.system("taskset -p 0xff %d" % os.getpid())
 
 def generate_multi_output_regression_model(data_array
                                , param_space
@@ -65,7 +55,7 @@ def generate_multi_output_regression_model(data_array
     if len (Y_test) == 0:
         Y_test = Y[:]
 
-    regressor = customRegressor(n_estimators=n_estimators, bootstrap=False, min_samples_split=5, max_features = max_features, n_jobs=1) # Parallel: n_jobs=-1 will use all available processors
+    regressor = customRegressor(n_estimators=n_estimators, bootstrap=False, min_samples_split=5, max_features = max_features, n_jobs=1)
     regressor.fit(X_train, y_train)
 
     if print_importances:
@@ -81,13 +71,12 @@ def generate_mono_output_regression_models(data_array
                                , Ycols
                                , learn_ratio
                                , debug=False
-                               , n_estimators=10
-                               , max_features=0.5
-                               , customRegressor=RandomForestRegressor
+                               , model_type="gaussian_process"
                                , number_of_cpus=0
-                               , print_importances=False):
+                               , print_importances=False
+                               , **model_kwargs):
     """
-    Fit a Random Forest model (for now it is Random Forest but in the future we will host more models here (e.g. GPs and lattices).
+    Fit a regression model, supported model types are Random Forest and Gaussian Process.
     This method fits one mono output model for each objective.
     :param data_array: the data to use for training.
     :param Xcols: the names of the input features used for training.
@@ -96,7 +85,7 @@ def generate_mono_output_regression_models(data_array
     :param debug: is debugging mode enabled?
     :param n_estimators: number of trees.
     :param max_features: this is a parameter of the Random Forest. It decides how many feature to randomize.
-    :param customRegressor:
+    :param model_type:
     :param number_of_cpus:
     :return: 3 variables: the classifier, X_test , Y_test.
     """
@@ -105,7 +94,7 @@ def generate_mono_output_regression_models(data_array
     if param_space.get_input_normalization_flag() is True:
         compute_mean_and_std(data_array, param_space)
     preprocessed_data_array = preprocess_data_array(data_array, param_space, Xcols)
-    regressor_baggedtrees = {}
+    regressor = {}
     X = [preprocessed_data_array[param] for param in preprocessed_data_array]
     X = list(map(list, list(zip(*X))))
     learn_size = int(len(X) * learn_ratio)
@@ -132,20 +121,27 @@ def generate_mono_output_regression_models(data_array
                 print(X_train)
             print("Y_train")
             print(y_train)
-            # X_train, X_test, y_train, y_test_accuracy = cross_validation.train_test_split(X, Yall, test_size = 0.33, random_state = 0)
             print("Run accuracy prediction training...")
 
-
-        #print(("Affinity mask: %d"%affinity.get_process_affinity_mask(0)))
-        #classifier_baggedtrees[Ycol] = customClassifier(n_estimators=n_estimators, max_features = max_features) # Sequential
-        regressor_baggedtrees[Ycol] = customRegressor(n_estimators=n_estimators, bootstrap=False, min_samples_split=5, max_features = max_features, n_jobs=1) # Parallel: n_jobs=-1 will use all available processors
-        regressor_baggedtrees[Ycol].fit(X_train, y_train)
-        if print_importances:
-            parameter_importances = compute_parameter_importance(regressor_baggedtrees[Ycol], Xcols, param_space)
-            print("Regression model on " + str(Ycol) + ". Features names: " + str(Xcols) + ", feature importances: " + str(parameter_importances))
+        if model_type == "gaussian_process":
+            X_train = np.array(X_train)
+            y_train = np.array(y_train).reshape(-1,1)
+            regressor[Ycol] = GPy.models.GPRegression(X_train, y_train, kernel=GPy.kern.Matern52(len(preprocessed_data_array), ARD=True), normalizer=True, **model_kwargs)
+            with np.errstate(divide='ignore', over='ignore', invalid='ignore'): # GPy's optimize has uncaught warnings that do not affect performance, suppress them so that they do not propagate to HyperMapper
+                regressor[Ycol].optimize()
+            if print_importances:
+                print("Feature importance is currently not supported with GPs")
+        elif model_type == "random_forest":
+            regressor[Ycol] = RandomForestRegressor(**model_kwargs) 
+            regressor[Ycol].fit(X_train, y_train)
+            if print_importances:
+                parameter_importances = compute_parameter_importance(regressor[Ycol], Xcols, param_space)
+                print("Regression model on " + str(Ycol) + ". Features names: " + str(Xcols) + ", feature importances: " + str(parameter_importances))
+        else:
+            print("Unrecognized model type:", RandomForestRegressor)
 
     sys.stdout.write_to_logfile(("End of training - Time %10.2f sec\n" % ((datetime.datetime.now() - start_time).total_seconds())))
-    return regressor_baggedtrees, X_test , Y_test
+    return regressor, X_test , Y_test
 
 
 def generate_classification_model(application_name
@@ -213,13 +209,10 @@ def generate_classification_model(application_name
                 print(X_train)
             print("Y_train")
             print(y_train)
-            # X_train, X_test, y_train, y_test_accuracy = cross_validation.train_test_split(X, Yall, test_size = 0.33, random_state = 0)
             print("Run accuracy prediction training...")
 
-        # print(("Affinity mask: %d"%affinity.get_process_affinity_mask(0)))
-        # classifier_baggedtrees[Ycol] = customClassifier(n_estimators=n_estimators, max_features = max_features) # Sequential
-        class_weight = {True: 0.9, False: 0.1} # Default is class_weight=None
-        classifier_baggedtrees[Ycol] = RandomForestClassifier(class_weight=class_weight, n_estimators=10, max_features=0.75) # n_estimators=10 is the default
+        class_weight = {True: 0.9, False: 0.1}
+        classifier_baggedtrees[Ycol] = RandomForestClassifier(class_weight=class_weight, n_estimators=10, max_features=0.75)
         classifier_baggedtrees[Ycol].fit(X_train, y_train)
 
         if data_array_exhaustive != None:
@@ -233,14 +226,8 @@ def generate_classification_model(application_name
         if print_importances:
             parameter_importances = compute_parameter_importance(classifier_baggedtrees[Ycol], Xcols, param_space)
             print("Classification model. Features names: " + str(Xcols) + ", feature importances: " + str(parameter_importances))
-        #customClassifier = RandomForestClassifier
-        #classifier_baggedtrees[Ycol] = customClassifier(n_estimators=n_estimators, max_features=max_features,
-        #                                                n_jobs=-1)  # Parallel: n_jobs=-1 will use all available processors
-        #classifier_baggedtrees[Ycol].fit(X_train, y_train)
 
         if enable_feasible_predictor_grid_search_on_recall_and_precision:
-            #dataset = "/Users/lnardi/Dropbox/sw/hypermapper/spatial_data/2018-04-16_21-43-25_reference_heuristic/BlackScholes/BlackScholes_heuristic/BlackScholes_heuristic_dse/BlackScholes_trial_0.csv"
-            #dataset = "/home/lnardi/spatial-lang/results/apps_classification_test_set/" + application_name + ".csv"
             dataset = feasible_predictor_grid_search_validation_file
             compute_recall_and_precision_on_RF_hyperparameters(dataset, param_space, X_train, y_train)
 
@@ -280,17 +267,15 @@ def compute_recall_and_precision_on_RF_hyperparameters(dataset, param_space, X_t
     print("\nCount of feasible in the dataset file %s = %d" % (dataset, count))
     # Set the parameters by cross-validation
     tuned_parameters = [{
-         'n_estimators': [10, 100, 1000], # 'n_estimators': [10, 20, 30, 50, 100, 1000],
-         'max_features': ["auto", 0.5, 0.75], #'max_features': ["auto", 0.25, 0.5, 0.75],
-         #'criterion': ["gini", "entropy"],
-         'max_depth': [None, 4, 8], # 'max_depth': [2, 4, 6, 8, 10, 20],
+         'n_estimators': [10, 100, 1000],
+         'max_features': ["auto", 0.5, 0.75],
+         'max_depth': [None, 4, 8],
          'class_weight': [{True: 0.50, False: 0.50}, {True: 0.75, False: 0.25}, {True: 0.9, False: 0.1}]
-         # 'class_weight': [{True: 0.25, False: 0.75}, {True: 0.50, False: 0.50}, {True: 0.75, False: 0.25}, {True: 0.8, False: 0.2}, {True: 0.85, False: 0.15}, {True: 0.9, False: 0.1}, {True: 0.95, False: 0.05}]
     }]
     X_test = [data_array[Xcol] for Xcol in Xcols]
     X_test = list(map(list, list(zip(*X_test))))
     Y_test = data_array[Ycol]
-    scores = ['recall', 'precision'] #scores = ['recall']
+    scores = ['recall', 'precision']
     for score in scores:
         print("# Tuning hyper-parameters for %s" % score)
 
@@ -348,7 +333,7 @@ def parallel_model_prediction(model, bufferx, param_space, debug=False, number_o
         return domain_decomposition_and_parallel_computation(debug, mono_output_model_prediction, concatenate_function_prediction, bufferx, number_of_cpus, model, param_space)
     else:
         return domain_decomposition_and_parallel_computation(debug, multi_output_model_prediction, concatenate_function_prediction, bufferx, number_of_cpus, model, param_space)
-    #return domain_decomposition_and_parallel_computation(debug, worker, concatenate_function_prediction, bufferx, classifier)
+    
 
 def multi_output_model_prediction(bufferx, model, param_space):
     """
@@ -457,10 +442,17 @@ def preprocess_data_array(data_array, param_space, input_params):
     :return: preprocessed data array. The returned data array will contain only the keys in input_params.
     """
     non_categorical_parameters = param_space.get_input_non_categorical_parameters(input_params)
-    categorical_parameters = param_space.get_input_categorical_parameters_objects(input_params)
+    parameter_objects = param_space.get_input_parameters_objects()
+    categorical_parameters = param_space.get_input_categorical_parameters(input_params)
     preprocessed_data_array = {}
     for param in non_categorical_parameters:
-        if param_space.get_input_normalization_flag() is True:
+        if param_space.get_type(param) == "ordinal":
+            param_value_list = parameter_objects[param].get_values()
+            param_size = parameter_objects[param].get_size()
+            preprocessed_data_array[param] = []
+            for param_value in data_array[param]:
+                preprocessed_data_array[param].append(param_value_list.index(param_value)/param_size) 
+        elif param_space.get_input_normalization_flag() is True:
             X = np.array(data_array[param], dtype=np.float64)
             mean = param_space.get_parameter_mean(param)
             std = param_space.get_parameter_std(param)
@@ -470,7 +462,7 @@ def preprocess_data_array(data_array, param_space, input_params):
             preprocessed_data_array[param] = data_array[param]
     for param in categorical_parameters:
         # Categorical variables are encoded as their index, generate a list of "index labels"
-        categories = np.arange(categorical_parameters[param].get_size())
+        categories = np.arange(parameter_objects[param].get_size())
         encoder = OneHotEncoder(categories="auto", sparse=False)
         encoder.fit(categories.reshape(-1,1))
         x = np.array(data_array[param]).reshape(-1,1)
@@ -648,7 +640,7 @@ def transform_rf_using_uniform_splits(regression_models, data_array, param_space
             left_children = tree.tree_.children_left
             right_children = tree.tree_.children_right
             for node_idx in range(tree.tree_.node_count):
-                if left_children[node_idx] == right_children[node_idx]: # Its a leaf
+                if left_children[node_idx] == right_children[node_idx]: # If both children are equal, this is a leaf in the tree
                     continue
                 feature = new_features[tree.tree_.feature[node_idx]]
                 threshold = tree.tree_.threshold[node_idx]
@@ -658,3 +650,42 @@ def transform_rf_using_uniform_splits(regression_models, data_array, param_space
 
                 tree.tree_.threshold[node_idx] = new_split
     return regression_models
+
+def compute_gp_prediction_mean_and_std(bufferx, model, param_space):
+    """
+    Compute the mean and std prediction of a GP model for a list of points.
+    :param bufferx: list containing points to predict.
+    :param model: the GP regression model.
+    :param param_space: parameter space object for the current application.
+    :return: mean and std predictions 
+    """
+    normalized_bufferx = preprocess_data_buffer(bufferx, param_space)
+    normalized_bufferx = np.array(normalized_bufferx)
+    means = {}
+    stds = {}
+    for parameter in model:
+        means[parameter], stds[parameter] = model[parameter].predict(normalized_bufferx)
+        means[parameter] = means[parameter].flatten()
+        stds[parameter] = stds[parameter].flatten()
+
+        # Precision can sometimes lead GPy to predict extremely low deviation, which leads to numerical issues
+        # We add a floor to std to avoid these numerical issues. The majority of std values observed are naturally above this floor.
+        stds[parameter][stds[parameter] < 10**-11] = 10**-11 
+
+    return means, stds
+
+def sample_gp_posterior(bufferx, model, param_space):
+    """
+    Sample from the gp posterior for a list of points.
+    :param bufferx: list containing points to predict.
+    :param model: the GP regression model.
+    :param param_space: parameter space object for the current application.
+    :return: GP sample
+    """
+    normalized_bufferx = preprocess_data_buffer(bufferx, param_space)
+    normalized_bufferx = np.array(normalized_bufferx)
+    gp_samples = {}
+    for objective in model:
+        gp_samples[objective] = model[objective].posterior_samples_f(normalized_bufferx, size=1)
+
+    return gp_samples
