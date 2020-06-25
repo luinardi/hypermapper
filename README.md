@@ -18,6 +18,12 @@ To learn about the core principles of HyperMapper refer to the papers section at
 ## Contact and Info
 For any questions please contact [Luigi Nardi](lnardi@stanford.edu).
 
+## HyperMapper Slack Channel
+Join the channel for a quicker communication with the dev team: 
+```latex
+hypermapper.slack.com
+```
+
 ## License
 HyperMapper is distributed under the MIT license. More information on the license can be found [here](https://github.com/luinardi/hypermapper/blob/master/LICENSE).
 
