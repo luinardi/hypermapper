@@ -38,7 +38,7 @@ HyperMapper is distributed under the MIT license. More information on the licens
 If you use HyperMapper in scientific publications, we would appreciate citations to the following paper: 
 
 ```
-Nardi, Luigi, David Koeplinger, and Kunle Olukotun. "Practical design space exploration", IEEE MASCOTS, 2019.
+Nardi, Luigi, David Koeplinger, and Kunle Olukotun. "Practical Design Space Exploration", IEEE MASCOTS, 2019.
 ```
 
 For the list of all publications (including bibtex) related to HyperMapper and its applications, see our [Publications](https://github.com/luinardi/hypermapper/wiki/Publications) page.
