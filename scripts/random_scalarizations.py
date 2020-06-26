@@ -653,28 +653,66 @@ def main(config, black_box_function=None, output_file=""):
     beginning_of_time = param_space.current_milli_time()
     absolute_configuration_index = 0
 
-    # Add default configuration to doe phase
-    fast_addressing_of_data_array = {}
-    default_configuration = param_space.get_default_or_random_configuration()
-    str_data = param_space.get_unique_hash_string_from_values(default_configuration)
-    fast_addressing_of_data_array[str_data] = absolute_configuration_index
-
-    if number_of_doe_samples-1 > 0:
-        configurations = param_space.get_doe_sample_configurations(fast_addressing_of_data_array, number_of_doe_samples-1, doe_type) + [default_configuration]
-    else:
-        configurations = [default_configuration]
-
-    print("Design of experiment phase, number of doe samples = %d ......." % number_of_doe_samples)
+    # Design of experiments/resume optimization phase
     doe_t0 = datetime.datetime.now()
-    data_array = param_space.run_configurations(
-                                                hypermapper_mode,
-                                                configurations,
-                                                beginning_of_time,
-                                                black_box_function,
-                                                exhaustive_search_data_array,
-                                                exhaustive_search_fast_addressing_of_data_array,
-                                                run_directory)
-    absolute_configuration_index += number_of_doe_samples
+    if config["resume_optimization"] == True:
+        resume_data_file = config["resume_optimization_data"]
+        if not resume_data_file.endswith('.csv'):
+            print("Error: resume data file must be a CSV")
+            raise SystemExit
+        if resume_data_file == "output_samples.csv":
+            resume_data_file = application_name + "_" + resume_data_file
+        data_array, fast_addressing_of_data_array = param_space.load_data_file(resume_data_file, debug=False, number_of_cpus=number_of_cpus)
+        absolute_configuration_index = len(data_array[list(data_array.keys())[0]]) # get the number of points evaluated in the previous run
+        beginning_of_time = beginning_of_time - data_array[param_space.get_timestamp_parameter()[0]][-1] # Set the timestamp back to match the previous run
+        print("Resumed optimization, number of samples = %d ......." % absolute_configuration_index)
+
+        if absolute_configuration_index < number_of_doe_samples:
+            configurations = param_space.get_doe_sample_configurations(
+                                                                    fast_addressing_of_data_array,
+                                                                    number_of_doe_samples-absolute_configuration_index,
+                                                                    "random sampling")
+
+            print("Design of experiment phase, number of new doe samples = %d ......." % (number_of_doe_samples - absolute_configuration_index))
+            new_data_array = param_space.run_configurations(
+                                                            hypermapper_mode,
+                                                            configurations,
+                                                            beginning_of_time,
+                                                            black_box_function,
+                                                            exhaustive_search_data_array,
+                                                            exhaustive_search_fast_addressing_of_data_array,
+                                                            run_directory)
+            data_array = concatenate_data_dictionaries(
+                                                    data_array,
+                                                    new_data_array,
+                                                    param_space.input_output_and_timestamp_parameter_names)
+            absolute_configuration_index = number_of_doe_samples
+            iteration_number = 1
+        else:
+            iteration_number = absolute_configuration_index - number_of_doe_samples + 1
+    else:
+        fast_addressing_of_data_array = {}
+        default_configuration = param_space.get_default_or_random_configuration()
+        str_data = param_space.get_unique_hash_string_from_values(default_configuration)
+        fast_addressing_of_data_array[str_data] = absolute_configuration_index
+
+        if number_of_doe_samples-1 > 0:
+            configurations = param_space.get_doe_sample_configurations(fast_addressing_of_data_array, number_of_doe_samples-1, "random sampling") + [default_configuration]
+        else:
+            configurations = [default_configuration]
+
+        print("Design of experiment phase, number of doe samples = %d ......." % number_of_doe_samples)
+        data_array = param_space.run_configurations(
+                                                    hypermapper_mode,
+                                                    configurations,
+                                                    beginning_of_time,
+                                                    black_box_function,
+                                                    exhaustive_search_data_array,
+                                                    exhaustive_search_fast_addressing_of_data_array,
+                                                    run_directory)
+        absolute_configuration_index += number_of_doe_samples
+        iteration_number = 1
+
     if enable_feasible_predictor:
         # HyperMapper needs at least one valid and one invalid sample for its feasibility classifier
         # i.e. they cannot all be equal
@@ -696,6 +734,14 @@ def main(config, black_box_function=None, output_file=""):
                                                         param_space.input_output_and_timestamp_parameter_names)
             absolute_configuration_index += 1
             optimization_iterations -= 1
+
+    with open(deal_with_relative_and_absolute_path(run_directory, output_data_file), 'w') as f:
+        w = csv.writer(f)
+        w.writerow(param_space.get_input_output_and_timestamp_parameters())
+        tmp_list = [param_space.convert_types_to_string(j, data_array) for j in param_space.get_input_output_and_timestamp_parameters()]
+        tmp_list = list(zip(*tmp_list))
+        for i in range(len(data_array[optimization_metrics[0]])):
+            w.writerow(tmp_list[i])
 
     for objective in optimization_metrics:
         lower_bound = min(objective_limits[objective][0], min(data_array[objective]))
@@ -836,6 +882,13 @@ def main(config, black_box_function=None, output_file=""):
                                                         run_directory)
         black_box_function_t1 = datetime.datetime.now()
 
+        with open(deal_with_relative_and_absolute_path(run_directory, output_data_file), 'a') as f:
+            w = csv.writer(f)
+            tmp_list = [param_space.convert_types_to_string(j, new_data_array) for j in list(param_space.get_input_output_and_timestamp_parameters())]
+            tmp_list = list(zip(*tmp_list))
+            for i in range(len(new_data_array[optimization_metrics[0]])):
+                w.writerow(tmp_list[i])
+
         data_array = concatenate_data_dictionaries(
                                                 new_data_array,
                                                 data_array,
@@ -851,15 +904,6 @@ def main(config, black_box_function=None, output_file=""):
         sys.stdout.write_to_logfile(("Black box function time %10.4f sec\n" % ((black_box_function_t1 - black_box_function_t0).total_seconds())))
         sys.stdout.write_to_logfile(("Total iteration time %10.4f sec\n" % ((datetime.datetime.now() - iteration_t0).total_seconds())))
     sys.stdout.write_to_logfile(("End of BO phase - Time %10.4f sec\n" % ((datetime.datetime.now() - bo_t0).total_seconds())))
-
-    with open(deal_with_relative_and_absolute_path(run_directory, output_data_file), 'w') as f:
-        w = csv.writer(f)
-        w.writerow(list(data_array.keys()))
-        tmp_list = [param_space.convert_types_to_string(j, data_array) for j in list(data_array.keys())]
-        tmp_list = list(zip(*tmp_list))
-        for i in reversed(range(len(data_array[optimization_metrics[0]]))):
-            w.writerow(tmp_list[i])
-
 
     print("End of Random Scalarizations")
     sys.stdout.write_to_logfile(("Total script time %10.2f sec\n" % ((datetime.datetime.now() - start_time).total_seconds())))

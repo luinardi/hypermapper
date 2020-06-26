@@ -1,6 +1,7 @@
 import sys
 import random_scalarizations
 import local_search
+import prior_optimization
 import compute_pareto
 import plot_dse
 import json
@@ -54,10 +55,12 @@ def optimize(parameters_file, black_box_function=None):
 
     optimization_method = config["optimization_method"]
 
-    if optimization_method == "random_scalarizations":
+    if (optimization_method == "random_scalarizations") or (optimization_method == "bayesian_optimization"):
         random_scalarizations.main(config, black_box_function=black_box_function)
     elif optimization_method == "local_search":
         local_search.main(config, black_box_function=black_box_function)
+    elif optimization_method == 'prior_guided_optimization':
+        prior_optimization.main(config, black_box_function)
     else:
         print("Unrecognized optimization method:", optimization_method)
         raise SystemExit

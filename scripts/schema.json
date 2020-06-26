@@ -139,7 +139,7 @@
                        "oneOf": [
                           {
                             "type" : "string",
-                            "enum": ["gaussian", "uniform", "exponential", "decay"]
+                            "enum": ["gaussian", "uniform", "exponential", "decay", "estimate", "custom_gaussian"]
                           },
                           {
                             "type" : "array"
@@ -206,8 +206,8 @@
       "optimization_method":{
         "type": "string",
         "description": "Method to use for the multi-objective optimization in Hypermapper.",
-        "enum": ["random_scalarizations", "local_search"],
-        "default": "random_scalarizations"
+        "enum": ["bayesian_optimization", "random_scalarizations", "local_search", "prior_guided_optimization"],
+        "default": "bayesian_optimization"
       },
       "local_search_starting_points":{
         "type": "integer",
@@ -252,9 +252,80 @@
       "epsilon_greedy_threshold":{
         "type": "number",
         "description": "value for the epsilon in the epsilon greedy component of HyperMapper.",
-        "default": 0.05,
+        "default": 0.1,
         "minimum": 0,
         "maximum": 1
+      },
+      "model_posterior_weight":{
+        "type": "number",
+        "description": "weight given to the probabilistic model versus the prior in HyperMapper's posterior computation. Larger values give more emphasis to the prior.",
+        "default": 10
+      },
+      "model_good_quantile":{
+        "type": "number",
+        "description": "defines the quantile of points the probabilistic model will consider 'good'.",
+        "default": 0.05
+      },
+      "prior_estimation_file":{
+          "type": "string",
+          "description": "a csv file containing a set of points to be used for density estimation.",
+          "default": "samples.csv"
+      },
+      "prior_estimation_quantile": {
+          "type": "number",
+          "description": "quantile of the best points to be used as 'good points' when estimating the prior",
+          "default": 0.1
+      },
+      "estimate_multivariate_priors": {
+        "type": "boolean",
+        "description": "whether to estimate a multivariate KDE prior for all input parameters. If true, the individual priors from each parameter will be ignored. Requires the 'prior_estimation_file' field. Can only be used with real parameters.",
+        "default": false
+      },
+      "resume_optimization": {
+        "type": "boolean",
+        "description": "whether to resume optimization from a previous state or start a new optimization.",
+        "default": false
+      },
+      "resume_optimization_data": {
+        "type": "string",
+        "description": "csv data of a previous optimization run to use to resume optimization.",
+        "default": "output_samples.csv"
+      },
+      "bandwidth_parameter": {
+        "type": "integer",
+        "description": "parameter used in the bandwidth selection. We use Scott's rule (https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.gaussian_kde.html), but replace the hardcoded 4 by this parameter.",
+        "default": 0
+      },
+      "bandwidth_n_factor": {
+        "type": "integer",
+        "description": "parameter used in the bandwidth selection. We use Scott's rule (https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.gaussian_kde.html), but multiply n by this factor.",
+        "default": 100
+      },
+      "prior_limit_estimation_points":{
+        "type": "integer",
+        "description": "number of random points to estimate the prior limits. The prior limits will be used to normalize the prior during optimization. The limits are updated as new prior values are found, but a initial estimation of the limits prevents the local search from using widely incorrect values in the first iteration.",
+        "default": 10000
+      },
+      "posterior_computation_lower_limit":{
+        "type": "number",
+        "description": "the minimum used for normalization in the acquisition function of prior-guided optimization.",
+        "default": 0.00000001
+      },
+      "custom_gaussian_prior_means":{
+        "type": "array",
+        "description": "means for the custom gaussian prior. Array must have size 1 or match the number of input parameters. If only one element is passed, the same mean will be used for all points. Can only be used with real parameters for now.",
+        "default": [0]
+      },
+      "custom_gaussian_prior_stds":{
+        "type": "array",
+        "description": "standard deviations for the custom gaussian prior. Array must have size 1 or match the number of input parameters. If only one element is passed, the same std will be used for all points. If -1, the std will be half of the input parameter's range. Can only be used with real parameters for now.",
+        "default": [-1]
+      },
+      "acquisition_function_optimizer":{
+        "type": "string",
+        "description": "which method to use to optimize the acquisition function.",
+        "enum":["local_search"],
+        "default": "local_search"
       }
     },
     "additionalProperties": false,

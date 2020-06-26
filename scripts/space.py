@@ -15,6 +15,11 @@ from random import shuffle
 from scipy import stats
 import pandas as pd
 from numbers import Number
+from sklearn.preprocessing import StandardScaler
+from scipy.stats import gaussian_kde, norm
+from scipy.special import ndtr
+
+#import affinity
 import multiprocessing as mp
 
 ################# PARAMETERS CLASSES ##################
@@ -32,7 +37,7 @@ class RealParameter(Parameter) :
     """
     This class defines a real (continuous) parameter.
     """
-    def __init__(self, min_value, max_value, preferred_discretization, default, probability_distribution) :
+    def __init__(self, min_value, max_value, preferred_discretization, default, probability_distribution):
         """
         Initilization method. The possible values for this parameter are between min_value and max_value.
         :param min_value: minimum value.
@@ -47,16 +52,121 @@ class RealParameter(Parameter) :
         self.default = default
         self.preferred_discretization = preferred_discretization
         self.prior = probability_distribution
-        self.alpha = self.densities_alphas[probability_distribution]
-        self.beta = self.densities_betas[probability_distribution]
+        self.estimated_pdf = None
+        self.custom_gaussian_prior_mean = None
+        self.custom_gaussian_prior_std = None
+        self.alpha = None
+        self.beta = None
+        if isinstance(self.prior, str) and (self.prior in self.densities_alphas.keys()):
+            self.alpha = self.densities_alphas[probability_distribution]
+            self.beta = self.densities_betas[probability_distribution]
+
+        self.cdf_distribution = None 
+        if isinstance(self.prior, list):
+            self.prior = list(self.prior/np.sum(self.prior))
+            self.param_xs = np.linspace(self.get_min(), self.get_max(), 10000)
+            self.pdf_distribution = self.interpolate_pdf(self.param_xs)
+            self.cdf_distribution = np.cumsum(self.pdf_distribution)
+            self.cdf_distribution = self.cdf_distribution/self.cdf_distribution[-1]
+
 
     def randomly_select(self):
         """
-        Sample from the specific beta distribution defined in the json for this parameter.
+        Sample from the prior distribution for this parameter.
         :return: the random sampled value from the set of available values.
         """
-        sample = random.betavariate(self.alpha, self.beta)
-        return self.from_range_0_1_to_parameter_value(np.asarray([sample]))[0]
+        if isinstance(self.prior, list):
+            x_probability = random.uniform(0, 1)
+            return np.interp(x_probability, self.cdf_distribution, self.param_xs)
+        elif self.prior == "estimate":
+            sample = self.estimated_pdf.resample(size=1)[0][0]
+            while sample > self.max_value or sample < self.min_value:
+                sample = self.estimated_pdf.resample(size=1)[0][0]
+        elif self.prior == "custom_gaussian":
+            sample = norm.rvs(loc=self.custom_gaussian_prior_mean, scale=self.custom_gaussian_prior_std)
+            sample_count = 1
+            while sample > self.max_value or sample < self.min_value:
+                sample_count += 1
+                if sample_count > 10000:
+                    print("\n ####\n Warning: reached maximum number of invalid samples from the custom gaussian prior. \nThe prior sampling will stop now. Is the prior defined outside or too close to the interval edges?\n")
+                    raise SystemExit  # too many random samples failed, the prior is probably too close to the edge
+                sample = norm.rvs(loc=self.custom_gaussian_prior_mean, scale=self.custom_gaussian_prior_std)
+        else:
+            sample = random.betavariate(self.alpha, self.beta)
+            sample = self.from_range_0_1_to_parameter_value(np.asarray([sample]))[0]
+        return sample
+
+    def randomly_select_uniform(self):
+        """
+        Sample from an uniform distribution for this parameter.
+        :return: the random sampled value from the set of available values.
+        """
+        sample = random.betavariate(1, 1)
+        sample = self.from_range_0_1_to_parameter_value(np.asarray([sample]))[0]
+        return sample
+
+    def estimate_pdf(self, values, bw_method=None):
+        """
+        Estimate a kde prior for this parameter.
+        :param values: the points to use to estimate the prior.
+        :param bw_method: the bandwidth of the kde.
+        """
+        self.estimated_pdf = gaussian_kde(values, bw_method=bw_method)
+    
+    def interpolate_pdf(self, x):
+        """
+        Find the pdf for x by interpolating the list of pdf values in the prior.
+        :param x: points to compute pdf.
+        :return: interpolated pdf for x.
+        """
+        prior_xs = np.linspace(self.get_min(), self.get_max(), len(self.prior))
+        return np.interp(x, prior_xs, self.prior)
+
+    def pdf(self, x):
+        """
+        Compute the probability density of a given X under the prior distribution of the paramer.
+        :return: the probability of X
+        """
+        if isinstance(self.prior, list):
+            return self.interpolate_pdf(x)
+        elif self.prior == "estimate":
+            return self.estimated_pdf(x)
+        elif self.prior == "custom_gaussian":
+            return norm.pdf(x, loc=self.custom_gaussian_prior_mean, scale=self.custom_gaussian_prior_std)
+        else:
+            rescaled_x = self.from_parameter_value_to_0_1_range(x)
+            return stats.beta.pdf(rescaled_x, self.alpha, self.beta)
+
+    def cdf(self, x):
+        t0_cdf = datetime.datetime.now()
+        if self.prior == "estimate":
+            return self.estimated_pdf.integrate_box_1d(float("-inf"), x)
+        elif self.prior == "custom_gaussian":
+            return norm.cdf(x, loc=self.custom_gaussian_prior_mean, scale=self.custom_gaussian_prior_std)
+        else:
+            rescaled_x = self.from_parameter_value_to_0_1_range(x)
+            return stats.beta.cdf(rescaled_x, self.alpha, self.beta)
+
+    def get_x_probability(self, x):
+        """
+        Compute the probability of a given X under the prior distribution of the paramer.
+        :return: the probability of X
+        """
+        if isinstance(self.prior, list):
+            return self.interpolate_pdf(x)
+        elif self.prior == "estimate":
+            return self.estimated_pdf(x)[0]
+        elif self.prior == "custom_gaussian":
+            return norm.pdf(x, loc=self.custom_gaussian_prior_mean, scale=self.custom_gaussian_prior_std)
+        else:
+            rescaled_x = self.from_parameter_value_to_0_1_range(x)
+            pdf = stats.beta.pdf(rescaled_x, self.alpha, self.beta)
+            # when using the exponential or decay beta, values too close to 1 have pdf(x) = infinity, which leads to numerical issues
+            # the highest value that can be reached before infinity for the exponential is ~1242, we cap the pdf at that. 
+            if pdf == float("inf"):
+                pdf = 1242
+            return pdf
+
 
     def get_size(self) :
         return float("inf")
@@ -76,6 +186,12 @@ class RealParameter(Parameter) :
     def get_max(self):
         return self.max_value
 
+    def set_custom_gaussian_prior_params(self, mean, std):
+        if std == -1:
+            std = (self.max_value - self.min_value)/2
+        self.custom_gaussian_prior_mean = mean
+        self.custom_gaussian_prior_std = std
+
     def from_range_0_1_to_parameter_value(self, X):
         """
         Scaling the values in X from ranges of [0, 1] to ranges defined by this parameter.
@@ -86,6 +202,17 @@ class RealParameter(Parameter) :
             return X[:] * (self.get_max() - self.get_min()) + self.get_min()
         else:
             return X * (self.get_max() - self.get_min()) + self.get_min()
+
+    def from_parameter_value_to_0_1_range(self, X):
+        """
+        Scaling the values in X from ranges of [0, 1] to ranges defined by this parameter.
+        :param X: a vector of of [0, 1] values.
+        :return: the scaled values to the range of this parameter with respect to min and max.
+        """
+        if type(X) == list:
+            return (X[:] - self.get_min())/(self.get_max() - self.get_min())
+        else:
+            return (X - self.get_min())/(self.get_max() - self.get_min())
 
 class IntegerParameter(Parameter):
     """
@@ -103,17 +230,67 @@ class IntegerParameter(Parameter):
         self.min_value = min_value
         self.max_value = max_value
         self.default = default
-        self.prior = probability_distribution
-        self.alpha = self.densities_alphas[probability_distribution]
-        self.beta = self.densities_betas[probability_distribution]
+        self.distribution = None
+        self.values_list = list(range(min_value, max_value+1))
+        if isinstance(probability_distribution, str):
+            self.prior = probability_distribution
+            self.alpha = self.densities_alphas[probability_distribution]
+            self.beta = self.densities_betas[probability_distribution]
+        else:
+            self.prior = "distribution"
+            self.distribution = probability_distribution
+
 
     def randomly_select(self):
         """
         Sample from the specific beta distribution defined in the json for this parameter.
         :return: the random sampled value from the set of available values.
         """
-        sample = random.betavariate(self.alpha, self.beta)
-        return self.from_range_0_1_to_parameter_value(np.asarray([sample]))[0]
+        prior = self.prior
+        if prior == "distribution":
+            # This is a common trick to sample from a known (discrete) distribution.
+            sample = random.random()
+            distribution = self.distribution
+            index = 0
+            counter = distribution[0]
+            while counter < sample:
+                index += 1
+                counter += distribution[index]
+            return self.values_list[index]
+        else:
+            sample = random.betavariate(self.densities_alphas[prior], self.densities_betas[prior])
+            return self.from_range_0_1_to_parameter_value(np.asarray([sample]))[0]
+
+    def randomly_select_uniform(self):
+        """
+        Sample from the prior distribution for this parameter.
+        :return: the random sampled value from the set of available values.
+        """
+        sample = random.betavariate(1, 1)
+        sample = self.from_range_0_1_to_parameter_value(np.asarray([sample]))[0]
+        return sample
+
+    def pdf(self, x):
+        """
+        Compute the probability density of a given X under the prior distribution of the paramer.
+        :return: the probability of X
+        """
+        prior = self.prior
+        if prior == "distribution":
+            values = self.values_list
+            x_index = values.index(x)
+            distribution = self.distribution
+            return distribution[x_index]
+        else:
+            rescaled_x = self.from_parameter_value_to_0_1_range(x)
+            return stats.beta.pdf(rescaled_x, self.alpha, self.beta)
+
+    def get_x_probability(self, x):
+        """
+        Compute the probability of a given X under the prior distribution of the paramer.
+        :return: the probability of X
+        """
+        return self.pdf(x)
 
     def get_size(self):
         return (self.max_value - self.min_value + 1)
@@ -149,6 +326,17 @@ class IntegerParameter(Parameter):
             X_return.append(self.get_discrete_values()[X_indices_integer[index]])
         return X_return
 
+    def from_parameter_value_to_0_1_range(self, X):
+        """
+        Scaling the values in X from its original range to [0, 1].
+        :param X: a vector of of parameter values.
+        :return: the scaled values to the [0, 1] range.
+        """
+        if type(X) == list:
+            return (X[:] - self.get_min())/(self.get_max() - self.get_min())
+        else:
+            return (X - self.get_min())/(self.get_max() - self.get_min())
+
 class OrdinalParameter(Parameter):
     """
     This class defines an ordinal parameter, i.e. parameters that are numerical and can be ordered using lessser, equal, greater than.
@@ -170,12 +358,15 @@ class OrdinalParameter(Parameter):
             self.prior = "distribution"
             self.distribution = probability_distribution
 
+
     def randomly_select(self):
         """
         Sample from the specific beta distribution defined in the json for this parameter.
         :return: the random sampled value from the set of available values.
         """
-        if self.prior == "distribution":
+        prior = self.prior
+
+        if prior == "distribution":
             # This is a common trick to sample from a known (discrete) distribution.
             sample = random.random()
             distribution = self.get_parameter_distribution()
@@ -186,8 +377,43 @@ class OrdinalParameter(Parameter):
                 counter += distribution[index]
             return self.get_values()[index]
         else:
-            sample = random.betavariate(self.densities_alphas[self.prior], self.densities_betas[self.prior])
+            sample = random.betavariate(self.densities_alphas[prior], self.densities_betas[prior])
             return self.from_range_0_1_to_parameter_value(np.asarray([sample]))[0]
+
+    def randomly_select_uniform(self):
+        """
+        Sample from the prior distribution for this parameter.
+        :return: the random sampled value from the set of available values.
+        """
+        sample = random.betavariate(1, 1)
+        sample = self.from_range_0_1_to_parameter_value(np.asarray([sample]))[0]
+        return sample
+
+    def pdf(self, x):
+        """
+        Compute the probability of a given X under the prior distribution of the paramer.
+        :return: the probability of X
+        """
+        prior = self.prior
+        values = self.get_values()
+        x_index = values.index(x)
+        if prior == "distribution":
+            distribution = self.get_parameter_distribution()
+            return distribution[x_index]
+        else:
+            lower_bound = x_index/len(values)
+            upper_bound = (x_index + 1)/len(values)
+            lower_cdf = stats.beta.cdf(lower_bound, self.densities_alphas[prior], self.densities_betas[prior])
+            upper_cdf = stats.beta.cdf(upper_bound, self.densities_alphas[prior], self.densities_betas[prior])
+            return upper_cdf - lower_cdf
+
+    def get_x_probability(self, x):
+        """
+        Compute the probability of a given X under the prior distribution of the paramer.
+        :return: the probability of X
+        """
+        # For categorical parameters, the pdf gives a probability and not a density.
+        return self.pdf(x)
 
     def get_size(self):
         return len(self.values)
@@ -285,6 +511,29 @@ class CategoricalParameter(Parameter):
                 counter += distribution[index]
             return index
 
+    def randomly_select_uniform(self):
+        """
+        Sample from the prior distribution for this parameter.
+        :return: the random sampled value from the set of available values.
+        """
+        return self.values.index(random.choice(self.values))
+
+    def pdf(self, x):
+        """
+        Compute the probability of a given X under the prior distribution of the paramer.
+        :return: the probability of X
+        """
+        distribution = self.get_parameter_distribution()
+        return distribution[x]
+
+    def get_x_probability(self, x):
+        """
+        Compute the probability of a given X under the prior distribution of the paramer.
+        :return: the probability of X
+        """
+        # For categorical parameters, the pdf gives a probability and not a density.
+        return self.pdf(x)
+
     def get_size(self):
         return len(self.values)
 
@@ -334,7 +583,8 @@ class Space :
         self.parameters_python_type = OrderedDict()
         self.optimization_metrics = config["optimization_objectives"]
         self.timestamp_name = config["timestamp"]
-        if ("feasible_output" in config) and (config["feasible_output"]["enable_feasible_predictor"] is True):
+        self.enable_feasible_predictor = ("feasible_output" in config) and (config["feasible_output"]["enable_feasible_predictor"] is True)
+        if self.enable_feasible_predictor:
             feasible_output = config["feasible_output"]
             self.feasible_output_name = feasible_output["name"]
             self.feasible_output_true = feasible_output["true_value"]
@@ -366,10 +616,69 @@ class Space :
         self.parameter_means = {}
         self.parameter_stds = {}
         self.normalize_inputs = config["normalize_inputs"]
+        self.normalize_priors = False
+        self.output_scalers = {}
+        self.pdf = None
+        self.bw_param = config["bandwidth_parameter"]
+        self.bw_n_factor = config["bandwidth_n_factor"]
+        # If we use weights, we have to adapt this to use "neff"
+        self.bw_selector = lambda kde: np.power(kde.n*self.bw_n_factor, -1./(kde.d+self.bw_param))
 
         hypermapper_mode = config['hypermapper_mode']["mode"]
         if (hypermapper_mode == 'exhaustive'):
             self.exhaustive_search_file = deal_with_relative_and_absolute_path("", config['hypermapper_mode']["exhaustive_search_file"])
+
+
+        # If using multivariate kde priors
+        self.estimate_prior_flag = config["estimate_multivariate_priors"]
+        prior_estimation_data = None
+        if self.estimate_prior_flag:
+            self.normalize_priors = True
+            prior_estimation_file = config["prior_estimation_file"]
+            point_quantile = config["prior_estimation_quantile"]
+            prior_estimation_data, _ = self.load_data_file(prior_estimation_file, only_valid=self.enable_feasible_predictor)
+            all_input_data = np.array([self.convert_types_to_string(j, prior_estimation_data) for j in list(self.get_input_parameters())])
+            # We will have to adapt the priors for a multiobjective setting
+            threshold = np.quantile(prior_estimation_data[self.optimization_metrics[0]], point_quantile)
+            indices = np.nonzero(prior_estimation_data[self.optimization_metrics[0]] < threshold)[0]
+            good_points = all_input_data[:,indices]
+            self.pdf = gaussian_kde(good_points, bw_method=self.bw_selector)
+
+        # If using univariate kde priors, define prior for each parameter
+        for param_idx, param in enumerate(config["input_parameters"]):
+            if config["input_parameters"][param]["prior"] == "estimate":
+                self.normalize_priors = True
+                if prior_estimation_data is None:
+                    prior_estimation_file = config["prior_estimation_file"]
+                    point_quantile = config["prior_estimation_quantile"]
+                    prior_estimation_data, _ = self.load_data_file(prior_estimation_file, only_valid=self.enable_feasible_predictor)
+                    # We will have to adapt the priors for a multiobjective setting
+                    threshold = np.quantile(prior_estimation_data[self.optimization_metrics[0]], point_quantile)
+                    indices_good = np.nonzero(prior_estimation_data[self.optimization_metrics[0]] < threshold)[0]
+                for input_param in self.get_input_parameters():
+                    if self.parameters_type[input_param] == "real":
+                        good_points = np.array(prior_estimation_data[input_param])[indices_good]
+                        self.all_input_parameters[input_param].estimate_pdf(good_points, bw_method=self.bw_selector)
+            elif config["input_parameters"][param]["prior"] == "custom_gaussian":
+                self.normalize_priors = True
+                if len(config["custom_gaussian_prior_means"]) == 1:
+                    mean = config["custom_gaussian_prior_means"][0]
+                elif len(config["custom_gaussian_prior_means"]) == len(config["input_parameters"]):
+                    mean = config["custom_gaussian_prior_means"][param_idx]
+                else:
+                    print("Error: the custom_gaussian prior means array must be either 1 or", len(config["input_parameters"]), "received", len(config["custom_gaussian_prior_means"]))
+                    raise SystemExit
+                if len(config["custom_gaussian_prior_stds"]) == 1:
+                    std = config["custom_gaussian_prior_stds"][0]
+                elif len(config["custom_gaussian_prior_stds"]) == len(config["input_parameters"]):
+                    std = config["custom_gaussian_prior_stds"][param_idx]
+                else:
+                    print("Error: the custom_gaussian prior stds array must be either 1 or", len(config["input_parameters"]), "received", len(config["custom_gaussian_prior_stds"]))
+                    raise SystemExit
+                self.all_input_parameters[param].set_custom_gaussian_prior_params(mean, std)
+            elif isinstance(config["input_parameters"][param]["prior"], str):
+                self.normalize_priors = True
+
 
     def parse_input_parameters(self, input_parameters_json):
         """
@@ -387,12 +696,6 @@ class Space :
                 param_distribution = "uniform"
             else:
                 param_distribution = param["prior"]
-            if not isinstance(param_distribution, str):
-                if param_type == "categorical" or param_type == "ordinal":
-                    pass
-                else:
-                    print("Error in the json file: the values of parameter %s must be a valid probability density or distribution as function of the parameter type, i.e. distributions are allowed only for categorical and ordinal parameters. Exit." %param_name)
-                    exit()
             if param_type == "ordinal":
                 param_values = param["values"]
                 self.all_input_parameters[param_name] = OrdinalParameter(values=param_values, default=param_default, probability_distribution=param_distribution)
@@ -428,7 +731,7 @@ class Space :
                 self.parameters_python_type[param_name] = "int"
             elif param_type == "real":
                 param_min, param_max = param["values"]
-                param_discretization = np.linspace(param_min, param_max, num=10) 
+                param_discretization = np.linspace(param_min, param_max, num=10)
                 self.all_input_parameters[param_name] = RealParameter(min_value=param_min, max_value=param_max, preferred_discretization=param_discretization, default=param_default, probability_distribution=param_distribution)
                 self.input_non_categorical_parameters[param_name] = self.all_input_parameters[param_name]
                 self.parameters_type[param_name] = "real"
@@ -563,6 +866,13 @@ class Space :
         """
         return self.input_output_parameter_names
 
+    def get_input_output_and_timestamp_parameters(self):
+        """
+        Get the input, output, and timestamp parameter names (including feasibility flags).
+        :return: a list of strings of input and output parameters.
+        """
+        return self.input_output_and_timestamp_parameter_names
+
     def get_timestamp_parameter(self):
         """
         Get the timestamp parameter declared in the json file.
@@ -583,6 +893,13 @@ class Space :
         :return: a list of one feasible parameter.
         """
         return [self.feasible_output_name]
+
+    def get_estimate_prior_flags(self):
+        """
+        Get the estimate prior flag, true if the priors for input parameters are being estimated with multivariate kde
+        :return: true if at least one parameter has estimated priors.
+        """
+        return [self.estimate_prior_flag]
 
     def get_space_size(self):
         """
@@ -645,14 +962,37 @@ class Space :
         """
         return tuple(self.all_input_parameters[k].randomly_select() for k in self.get_input_parameters())
 
-    def get_random_configuration(self) :
+    def get_random_configuration(self, use_priors=True) :
         """
         :return: a random configuration from the parameter space under the form of a dictionary.
         """
         configuration = {}
-        for k in self.get_input_parameters():
-            configuration[k] = self.all_input_parameters[k].randomly_select()
+        input_parameters = self.get_input_parameters()
+        input_parameter_objects = self.get_input_parameters_objects()
+        estimate_prior_flag = self.get_estimate_prior_flags()[0]
+        if estimate_prior_flag and use_priors:
+            valid_sample = False
+            while valid_sample == False:
+                configuration = {}
+                valid_sample = True
+                sample = self.pdf.resample(1)[:,0]
+                for i, k in enumerate(input_parameters):
+                    if (sample[i] >= input_parameter_objects[k].get_min()) and (sample[i] <= input_parameter_objects[k].get_max()):
+                        configuration[k] = sample[i]
+                    else:
+                        valid_sample = False
+
+        else:
+            for k in input_parameters:
+                if use_priors:
+                    configuration[k] = self.all_input_parameters[k].randomly_select()
+                else:
+                    configuration[k] = self.all_input_parameters[k].randomly_select_uniform()
         return configuration
+
+    def get_configuration_probability(self, configuration):
+        conf_list = np.array([self.convert_types_to_string(j, configuration) for j in list(configuration.keys())])
+        return self.pdf(conf_list)[0]
 
     def get_default_configuration(self) :
         """
@@ -720,9 +1060,15 @@ class Space :
 
     def get_input_normalization_flag(self):
         """
-        :return: whether to normalize inputs or not
+        :return: whether to normalize inputs or not.
         """
         return self.normalize_inputs
+
+    def get_prior_normalization_flag(self):
+        """
+        :return: whether to normalize priors or not.
+        """
+        return self.normalize_priors
 
     def convert_strings_to_type(self, header, data_list):
         """
@@ -978,7 +1324,7 @@ class Space :
 
         return data_array, fast_addressing_of_data_array
 
-    def random_sample_configurations_without_repetitions(self, fast_addressing_of_data_array, number_of_RS):
+    def random_sample_configurations_without_repetitions(self, fast_addressing_of_data_array, number_of_RS, use_priors=True):
         """
         Get a list of number_of_RS configurations with no repetitions and that are not already present in fast_addressing_of_data_array.
         :param fast_addressing_of_data_array: configurations previously selected.
@@ -1008,7 +1354,7 @@ class Space :
                 configurations.append(configuration)
         else:
             while RS_configurations_count != number_of_RS:
-                configuration = self.get_random_configuration()
+                configuration = self.get_random_configuration(use_priors)
 
                 if self.isConfigurationAlreadyRun(fast_addressing_of_data_array, configuration):
                     alreadyRunRandom += 1
