@@ -37,16 +37,8 @@ HyperMapper is distributed under the MIT license. More information on the licens
 ## Papers
 If you use HyperMapper in scientific publications, we would appreciate citations to the following paper: 
 
-Practical design space exploration (MASCOTS 2019) - introducing HyperMapper principles and application to hardware design space exploration: 
 ```latex
-@inproceedings{nardi2019practical,
-  title={Practical design space exploration},
-  author={Nardi, Luigi and Koeplinger, David and Olukotun, Kunle},
-  booktitle={2019 IEEE 27th International Symposium on Modeling, Analysis, and Simulation of Computer and Telecommunication Systems (MASCOTS)},
-  pages={347--358},
-  year={2019},
-  organization={IEEE}
-}
+Nardi, Luigi, David Koeplinger, and Kunle Olukotun. "Practical design space exploration", IEEE MASCOTS, 2019.
 ```
 
-For other publications related to HyperMapper and its applications, see our [Publications](https://github.com/luinardi/hypermapper/wiki/Publications) page.
+For other publications (including bibtex) related to HyperMapper and its applications, see our [Publications](https://github.com/luinardi/hypermapper/wiki/Publications) page.
