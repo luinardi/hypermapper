@@ -1,0 +1,22 @@
+{
+    "application_name": "prior_currinexp",
+    "optimization_objectives": ["Value"],
+    "optimization_iterations": 20,
+    "optimization_method": "prior_guided_optimization",
+    "design_of_experiment": {
+        "number_of_samples": 3
+    },
+    "input_parameters" : {
+        "x1": {
+            "parameter_type" : "real",
+            "values" : [0, 1],
+            "prior": "decay"
+        },
+        "x2": {
+            "parameter_type" : "real",
+            "values" : [0.00001, 1],
+            "prior": "exponential"
+
+        }
+    }
+}

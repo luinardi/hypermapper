@@ -55,7 +55,7 @@ def generate_multi_output_regression_model(data_array
     if len (Y_test) == 0:
         Y_test = Y[:]
 
-    regressor = customRegressor(n_estimators=n_estimators, bootstrap=False, min_samples_split=5, max_features = max_features, n_jobs=1)
+    regressor = customRegressor(n_estimators=n_estimators, max_features = max_features, n_jobs=1, bootstrap=False, min_samples_split=5) 
     regressor.fit(X_train, y_train)
 
     if print_importances:
@@ -71,7 +71,7 @@ def generate_mono_output_regression_models(data_array
                                , Ycols
                                , learn_ratio
                                , debug=False
-                               , model_type="gaussian_process"
+                               , model_type="random_forest"
                                , number_of_cpus=0
                                , print_importances=False
                                , **model_kwargs):
@@ -315,7 +315,6 @@ def compute_parameter_importance(model, input_params, param_space):
             parameter_importances[idx] = model.feature_importances_[feature_idx]
             feature_idx += 1
     return parameter_importances
-
 
 def parallel_model_prediction(model, bufferx, param_space, debug=False, number_of_cpus=0):
     """
@@ -650,6 +649,36 @@ def transform_rf_using_uniform_splits(regression_models, data_array, param_space
 
                 tree.tree_.threshold[node_idx] = new_split
     return regression_models
+
+def compute_probability_from_model(
+                                model_means,
+                                model_stds,
+                                param_space,
+                                objective_weights,
+                                threshold,
+                                compute_bad=True):
+    """
+    Compute the probability of a configuration being good or bad according to the model.
+    :param model_means: predicted means of the model for each configuration.
+    :param model_means: predicted std of the model for each configuration.
+    :param param_space: Space object for the optimization problem.
+    :param objective_weights: objective weights for multi-objective optimization. Not implemented yet.
+    :param threshold: threshold on objective values separating good points and bad points.
+    :param compute_bad: whether to compute the probability of being good or bad.
+    """
+    optimization_parameters = param_space.get_optimization_parameters()
+    probabilities = np.ones(len(model_means[optimization_parameters[0]]))
+
+    for parameter in optimization_parameters:
+        parameter_means = model_means[parameter]
+        parameter_stds = model_stds[parameter]
+        if compute_bad:
+            p = 1 - stats.norm.cdf((threshold[parameter] - parameter_means)/parameter_stds)
+        else:
+            p = stats.norm.cdf((threshold[parameter] - parameter_means)/parameter_stds)
+        probabilities *= p**objective_weights[parameter]
+
+    return probabilities
 
 def compute_gp_prediction_mean_and_std(bufferx, model, param_space):
     """

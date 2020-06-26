@@ -286,39 +286,62 @@ def local_search(
     if str_data not in fast_addressing_of_data_array:
         tmp_fast_addressing_of_data_array[str_data] = 1
         if local_search_random_points - 1 > 0:
-            configurations = [default_configuration] + param_space.random_sample_configurations_without_repetitions(tmp_fast_addressing_of_data_array, local_search_random_points-1)
+            uniform_configurations = [default_configuration] + param_space.random_sample_configurations_without_repetitions(tmp_fast_addressing_of_data_array, local_search_random_points-1, use_priors=False)
     else:
-        configurations = param_space.random_sample_configurations_without_repetitions(tmp_fast_addressing_of_data_array, local_search_random_points)
+        uniform_configurations = [default_configuration] + param_space.random_sample_configurations_without_repetitions(tmp_fast_addressing_of_data_array, local_search_random_points-1, use_priors=False)
+
+    prior_configurations = param_space.random_sample_configurations_without_repetitions(tmp_fast_addressing_of_data_array, local_search_random_points, use_priors=True) # will be uniform random if no prior
 
     # Passing the dictionary with ** expands the key-value pairs into function parameters
-    function_values, feasibility_indicators = optimization_function(configurations=configurations, **optimization_function_parameters)
+    function_values_uniform, feasibility_indicators_uniform = optimization_function(configurations=uniform_configurations, **optimization_function_parameters)
+    function_values_prior, feasibility_indicators_prior = optimization_function(configurations=prior_configurations, **optimization_function_parameters)
 
     # This will concatenate the entire neighbors array if all configurations were evaluated
     # but only the evaluated configurations if we reached the budget and did not evaluate all
-    function_values_size = len(function_values)
-    new_data_array = concatenate_list_of_dictionaries(configurations[:function_values_size])
-    new_data_array[scalarization_key] = function_values
-    if enable_feasible_predictor:
-        new_data_array[feasible_parameter] = feasibility_indicators
+    function_values_uniform_size = len(function_values_uniform)
+    new_data_array_uniform = concatenate_list_of_dictionaries(uniform_configurations[:function_values_uniform_size])
+    new_data_array_uniform[scalarization_key] = function_values_uniform
 
+    function_values_prior_size = len(function_values_prior)
+    new_data_array_prior   = concatenate_list_of_dictionaries(prior_configurations[:function_values_prior_size])
+    new_data_array_prior[scalarization_key] = function_values_prior
+
+    if enable_feasible_predictor:
+        new_data_array_uniform[feasible_parameter] = feasibility_indicators_uniform
+        new_data_array_prior[feasible_parameter] = feasibility_indicators_prior
+
+    new_data_array = concatenate_data_dictionaries(new_data_array_uniform, new_data_array_prior)
     data_array = concatenate_data_dictionaries(data_array, new_data_array)
 
     # If some configurations were not evaluated, we reached the budget and must stop
-    if function_values_size < len(configurations):
+    if (function_values_uniform_size < len(uniform_configurations)) or (function_values_prior_size < len(prior_configurations)):
         sys.stdout.write_to_logfile("Out of budget, not all configurations were evaluated, stopping local search\n")
         end_of_search = True
 
     if enable_feasible_predictor:
-        local_search_configurations = get_min_feasible_configurations(
-                                                                    data_array,
-                                                                    local_search_starting_points,
-                                                                    scalarization_key,
-                                                                    feasible_parameter)
+        local_search_configurations_uniform = get_min_feasible_configurations(
+                                                                            new_data_array_uniform,
+                                                                            local_search_starting_points,
+                                                                            scalarization_key,
+                                                                            feasible_parameter)
+        local_search_configurations_prior = get_min_feasible_configurations(
+                                                                            new_data_array_prior,
+                                                                            local_search_starting_points,
+                                                                            scalarization_key,
+                                                                            feasible_parameter)
     else:
-        local_search_configurations = get_min_configurations(
-                                                            data_array,
-                                                            local_search_starting_points,
-                                                            scalarization_key)
+        local_search_configurations_uniform = get_min_configurations(
+                                                                    new_data_array_uniform,
+                                                                    local_search_starting_points,
+                                                                    scalarization_key)
+        local_search_configurations_prior = get_min_configurations(
+                                                                new_data_array_prior,
+                                                                local_search_starting_points,
+                                                                scalarization_key)
+
+    local_search_configurations = concatenate_data_dictionaries(
+                                                            local_search_configurations_uniform,
+                                                            local_search_configurations_prior)
 
     if previous_points is not None:
         concatenation_keys = input_params + [scalarization_key]
@@ -334,6 +357,7 @@ def local_search(
                                                     previous_points,
                                                     local_search_starting_points,
                                                     scalarization_key)
+
 
         local_search_configurations = concatenate_data_dictionaries(local_search_configurations, best_previous, concatenation_keys)
         data_array = concatenate_data_dictionaries(data_array, previous_points, concatenation_keys)

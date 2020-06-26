@@ -152,12 +152,12 @@ def concatenate_list_of_dictionaries(dict_list, selection_keys_list = None):
 def get_single_configuration(configurations, idx):
     """
     Get a single configuration dictionary from a dictionary containing multiple configurations.
-    :param configurations: a dictionary of lists containing multiple configurations. 
+    :param configurations: a dictionary of lists containing multiple configurations.
     :param idx: the index of the desired configuration.
     :return: dictionary containing a single configuration.
     """
     single_configuration = {}
-    for key in configurations: 
+    for key in configurations:
         single_configuration[key] = configurations[key][idx]
     return single_configuration
 
@@ -260,7 +260,7 @@ def validate_json(parameters_file):
 def domain_decomposition_and_parallel_computation(*args):
     """
     Perform domain decomposition on the array "data_array" and then compute the partitions in parallel using the input function "function".
-    The computation is done in parallel exploiting all usable processors (and hyperthreading). 
+    The computation is done in parallel exploiting all usable processors (and hyperthreading).
     The number of processors used may be less than the actual number on embedded systems (to be debuged on these systems).
     - First argument "debug".
     - Second argument "function".
@@ -280,7 +280,7 @@ def domain_decomposition_and_parallel_computation(*args):
     len_data_array = len(data_array)
 
     # mp.cpu_count() may cause problems, i.e. not detecting the right number of usable CPUs. In particular on embedded systems.
-    # Implement the solution here if needed to fix this issue: https://stackoverflow.com/questions/31346974/portable-way-of-detecting-number-of-usable-cpus-in-python 
+    # Implement the solution here if needed to fix this issue: https://stackoverflow.com/questions/31346974/portable-way-of-detecting-number-of-usable-cpus-in-python
     number_of_cpus_available = mp.cpu_count()
     if number_of_cpus == 0:
         number_of_cpus = number_of_cpus_available
@@ -344,6 +344,28 @@ def data_tuples_to_dict_list(data_tuple, keys):
         dict_list.append(configuration)
     return dict_list
 
+def dict_list_to_matrix(dict_list, keys=None):
+    matrix = []
+    if keys == None:
+        keys = dict_list[0].keys()
+    for dictionary in dict_list:
+        row = []
+        for key in keys:
+            row.append(dictionary[key])
+        matrix.append(row)
+    return matrix
+
+def dict_of_lists_to_list_of_dicts(data_dict, keys=None):
+    dict_list = []
+    if keys == None:
+        keys = list(data_dict.keys())
+    for idx in range(len(data_dict[keys[0]])):
+        configuration = {}
+        for key in keys:
+            configuration[key] = data_dict[key][idx]
+        dict_list.append(configuration)
+    return dict_list
+
 ####################################################
 # Data normalization
 ####################################################
@@ -393,13 +415,13 @@ def compute_data_array_scalarization(data_array, objective_weights, objective_li
     """
     :param data_array: a dictionary containing the previously run points and their function values.
     :param objective_weights: a list containing the weights for each objective.
-    :param objective_limits: a dictionary with estimated minimum and maximum values for each objective.    
+    :param objective_limits: a dictionary with estimated minimum and maximum values for each objective.
     :param objective_bounds: a list containing user-defined bounds for the objectives bounding box.
     :param scalarization_method: a string indicating which scalarization method to use.
     :return: a list of scalarized values for each point in data_array and the updated objective limits.
     """
     data_array_len = len(data_array[list(data_array.keys())[0]])
-    tmp_objective_limits = copy.deepcopy(objective_limits) 
+    tmp_objective_limits = copy.deepcopy(objective_limits)
 
     normalized_data_array = {}
     for objective in objective_limits:
@@ -428,7 +450,7 @@ def compute_data_array_scalarization(data_array, objective_weights, objective_li
             total_weight = 1
 
         for objective in normalized_weights:
-            normalized_weights[objective] = normalized_weights[objective]/total_weight                  
+            normalized_weights[objective] = normalized_weights[objective]/total_weight
     else:
         normalized_weights = copy.deepcopy(objective_weights)
 
