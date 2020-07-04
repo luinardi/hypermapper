@@ -560,6 +560,7 @@ def main(config, black_box_function=None, output_file=""):
     input_params = param_space.get_input_parameters()
     number_of_objectives = len(optimization_metrics)
     optimization_iterations = config["optimization_iterations"]
+    time_budget = config["time_budget"]
     evaluations_per_optimization_iteration = config["evaluations_per_optimization_iteration"]
     number_of_cpus = config["number_of_cpus"]
     local_search_random_points = config["local_search_random_points"]
@@ -766,7 +767,13 @@ def main(config, black_box_function=None, output_file=""):
     optimization_function_parameters['model_type'] = model_type
     iteration_number = 0
     bo_t0 = datetime.datetime.now()
-    while iteration_number < optimization_iterations:
+    # Measure elapsed time in hours after each iteration
+    run_time = (datetime.datetime.now() - start_time).total_seconds() / 3600
+    # run_time / time_budget < 1 if budget > elapsed time or budget == -1
+    if time_budget > 0:
+        print('starting optimization phase, limited to run for ', time_budget, ' hours')
+
+    while iteration_number < optimization_iterations and run_time / time_budget < 1:
         print("Starting optimization iteration", iteration_number+1)
         iteration_t0 = datetime.datetime.now()
         model_t0 = datetime.datetime.now()
@@ -899,6 +906,8 @@ def main(config, black_box_function=None, output_file=""):
             objective_limits[objective] = [lower_bound, upper_bound]
 
         iteration_number += 1
+        run_time = (datetime.datetime.now() - start_time).total_seconds() / 3600
+
         sys.stdout.write_to_logfile(("Model fitting time %10.4f sec\n" % ((model_t1 - model_t0).total_seconds())))
         sys.stdout.write_to_logfile(("Local search time %10.4f sec\n" % ((local_search_t1 - local_search_t0).total_seconds())))
         sys.stdout.write_to_logfile(("Black box function time %10.4f sec\n" % ((black_box_function_t1 - black_box_function_t0).total_seconds())))
