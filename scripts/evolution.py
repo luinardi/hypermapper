@@ -92,7 +92,7 @@ def run_objective_function(
     :param fast_addressing_of_data_array: a dictionary containing evaluated configurations and their index in
     the evolution_data_array.
     :param enable_feasible_predictor: whether to use constrained optimization.
-    :param (x) evaluation_limit: the maximum number of function evaluations allowed for the evolutionary search.
+    :param evaluation_limit: the maximum number of function evaluations allowed for the evolutionary search.
     :param black_box_function: the black_box_function being optimized in the evolutionary search.
     :param number_of_cpus: an integer for the number of cpus to be used in parallel.
     :return: configurations with evaluations for all points in configurations and the number of evaluated configurations
