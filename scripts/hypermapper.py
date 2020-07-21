@@ -61,7 +61,7 @@ def optimize(parameters_file, black_box_function=None):
     elif optimization_method == "local_search":
         local_search.main(config, black_box_function=black_box_function)
     elif optimization_method == 'prior_guided_optimization':
-        prior_optimization.main(config, black_box_function)     # black_box_function=black_box_function ?
+        prior_optimization.main(config, black_box_function=black_box_function)
     elif optimization_method == "evolution":
         evolution.main(config, black_box_function=black_box_function)
     else:
