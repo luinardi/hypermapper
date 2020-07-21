@@ -83,7 +83,7 @@ def run_objective_function(
     Evaluate a list of configurations using the black-box function being optimized.
     This method avoids evaluating repeated points by recovering their value from the history of evaluated points.
     :param configurations: list of configurations to evaluate.
-    :param x hypermapper_mode: which HyperMapper mode is being used.
+    :param hypermapper_mode: which HyperMapper mode is being used.
     hypermapper_mode == "default"
     :param param_space: a space object containing the search space.
     :param beginning_of_time: timestamp of when the optimization started.
