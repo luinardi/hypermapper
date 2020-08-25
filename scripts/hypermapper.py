@@ -60,9 +60,9 @@ def optimize(parameters_file, black_box_function=None):
         random_scalarizations.main(config, black_box_function=black_box_function)
     elif optimization_method == "local_search":
         local_search.main(config, black_box_function=black_box_function)
-    elif optimization_method == 'prior_guided_optimization':
+    elif optimization_method == "prior_guided_optimization":
         prior_optimization.main(config, black_box_function=black_box_function)
-    elif optimization_method == "evolution":
+    elif optimization_method == "evolutionary_optimization":
         evolution.main(config, black_box_function=black_box_function)
     else:
         print("Unrecognized optimization method:", optimization_method)
