@@ -31,8 +31,7 @@ def get_best_config(configs):
 
 def mutation(param_space, config, mutation_rate, list=False):
     """
-    Mutates given configuration. This overcomplicates the procedure. But since I might
-    change the functionality I leave it like this for now
+    Mutates given configuration.
     :param param_space: space.Space(), will give us information about parameters
     :param configs: list of configurations.
     :param mutation_rate: integer for how many parameters to mutate
