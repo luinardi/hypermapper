@@ -212,7 +212,7 @@
       "optimization_method":{
         "type": "string",
         "description": "Method to use for the multi-objective optimization in Hypermapper.",
-        "enum": ["bayesian_optimization", "random_scalarizations", "local_search", "prior_guided_optimization", "evolution"],
+        "enum": ["bayesian_optimization", "random_scalarizations", "local_search", "prior_guided_optimization", "evolutionary_optimization"],
         "default": "bayesian_optimization"
       },
       "local_search_starting_points":{
