@@ -11,10 +11,6 @@ from utility_functions import *
 from collections import defaultdict
 from scipy import stats
 import numpy.random as rd
-import matplotlib
-# matplotlib.use('TkAgg')
-from matplotlib import pyplot as plt
-
 
 def get_best_config(configs):
     """
