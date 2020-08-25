@@ -197,7 +197,7 @@ def evolution(population_size, generations, mutation_rate, crossover, regularize
         if not gen % 10:
             print('Now we are att gen: ', gen)
 
-        # pick a random batch from the populotion and find the two best and the worst of the batch
+        # pick a random batch from the population and find the two best and the worst of the batch
         cand_idxs = rd.permutation(len(population))[:batch_size]
         infty = float("inf")
         best = (-1, infty)
