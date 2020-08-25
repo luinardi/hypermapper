@@ -29,13 +29,13 @@ def get_best_config(configs):
     return leader
 
 
-def mutation(param_space, config, mutationrate, list=False):
+def mutation(param_space, config, mutation_rate, list=False):
     """
     Mutates given configuration. This overcomplicates the procedure. But since I might
     change the functionality I leave it like this for now
     :param param_space: space.Space(), will give us information about parameters
     :param configs: list of configurations.
-    :param mutationrate: integer for how many parameters to mutate
+    :param mutation_rate: integer for how many parameters to mutate
     :param list: boolean whether returning one or more alternative configs
     :return: list of dicts, list of mutated configurations
     """
@@ -55,7 +55,7 @@ def mutation(param_space, config, mutationrate, list=False):
     n_configs = nbr_params if list else 1
 
     for _ in range(n_configs):
-        indices = rd.permutation(nbr_params)[:mutationrate]
+        indices = rd.permutation(nbr_params)[:mutation_rate]
         for idx in indices:
             mutation_param = parameter_names_list[idx]
             # Should I do something if they are the same?
