@@ -303,21 +303,22 @@ def main(config, black_box_function=None, output_file=""):
     generations = config["evolution_generations"]
     mutation_rate = config["mutation_rate"]
     if mutation_rate > len(param_space.get_input_parameters()):
-        print("mutation rate higher than the number of parameters. makes no sense. Exiting")
+        print("mutation rate cannot be higher than the number of parameters. Exiting.")
         sys.exit()
     if mutation_rate < 1:
-        print("mutation rate must be at least 1 for evolution to work. Exiting")
+        print("mutation rate must be at least 1 for evolution to work. Exiting.")
+        sys.exit()
     crossover = config["evolution_crossover"]
     regularize = config["regularize_evolution"]
     batch_size = config["batch_size"]
     if batch_size > population_size:
-        print("batch_size bigger than the population_size. makes no sense. Exiting")
+        print("population_size must be bigger than batch_size. Exiting.")
         sys.exit()
     elif batch_size < 2 and not crossover:
-        print("batch_size smaller than 2 makes no sense. Exiting")
+        print("batch_size cannot be smaller than 2. Exiting.")
         sys.exit()
     elif batch_size < 3 and crossover:
-        print("batch_size must be at least 3 when using crossover . Exiting")
+        print("batch_size must be at least 3 when using crossover. Exiting.")
         sys.exit()
 
     log_file = deal_with_relative_and_absolute_path(run_directory, config["log_file"])
@@ -347,15 +348,6 @@ def main(config, black_box_function=None, output_file=""):
     optimization_function_parameters['black_box_function'] = black_box_function
     optimization_function_parameters['evolution_data_array'] = evolution_data_array
     optimization_function_parameters['fast_addressing_of_data_array'] = evolution_fast_addressing_of_data_array
-
-    # optimization_function_parameters['number_of_cpus'] = number_of_cpus
-    # optimization_function_parameters['enable_feasible_predictor'] = enable_feasible_predictor
-    # optimization_function_parameters['exhaustive_search_data_array'] = exhaustive_search_data_array
-    # optimization_function_parameters['exhaustive_search_fast_addressing_of_data_array'] =
-    # exhaustive_search_fast_addressing_of_data_array
-    # optimization_function_parameters['scalarization_weights'] = objective_weights
-    # optimization_function_parameters['objective_limits'] = objective_limits
-    # optimization_function_parameters['scalarization_method'] = scalarization_method
 
     print("Starting evolution...")
     evolution_t0 = datetime.datetime.now()
