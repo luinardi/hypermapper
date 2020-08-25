@@ -194,7 +194,7 @@ def evolution(population_size, generations, mutation_rate, crossover, regularize
     ### Evolutionary loop ###
     for gen in range(1, generations + 1):
         if not gen % 10:
-            print('Now we are att gen: ', gen)
+            print('Now we are at generation: ', gen)
 
         # pick a random batch from the population and find the two best and the worst of the batch
         cand_idxs = rd.permutation(len(population))[:batch_size]
