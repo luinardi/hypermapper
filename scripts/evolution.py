@@ -16,19 +16,6 @@ from collections import defaultdict
 from scipy import stats
 import numpy.random as rd
 
-def get_best_config(configs):
-    """
-    Returns the configuration with lowest Value among the given configurations
-    :param configs: list of configurations.
-    :return: dict, the best configuration.
-    """
-    leader = configs[0]
-    for c in configs:
-        if c['Value'] < leader['Value']:
-            leader = c
-    return leader
-
-
 def mutation(param_space, config, mutation_rate, list=False):
     """
     Mutates given configuration.
@@ -186,11 +173,6 @@ def evolution(population_size, generations, mutation_rate, crossover, regularize
     new_data_array = concatenate_list_of_dictionaries(configurations[:function_values_size])
     data_array = concatenate_data_dictionaries(data_array, new_data_array)
 
-    # A list of the best individual in the population at each generation
-    best_configs = []
-    best_config = get_best_config(population)
-    best_configs.append(best_config)
-
     ### Evolutionary loop ###
     for gen in range(1, generations + 1):
         if not gen % 10:
@@ -266,12 +248,9 @@ def evolution(population_size, generations, mutation_rate, crossover, regularize
         else:               # removing the worst in the subset
             killed = population.pop(worst[0])
 
-        best_config = get_best_config(population)
-        best_configs.append(best_config)
-
     sys.stdout.write_to_logfile(("Evolution time %10.4f sec\n" % ((datetime.datetime.now() - t0).total_seconds())))
 
-    return data_array, best_configs
+    return data_array
 
 
 def main(config, black_box_function=None, output_file=""):
@@ -351,18 +330,18 @@ def main(config, black_box_function=None, output_file=""):
 
     print("Starting evolution...")
     evolution_t0 = datetime.datetime.now()
-    all_samples, best_configurations = evolution(
-                                                population_size,
-                                                generations,
-                                                mutation_rate,
-                                                crossover,
-                                                regularize,
-                                                batch_size,
-                                                param_space,
-                                                fast_addressing_of_data_array,
-                                                run_objective_function,
-                                                optimization_function_parameters
-                                                )
+    all_samples = evolution(
+                            population_size,
+                            generations,
+                            mutation_rate,
+                            crossover,
+                            regularize,
+                            batch_size,
+                            param_space,
+                            fast_addressing_of_data_array,
+                            run_objective_function,
+                            optimization_function_parameters
+                            )
 
     print("Evolution finished after %d function evaluations"%(len(evolution_data_array[optimization_metrics[0]])))
     sys.stdout.write_to_logfile(("Evolutionary search time %10.4f sec\n" % ((datetime.datetime.now() - evolution_t0).total_seconds())))
