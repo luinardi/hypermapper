@@ -277,6 +277,9 @@ def main(config, black_box_function=None, output_file=""):
 
     optimization_metrics = config["optimization_objectives"]
     number_of_objectives = len(optimization_metrics)
+    if number_of_objectives > 1:
+        print("the evolutionary optimization does not support multi-objective optimization. Exiting.")
+        sys.exit()
 
     population_size = config["evolution_population_size"]
     generations = config["evolution_generations"]
