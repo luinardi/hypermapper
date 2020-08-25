@@ -363,13 +363,6 @@ def main(config, black_box_function=None, output_file=""):
                                                 run_objective_function,
                                                 optimization_function_parameters
                                                 )
-    # plotting the best found configurtion as a function of optimization iterations
-    # r = range(len(best_configurations))
-    # vals = []
-    # for bc in best_configurations:
-    #     vals.append(bc['Value'])
-    # plt.scatter(r, vals)
-    # plt.savefig('evolution_output.png')
 
     print("Evolution finished after %d function evaluations"%(len(evolution_data_array[optimization_metrics[0]])))
     sys.stdout.write_to_logfile(("Evolutionary search time %10.4f sec\n" % ((datetime.datetime.now() - evolution_t0).total_seconds())))
