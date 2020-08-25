@@ -772,6 +772,9 @@ def main(config, black_box_function=None, output_file=""):
     # run_time / time_budget < 1 if budget > elapsed time or budget == -1
     if time_budget > 0:
         print('starting optimization phase, limited to run for ', time_budget, ' hours')
+    elif time_budget == 0:
+        print('Time budget cannot be zero. To not limit runtime set time_budget = -1')
+        sys.exit()
 
     while iteration_number < optimization_iterations and run_time / time_budget < 1:
         print("Starting optimization iteration", iteration_number+1)
