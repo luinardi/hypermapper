@@ -185,7 +185,7 @@ def evolution(population_size, generations, mutation_rate, crossover, regularize
         second = (-1, infty)
         worst = (-1, -infty)
         for ci in cand_idxs:
-            val = population[ci]['Value']
+            val = population[ci][optimization_metrics[0]]
             if val < best[1]:
                 second = best
                 best = (ci, val)
