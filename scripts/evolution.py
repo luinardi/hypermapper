@@ -30,9 +30,21 @@ def mutation(param_space, config, mutation_rate, list=False):
     rd_config = dict()
     for name, obj in parameter_object_list.items():
         x = obj.randomly_select()
-        # sucks that there are parameters with only one value
-        if x == config[name]:
+        single_valued_param = False
+        param_type = param_space.get_type(obj)
+
+        if param_type == 'real' or param_type == 'integer':
+            if obj.get_max() == obj.get_min():
+                single_valued_param = True
+        else:
+            if obj.get_size() == 1:
+                single_valued_param = True
+        mutation_attempts = 0
+        while x == config[name] and single_valued_param == False:
             x = obj.randomly_select()
+            mutation_attempts += 1
+            if mutation_attempts > 1000000:
+                break
         rd_config[name] = x
     parameter_names_list = param_space.get_input_parameters()
     nbr_params = len(parameter_names_list)
