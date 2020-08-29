@@ -143,8 +143,8 @@ def run_objective_function(
     return population, all_evaluations_size
 
 
-def evolution(population_size, generations, mutation_rate, crossover, regularize, batch_size, param_space,
-              fast_addressing_of_data_array, optimization_function, optimization_function_parameters):
+def evolution(population_size, generations, mutation_rate, crossover, regularize, batch_size, fitness_measure,
+              param_space, fast_addressing_of_data_array, optimization_function, optimization_function_parameters):
 
     """
     Do the entire evolutinary process from config to best config
@@ -154,6 +154,7 @@ def evolution(population_size, generations, mutation_rate, crossover, regularize
     :param crossover: a boolean whether to use crossover in the algorithm
     :param regularize: boolean, whether to use regularized or non-regularized evolution strategy
     :param batch_size: an integer for how many individuals to compare in a generation
+    :param fitness_measure: a string name of the objective that should be optimized
     :param param_space: a space object containing the search space.
     :param fast_addressing_of_data_array: an array that keeps track of all evaluated configurations
     :param optimization_function: the function that will be optimized by the evolutionary search.
@@ -197,7 +198,7 @@ def evolution(population_size, generations, mutation_rate, crossover, regularize
         second = (-1, infty)
         worst = (-1, -infty)
         for ci in cand_idxs:
-            val = population[ci][optimization_metrics[0]]
+            val = population[ci][fitness_measure]
             if val < best[1]:
                 second = best
                 best = (ci, val)
@@ -289,10 +290,11 @@ def main(config, black_box_function=None, output_file=""):
 
     optimization_metrics = config["optimization_objectives"]
     number_of_objectives = len(optimization_metrics)
-    if number_of_objectives > 1:
+    if number_of_objectives != 1:
         print("the evolutionary optimization does not support multi-objective optimization. Exiting.")
         sys.exit()
 
+    fitness_measure = optimization_metrics[0]
     population_size = config["evolution_population_size"]
     generations = config["evolution_generations"]
     mutation_rate = config["mutation_rate"]
@@ -352,6 +354,7 @@ def main(config, black_box_function=None, output_file=""):
                             crossover,
                             regularize,
                             batch_size,
+                            fitness_measure,
                             param_space,
                             fast_addressing_of_data_array,
                             run_objective_function,
