@@ -33,6 +33,8 @@ HyperMapper is distributed under the MIT license. More information on the licens
     Artur Souza, Ph.D. Student (Federal University of Minas Gerais)
 ### Other Contributors    
     Bruno Bodin, Assistant Professor (National University of Singapore) 
+    Samuel Lundberg
+    Alfonso White
 
 ## Papers
 If you use HyperMapper in scientific publications, we would appreciate citations to the following paper: 
