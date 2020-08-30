@@ -767,11 +767,11 @@ def main(config, black_box_function=None, output_file=""):
     optimization_function_parameters['model_type'] = model_type
     iteration_number = 0
     bo_t0 = datetime.datetime.now()
-    # Measure elapsed time in hours after each iteration
-    run_time = (datetime.datetime.now() - start_time).total_seconds() / 3600
+    # Measure elapsed time in minutes after each iteration
+    run_time = (datetime.datetime.now() - start_time).total_seconds() / 60
     # run_time / time_budget < 1 if budget > elapsed time or budget == -1
     if time_budget > 0:
-        print('starting optimization phase, limited to run for ', time_budget, ' hours')
+        print('starting optimization phase, limited to run for ', time_budget, ' minutes')
     elif time_budget == 0:
         print('Time budget cannot be zero. To not limit runtime set time_budget = -1')
         sys.exit()
@@ -909,7 +909,7 @@ def main(config, black_box_function=None, output_file=""):
             objective_limits[objective] = [lower_bound, upper_bound]
 
         iteration_number += 1
-        run_time = (datetime.datetime.now() - start_time).total_seconds() / 3600
+        run_time = (datetime.datetime.now() - start_time).total_seconds() / 60
 
         sys.stdout.write_to_logfile(("Model fitting time %10.4f sec\n" % ((model_t1 - model_t0).total_seconds())))
         sys.stdout.write_to_logfile(("Local search time %10.4f sec\n" % ((local_search_t1 - local_search_t0).total_seconds())))
