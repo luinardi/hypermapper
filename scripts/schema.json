@@ -33,7 +33,7 @@
         "default": 50
       },
       "time_budget": {
-        "description": "Max number of hours that HyperMapper is allowed to run for. If -1, the runtime will not be limited.",
+        "description": "Max number of minutes that HyperMapper is allowed to run for. If -1, the runtime will not be limited.",
         "type": "number",
         "minimum": -1,
         "default": -1
