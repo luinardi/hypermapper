@@ -32,8 +32,9 @@ def communication_protocol_chakong_haimes_hypermapper():
     i = 0
     while p.poll() is None: # Check if the process is still running
         request = p.stdout.readline(); p.stdout.flush() # The first line is the request in the form: Request #_of_evaluation_requests
-        if request == "": # This means that HyperMapper ended
-            continue
+        if "End of HyperMapper" in request: # This means that HyperMapper ended
+            print(request)
+            break
         print("Iteration %d" %i)
         sys.stdout.write(request)
         str_to_hypermapper = "x1,x2,f1_value,f2_value,Valid\n"

@@ -69,7 +69,7 @@ def optimize(parameters_file, black_box_function=None):
     except:
         pass
 
-    print("### End of the hypermapper script.")
+    sys.stdout.write_protocol("End of HyperMapper\n")
 
 
 if __name__ == "__main__":
