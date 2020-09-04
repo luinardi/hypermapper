@@ -31,7 +31,7 @@ def mutation(param_space, config, mutation_rate, list=False):
     for name, obj in parameter_object_list.items():
         x = obj.randomly_select()
         single_valued_param = False
-        param_type = param_space.get_type(obj)
+        param_type = param_space.get_type(name)
 
         if param_type == 'real' or param_type == 'integer':
             if obj.get_max() == obj.get_min():
