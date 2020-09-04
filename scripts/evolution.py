@@ -118,7 +118,7 @@ def run_objective_function(
     t1 = datetime.datetime.now()
     if number_of_new_evaluations > 0:
         new_evaluations = param_space.run_configurations(hypermapper_mode, new_configurations, beginning_of_time,
-                                                         black_box_function, run_directory)
+                                                         black_box_function, run_directory=run_directory)
 
     # Values for all given configurations
     all_evaluations = concatenate_data_dictionaries(previous_evaluations, new_evaluations)
