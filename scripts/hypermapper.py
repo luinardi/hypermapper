@@ -2,6 +2,7 @@ import sys
 import random_scalarizations
 import local_search
 import prior_optimization
+import evolution
 import compute_pareto
 import plot_dse
 import json
@@ -58,8 +59,10 @@ def optimize(parameters_file, black_box_function=None):
         random_scalarizations.main(config, black_box_function=black_box_function)
     elif optimization_method == "local_search":
         local_search.main(config, black_box_function=black_box_function)
-    elif optimization_method == 'prior_guided_optimization':
-        prior_optimization.main(config, black_box_function)
+    elif optimization_method == "prior_guided_optimization":
+        prior_optimization.main(config, black_box_function=black_box_function)
+    elif optimization_method == "evolutionary_optimization":
+        evolution.main(config, black_box_function=black_box_function)
     else:
         print("Unrecognized optimization method:", optimization_method)
         raise SystemExit
