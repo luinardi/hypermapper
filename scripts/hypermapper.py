@@ -49,8 +49,7 @@ def optimize(parameters_file, black_box_function=None):
         run_directory = hypermapper_pwd
         config["run_directory"] = run_directory
     log_file = config["log_file"]
-    if log_file == "hypermapper_logfile.log":
-        log_file = deal_with_relative_and_absolute_path(run_directory, log_file)
+    log_file = deal_with_relative_and_absolute_path(run_directory, log_file)
     sys.stdout = Logger(log_file)
 
     optimization_method = config["optimization_method"]
