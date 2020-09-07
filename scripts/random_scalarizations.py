@@ -146,34 +146,31 @@ def ucb(bufferx,
     # Compute scalarization
     if (scalarization_method == "linear"):
         scalarized_predictions = np.zeros(number_of_predictions)
-        for x_index in range(number_of_predictions):
-            beta_factor = 0
-            for objective in regression_models:
-                scalarized_predictions[x_index] += objective_weights[objective]*prediction_means[objective][x_index]
-                beta_factor += objective_weights[objective]*prediction_variances[objective][x_index]
-            scalarized_predictions[x_index] -= beta*np.sqrt(beta_factor)
-            scalarized_predictions[x_index] = scalarized_predictions[x_index]*feasibility_indicator[x_index]
-    # The paper does not propose this, we apply their methodology to the original tchebyshev to get the approach below
+        beta_factor = 0
+        for objective in regression_models:
+            scalarized_predictions += objective_weights[objective]*prediction_means[objective]
+            beta_factor += objective_weights[objective]*prediction_variances[objective]
+        scalarized_predictions -= beta*np.sqrt(beta_factor)
+        scalarized_predictions = scalarized_predictions*feasibility_indicator
+    # The paper does not propose this, I applied their methodology to the original tchebyshev to get the approach below
     # Important: since this was not proposed in the paper, their proofs and bounds for the modified_tchebyshev may not be valid here.
     elif(scalarization_method == "tchebyshev"):
-        scalarized_predictions = scalarized_predictions = np.zeros(number_of_predictions)
-        for x_index in range(number_of_predictions):
-            total_value = 0
-            for objective in regression_models:
-                scalarized_value = objective_weights[objective] * abs(prediction_means[objective][x_index] - beta*np.sqrt(prediction_variances[objective][x_index]))
-                scalarized_predictions[x_index] = max(scalarized_value, scalarized_predictions[x_index])
-                total_value += scalarized_value
-            scalarized_predictions[x_index] += augmentation_constant*total_value
-            scalarized_predictions[x_index] = scalarized_predictions[x_index]*feasibility_indicator[x_index]
+        scalarized_predictions = np.zeros(number_of_predictions)
+        total_values = np.zeros(number_of_predictions)
+        for objective in regression_models:
+            scalarized_values = objective_weights[objective] * np.absolute(prediction_means[objective] - beta*np.sqrt(prediction_variances[objective]))
+            total_values += scalarized_values
+            scalarized_predictions = np.maximum(scalarized_values, scalarized_predictions)
+        scalarized_predictions += augmentation_constant*total_values
+        scalarized_predictions = scalarized_predictions*feasibility_indicator
     elif(scalarization_method == "modified_tchebyshev"):
         scalarized_predictions = np.full((number_of_predictions), float("inf"))
         reciprocated_weights = reciprocate_weights(objective_weights)
-        for x_index in range(number_of_predictions):
-            for objective in regression_models:
-                scalarized_value = reciprocated_weights[objective] * (prediction_means[objective][x_index] - beta*np.sqrt(prediction_variances[objective][x_index]))
-                scalarized_predictions[x_index] = min(scalarized_value, scalarized_predictions[x_index])
-            scalarized_predictions[x_index] = scalarized_predictions[x_index]*feasibility_indicator[x_index]
-            scalarized_predictions[x_index] = -scalarized_predictions[x_index] # We will minimize later, but we want to maximize in this case, so we invert the sign
+        for objective in regression_models:
+            scalarized_value = reciprocated_weights[objective] * (prediction_means[objective] - beta*np.sqrt(prediction_variances[objective]))
+            scalarized_predictions = np.minimum(scalarized_value, scalarized_predictions)
+        scalarized_predictions = scalarized_predictions*feasibility_indicator
+        scalarized_predictions = -scalarized_predictions # We will minimize later, but we want to maximize instead, so we invert the sign
     else:
         print("Error: unrecognized scalarization method:", scalarization_method)
         raise SystemExit
@@ -216,34 +213,31 @@ def thompson_sampling(
     else:
         feasibility_indicator = [1]*number_of_predictions # if no classification model is used, then all points are feasible
 
-    # Compute scalarization
     if (scalarization_method == "linear"):
         scalarized_predictions = np.zeros(number_of_predictions)
-        for run_index in range(number_of_predictions):
-            for objective in regression_models:
-                scalarized_predictions[run_index] += objective_weights[objective] * model_predictions[objective][run_index]
-            scalarized_predictions[run_index] = scalarized_predictions[run_index]*feasibility_indicator[run_index]
-    # The paper does not propose this, we apply their methodology to the original tchebyshev to get the approach below
+        for objective in regression_models:
+            scalarized_predictions += objective_weights[objective] * model_predictions[objective]
+        scalarized_predictions = scalarized_predictions*feasibility_indicator
+    # The paper does not propose this, I applied their methodology to the original tchebyshev to get the approach below
     # Important: since this was not proposed in the paper, their proofs and bounds for the modified_tchebyshev may not be valid here.
     elif(scalarization_method == "tchebyshev"):
-        scalarized_predictions = scalarized_predictions = np.zeros(number_of_predictions)
-        for run_index in range(number_of_predictions):
-            total_value = 0
-            for objective in regression_models:
-                scalarized_value = objective_weights[objective] * abs(model_predictions[objective][run_index])
-                scalarized_predictions[run_index] = max(scalarized_value, scalarized_predictions[run_index])
-                total_value += scalarized_value
-            scalarized_predictions[run_index] += 0.05*total_value
-            scalarized_predictions[run_index] = scalarized_predictions[run_index]*feasibility_indicator[run_index]
+        scalarized_predictions = np.zeros(number_of_predictions)
+        scalarized_values = np.zeros(number_of_predictions)
+        total_values = np.zeros(number_of_predictions)
+        for objective in regression_models:
+            scalarized_values = objective_weights[objective] * np.absolute(model_predictions[objective])
+            total_values += scalarized_values
+            scalarized_predictions = np.maximum(scalarized_values, scalarized_predictions)
+        scalarized_predictions += 0.05*total_values
+        scalarized_predictions = scalarized_predictions*feasibility_indicator
     elif(scalarization_method == "modified_tchebyshev"):
         scalarized_predictions = np.full((number_of_predictions), float("inf"))
         reciprocated_weights = reciprocate_weights(objective_weights)
-        for run_index in range(number_of_predictions):
-            for objective in regression_models:
-                scalarized_value = reciprocated_weights[objective] * abs(model_predictions[objective][run_index])
-                scalarized_predictions[run_index] = min(scalarized_value, scalarized_predictions[run_index])
-            scalarized_predictions[run_index] = scalarized_predictions[run_index]*feasibility_indicator[run_index]
-            scalarized_predictions[run_index] = -scalarized_predictions[run_index] # We will minimize later, but we want to maximize in this case, so we invert the sign
+        for objective in regression_models:
+            scalarized_value = reciprocated_weights[objective] * np.absolute(model_predictions[objective])
+            scalarized_predictions = np.minimum(scalarized_value, scalarized_predictions2)
+        scalarized_predictions = scalarized_predictions*feasibility_indicator
+        scalarized_predictions = -scalarized_predictions # We will minimize later, but we want to maximize instead, so we invert the sign
     else:
         print("Error: unrecognized scalarization method:", scalarization_method)
         raise SystemExit
@@ -294,60 +288,51 @@ def EI(
     else:
         feasibility_indicator = [1]*number_of_predictions # if no classification model is used, then all points are feasible
 
-    # Compute scalarization
+    data_array_scalarization, tmp_objective_limits = compute_data_array_scalarization(
+                                                                                    data_array,
+                                                                                    objective_weights,
+                                                                                    tmp_objective_limits,
+                                                                                    scalarization_method)
+
     if (scalarization_method == "linear"):
         scalarized_predictions = np.zeros(number_of_predictions)
-        for x_index in range(number_of_predictions):
-            scalarized_value = 0
-            for objective in regression_models:
-                f_min = 1 - (min(data_array[objective]) - tmp_objective_limits[objective][0])\
-                        /(tmp_objective_limits[objective][1] - tmp_objective_limits[objective][0])
-                x_var = prediction_variances[objective][x_index]
-                x_std = np.sqrt(x_var)
-                x_mean = prediction_means[objective][x_index]
-                x_mean = 1 - x_mean
-                v = (x_mean - f_min)/x_std
-                objective_ei = (x_mean - f_min)*stats.norm.cdf(v) + x_std*stats.norm.pdf(v)
-                scalarized_value += objective_ei*objective_weights[objective]
-            scalarized_predictions[x_index] = scalarized_value*feasibility_indicator[x_index]
-            scalarized_predictions[x_index] = -1*scalarized_predictions[x_index]
-    # The paper does not propose this, we apply their methodology to the original tchebyshev to get the approach below
+        scalarized_value = 0
+        for objective in regression_models:
+            f_min = 1 - (min(data_array[objective]) - tmp_objective_limits[objective][0])\
+                            /(tmp_objective_limits[objective][1] - tmp_objective_limits[objective][0])
+            x_std = np.sqrt(prediction_variances[objective])
+            x_mean = 1 - prediction_means[objective]
+            v = (x_mean - f_min)/x_std
+            objective_ei = (x_mean - f_min)*stats.norm.cdf(v) + x_std*stats.norm.pdf(v)
+            scalarized_predictions += objective_ei*objective_weights[objective]
+        scalarized_predictions = -1*scalarized_predictions*feasibility_indicator
+    # The paper does not propose this, I applied their methodology to the original tchebyshev to get the approach below
     # Important: since this was not proposed in the paper, their proofs and bounds for the modified_tchebyshev may not be valid here.
     elif(scalarization_method == "tchebyshev"):
-        scalarized_predictions = scalarized_predictions = np.zeros(number_of_predictions)
-        for x_index in range(number_of_predictions):
-            total_value = 0
-            for objective in regression_models:
-                f_min = 1 - (min(data_array[objective]) - tmp_objective_limits[objective][0])\
-                        /(tmp_objective_limits[objective][1] - tmp_objective_limits[objective][0])
-                x_var = prediction_variances[objective][x_index]
-                x_std = np.sqrt(x_var)
-                x_mean = prediction_means[objective][x_index]
-                x_mean = 1 - x_mean
-                v = (x_mean - f_min)/x_std
-                objective_ei = (x_mean - f_min)*stats.norm.cdf(v) + x_std*stats.norm.pdf(v)
-                scalarized_value = objective_weights[objective] * objective_ei
-                scalarized_predictions[x_index] = max(scalarized_value, scalarized_predictions[x_index])
-                total_value += scalarized_value
-            scalarized_predictions[x_index] += augmentation_constant*total_value
-            scalarized_predictions[x_index] = scalarized_predictions[x_index]*feasibility_indicator[x_index]
-            scalarized_predictions[x_index] = -1*scalarized_predictions[x_index]
+        scalarized_predictions = np.zeros(number_of_predictions)
+        total_value = np.zeros(number_of_predictions)
+        for objective in regression_models:
+            f_min = 1 - (min(data_array[objective]) - tmp_objective_limits[objective][0])\
+                            /(tmp_objective_limits[objective][1] - tmp_objective_limits[objective][0])
+            x_std = np.sqrt(prediction_variances[objective])
+            x_mean = 1 - prediction_means[objective]
+            v = (x_mean - f_min)/x_std
+            scalarized_value = objective_weights[objective] * ((1 - prediction_means[objective] - f_min)*stats.norm.cdf(v) + x_std*stats.norm.pdf(v))
+            scalarized_predictions = np.maximum(scalarized_value, scalarized_predictions)
+            total_value += scalarized_value
+        scalarized_predictions = -1*(scalarized_predictions + total_value*augmentation_constant)*feasibility_indicator
     elif(scalarization_method == "modified_tchebyshev"):
         scalarized_predictions = np.full((number_of_predictions), float("inf"))
         reciprocated_weights = reciprocate_weights(objective_weights)
-        for x_index in range(number_of_predictions):
-            for objective in regression_models:
-                f_min = 1 - (min(data_array[objective]) - tmp_objective_limits[objective][0])\
-                        /(tmp_objective_limits[objective][1] - tmp_objective_limits[objective][0])
-                x_var = prediction_variances[objective][x_index]
-                x_std = np.sqrt(x_var)
-                x_mean = prediction_means[objective][x_index]
-                x_mean = 1 - x_mean
-                v = (x_mean - f_min)/x_std
-                objective_ei = (x_mean - f_min)*stats.norm.cdf(v) + x_std*stats.norm.pdf(v)
-                scalarized_value = reciprocated_weights[objective] * objective_ei
-                scalarized_predictions[x_index] = min(scalarized_value, scalarized_predictions[x_index])
-            scalarized_predictions[x_index] = scalarized_predictions[x_index]*feasibility_indicator[x_index]
+        for objective in regression_models:
+            f_min = 1 - (min(data_array[objective]) - tmp_objective_limits[objective][0])\
+                            /(tmp_objective_limits[objective][1] - tmp_objective_limits[objective][0])
+            x_std = np.sqrt(prediction_variances[objective])
+            x_mean = 1 - prediction_means[objective]
+            v = (x_mean - f_min)/x_std
+            scalarized_value = reciprocated_weights[objective] * ((x_mean - f_min)*stats.norm.cdf(v) + x_std*stats.norm.pdf(v))
+            scalarized_predictions = np.minimum(scalarized_value, scalarized_predictions)
+        scalarized_predictions = scalarized_predictions*feasibility_indicator
     else:
         print("Error: unrecognized scalarization method:", scalarization_method)
         raise SystemExit
