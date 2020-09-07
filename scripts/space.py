@@ -61,7 +61,7 @@ class RealParameter(Parameter) :
             self.alpha = self.densities_alphas[probability_distribution]
             self.beta = self.densities_betas[probability_distribution]
 
-        self.cdf_distribution = None 
+        self.cdf_distribution = None
         if isinstance(self.prior, list):
             self.prior = list(self.prior/np.sum(self.prior))
             self.param_xs = np.linspace(self.get_min(), self.get_max(), 10000)
@@ -112,7 +112,7 @@ class RealParameter(Parameter) :
         :param bw_method: the bandwidth of the kde.
         """
         self.estimated_pdf = gaussian_kde(values, bw_method=bw_method)
-    
+
     def interpolate_pdf(self, x):
         """
         Find the pdf for x by interpolating the list of pdf values in the prior.
@@ -162,7 +162,7 @@ class RealParameter(Parameter) :
             rescaled_x = self.from_parameter_value_to_0_1_range(x)
             pdf = stats.beta.pdf(rescaled_x, self.alpha, self.beta)
             # when using the exponential or decay beta, values too close to 1 have pdf(x) = infinity, which leads to numerical issues
-            # the highest value that can be reached before infinity for the exponential is ~1242, we cap the pdf at that. 
+            # the highest value that can be reached before infinity for the exponential is ~1242, we cap the pdf at that.
             if pdf == float("inf"):
                 pdf = 1242
             return pdf
@@ -1268,6 +1268,9 @@ class Space :
         configuration_input_parameters = configuration.keys()
         for parameter in self.get_input_parameters():
             if parameter in configuration_input_parameters: # Double check that the parameter is available in configuration. There are cases in the code where we pass a configuration that only contains a subset of parameters of the original search space but we still want to compute an unique string for those cases.
+                element = configuration[parameter]
+                if isinstance(element, float) and element.is_integer():
+                    element = int(element) # ensure consistency in how numbers are represented in the string
                 str_element = str(configuration[parameter]) + "_"
             else:
                 str_element = "" + "_"
@@ -1433,7 +1436,7 @@ class Space :
         for i in range(len(X[0])):
             configuration={}
             for j, param_name in enumerate(self.get_input_non_categorical_parameters(input_parameters_names_list)):
-                configuration[param_name] = X[j][i]  
+                configuration[param_name] = X[j][i]
             tmp_configurations.append(configuration)
 
         # Dealing with categorical parameters
@@ -1815,10 +1818,15 @@ class Space :
                 print("Expected:", self.get_input_parameters())
                 print("Got:", list(configuration.keys()))
                 raise SystemExit
+            tmp_configuration = {}
             for param in configuration:
+                if self.get_type(param) == "categorical":
+                    tmp_configuration[param] = self.all_input_parameters[param].get_original_string(configuration[param])
+                else:
+                    tmp_configuration[param] = configuration[param]
                 new_data_array[param].append(configuration[param])
 
-            objective_values = black_box_function(configuration)
+            objective_values = black_box_function(tmp_configuration)
 
             output_parameters = self.get_output_parameters()
             if type(objective_values) is dict:
@@ -1870,7 +1878,7 @@ class Space :
                                                                         configurations,
                                                                         black_box_function,
                                                                         beginning_of_time)
-            print_data_array(data_array)
+            self.print_data_array(data_array)
         elif (hypermapper_mode == 'exhaustive'):
             print("Running on exhaustive mode.")
             if exhaustive_search_data_array is None:
@@ -1900,6 +1908,25 @@ class Space :
             print("Unrecognized hypermapper mode:", hypermapper_mode)
             raise SystemExit
         return data_array
+
+    def print_data_array(self, data_array):
+        """
+        Print a data array in a csv format.
+        :param data_array: the data array to print. A dict of lists.
+        """
+        keys = ""
+        for key in data_array.keys():
+            keys += str(key) + ","
+        print(keys[:-1])
+
+        for idx in range(len(data_array[list(data_array.keys())[0]])):
+            configuration = ""
+            for key in data_array.keys():
+                #configuration += str(data_array[key][idx]) + ','
+                configuration += str(self.convert_types_to_string(key, data_array)[idx]) + ','
+            print(configuration[:-1])
+        print()
+
 
     def isConfigurationAlreadyRun(self, fast_addressing_of_data_array, configuration):
         """

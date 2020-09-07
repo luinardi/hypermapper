@@ -229,7 +229,6 @@ def run_objective_function(
                                                                             all_evaluations,
                                                                             scalarization_weights,
                                                                             objective_limits,
-                                                                            None,
                                                                             scalarization_method)
 
     for objective in objective_limits:

@@ -32,6 +32,12 @@
         "maximum": 5000,
         "default": 50
       },
+      "time_budget": {
+        "description": "Max number of minutes that HyperMapper is allowed to run for. If -1, the runtime will not be limited.",
+        "type": "number",
+        "minimum": -1,
+        "default": -1
+      },
       "number_of_repetitions": {
         "description": "Usually a number between 1 and 5. Number of times HyperMapper runs a single sample of the search space. For statistical significance it may be useful to run a sample several time. The mean or the median of the multiple runs is taken by HyperMapper. Execution time is negatively affected from a high number of repetitions.",
         "type": "integer",
@@ -206,7 +212,7 @@
       "optimization_method":{
         "type": "string",
         "description": "Method to use for the multi-objective optimization in Hypermapper.",
-        "enum": ["bayesian_optimization", "random_scalarizations", "local_search", "prior_guided_optimization"],
+        "enum": ["bayesian_optimization", "random_scalarizations", "local_search", "prior_guided_optimization", "evolutionary_optimization"],
         "default": "bayesian_optimization"
       },
       "local_search_starting_points":{
@@ -326,6 +332,36 @@
         "description": "which method to use to optimize the acquisition function.",
         "enum":["local_search"],
         "default": "local_search"
+      },
+      "evolution_population_size":{
+        "type": "integer",
+        "description": "number of points the Evolutionary Algorithm keeps track of.",
+        "default": 50
+      },
+      "evolution_generations":{
+        "type": "integer",
+        "description": "number of iterations through the evolutionary loop.",
+        "default": 150
+      },
+      "mutation_rate":{
+        "type": "integer",
+        "description": "number of parameters to mutate.",
+        "default": 1
+      },
+      "evolution_crossover":{
+        "type": "boolean",
+        "description": "whether to use crossover.",
+        "default": false
+      },
+      "regularize_evolution":{
+        "type": "boolean",
+        "description": "whether to regularize (remove the oldest) the evolution.",
+        "default": false
+      },
+      "batch_size":{
+        "type": "integer",
+        "description": "number of samples to pick for tournament selection, crossover needs at least three.",
+        "default": 2
       }
     },
     "additionalProperties": false,
