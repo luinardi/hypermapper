@@ -4,6 +4,7 @@ import multiprocessing as mp
 import numpy as np
 import json
 import copy
+from scipy import stats
 from collections import defaultdict
 from jsonschema import Draft4Validator, validators
 
@@ -173,23 +174,6 @@ def are_configurations_equal(configuration1, configuration2, keys):
         if (configuration1[key] != configuration2[key]):
             return False
     return True
-
-def print_data_array(data_array):
-    """
-    Print a data array in a csv format.
-    :param data_array: the data array to print. A dict of lists.
-    """
-    keys = ""
-    for key in data_array.keys():
-        keys += str(key) + ","
-    print(keys[:-1])
-
-    for idx in range(len(data_array[list(data_array.keys())[0]])):
-        configuration = ""
-        for key in data_array.keys():
-            configuration += str(data_array[key][idx]) + ','
-        print(configuration[:-1])
-    print()
 
 def are_all_elements_equal(data_list):
    return data_list[1:] == data_list[:-1]
@@ -411,12 +395,28 @@ def normalize_with_std(data_array, standard_deviations, selection_keys=None):
 ####################################################
 # Scalarization
 ####################################################
-def compute_data_array_scalarization(data_array, objective_weights, objective_limits, objective_bounds, scalarization_method):
+def reciprocate_weights(objective_weights):
+    """
+    Reciprocate weights so that they correlate when using modified_tchebyshev scalarization.
+    :param objective_weights: a dictionary containing the weights for each objective.
+    :return: a dictionary containing the reciprocated weights.
+    """
+    new_weights = {}
+    total_weight = 0
+    for objective in objective_weights:
+        new_weights[objective] = 1/objective_weights[objective]
+        total_weight += new_weights[objective]
+
+    for objective in new_weights:
+        new_weights[objective] = new_weights[objective]/total_weight
+
+    return new_weights
+
+def compute_data_array_scalarization(data_array, objective_weights, objective_limits, scalarization_method):
     """
     :param data_array: a dictionary containing the previously run points and their function values.
     :param objective_weights: a list containing the weights for each objective.
     :param objective_limits: a dictionary with estimated minimum and maximum values for each objective.
-    :param objective_bounds: a list containing user-defined bounds for the objectives bounding box.
     :param scalarization_method: a string indicating which scalarization method to use.
     :return: a list of scalarized values for each point in data_array and the updated objective limits.
     """
@@ -436,46 +436,84 @@ def compute_data_array_scalarization(data_array, objective_weights, objective_li
         else:
             normalized_data_array[objective] = [(x - tmp_objective_limits[objective][0]) \
                                                 /(tmp_objective_limits[objective][1] - tmp_objective_limits[objective][0]) for x in data_array[objective]]
-    total_weight = 0
-    normalized_weights = {}
-    if objective_bounds is not None: # Normalize weights to [0, 1] and sum(weights) = 1
-        for objective in objective_weights:
-            if tmp_objective_limits[objective][1] == tmp_objective_limits[objective][0]:
-                normalized_weights[objective] = 0
-            else:
-                normalized_weights[objective] = (objective_weights[objective] - tmp_objective_limits[objective][0]) \
-                                            /(tmp_objective_limits[objective][1] - tmp_objective_limits[objective][0])
-            total_weight += normalized_weights[objective]
-        if total_weight == 0:
-            total_weight = 1
-
-        for objective in normalized_weights:
-            normalized_weights[objective] = normalized_weights[objective]/total_weight
-    else:
-        normalized_weights = copy.deepcopy(objective_weights)
 
     if (scalarization_method == "linear"):
         scalarized_objectives = np.zeros(data_array_len)
         for run_index in range(data_array_len):
-            for objective in normalized_weights:
-                scalarized_objectives[run_index] += normalized_weights[objective] * normalized_data_array[objective][run_index]
+            for objective in objective_weights:
+                scalarized_objectives[run_index] += objective_weights[objective] * normalized_data_array[objective][run_index]
     # The paper does not propose this, we apply their methodology to the original tchebyshev to get the approach below
     # Important: since this was not proposed in the paper, their proofs and bounds for the modified_tchebyshev may not be valid here.
     elif(scalarization_method == "tchebyshev"):
         scalarized_objectives = np.zeros(data_array_len)
         for run_index in range(data_array_len):
             total_value = 0
-            for objective in normalized_weights:
-                scalarized_value = normalized_weights[objective] * abs(normalized_data_array[objective][run_index])
+            for objective in objective_weights:
+                scalarized_value = objective_weights[objective] * abs(normalized_data_array[objective][run_index])
                 scalarized_objectives[run_index] = max(scalarized_value, scalarized_objectives[run_index])
                 total_value += scalarized_value
             scalarized_objectives[run_index] += 0.05*total_value
     elif(scalarization_method == "modified_tchebyshev"):
         scalarized_objectives = np.full((data_array_len), float("inf"))
-        reciprocated_weights = reciprocate_weights(normalized_weights)
+        reciprocated_weights = reciprocate_weights(objective_weights)
         for run_index in range(data_array_len):
-            for objective in normalized_weights:
+            for objective in objective_weights:
                 scalarized_value = reciprocated_weights[objective] * abs(normalized_data_array[objective][run_index])
                 scalarized_objectives[run_index] = min(scalarized_value, scalarized_objectives[run_index])
             scalarized_objectives[run_index] = -scalarized_objectives[run_index]
     return scalarized_objectives, tmp_objective_limits
+
+def sample_weight_bbox(optimization_metrics, objective_bounds, objective_limits, evaluations_per_optimization_iteration):
+    """
+    Sample lambdas for each objective following a uniform distribution with user-defined bounding boxes.
+    If the user does not define bounding boxes, it defaults to [0, 1].
+    :param optimization_metrics: a list containing the optimization objectives.
+    :param objective_bounds: a dictionary containing the bounding boxes for each objective.
+    :param evaluations_per_optimization_iteration: number of weight arrays to sample. Currently not used.
+    :return: a dictionary containing the weight of each objective.
+    """
+    weight_list = []
+    for run_idx in range(evaluations_per_optimization_iteration):
+        objective_weights = {}
+        for objective in optimization_metrics:
+            loc, scale = objective_bounds[objective]
+            scale = scale - loc # scipy.stats automatically does scale = scale + loc, we don't want that
+            objective_weight = stats.uniform.rvs(loc=loc, scale=scale)
+            objective_weights[objective] = objective_weight
+
+            # Both limits are the same only if all elements in the array are equal. This causes the normalization to divide by 0.
+            # We cannot optimize an objective when all values are the same, so we set its weight to 0.
+            if objective_limits[objective][1] == objective_limits[objective][0]:
+                objective_weights[objective] = 0
+            else:
+                objective_weights[objective] = (objective_weights[objective] - objective_limits[objective][0]) \
+                                                /(objective_limits[objective][1] - objective_limits[objective][0])
+            total_weight += objective_weights[objective]
+            if total_weight == 0:
+                total_weight = 1
+
+        for objective in objective_weights:
+            normalized_weights[objective] = normalized_weights[objective]/total_weight
+        weight_list.append(objective_weights)
+
+    return weight_list
+
+def sample_weight_flat(optimization_metrics, evaluations_per_optimization_iteration):
+    """
+    Sample lambdas for each objective following a dirichlet distribution with alphas equal to 1.
+    In practice, this means we sample the weights uniformly from the set of possible weight vectors.
+    :param optimization_metrics: a list containing the optimization objectives.
+    :param evaluations_per_optimization_iteration: number of weight arrays to sample. Currently not used.
+    :return: a dictionary containing the weight of each objective.
+    """
+    alphas = np.ones(len(optimization_metrics))
+    sampled_weights = stats.dirichlet.rvs(alpha=alphas, size=evaluations_per_optimization_iteration)
+    weight_list = []
+
+    for run_idx in range(evaluations_per_optimization_iteration):
+        objective_weights = {}
+        for idx, objective in enumerate(optimization_metrics):
+            objective_weights[objective] = sampled_weights[run_idx][idx]
+        weight_list.append(objective_weights)
+
+    return weight_list

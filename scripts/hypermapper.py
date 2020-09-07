@@ -1,7 +1,6 @@
 import sys
-import random_scalarizations
 import local_search
-import prior_optimization
+import bo
 import evolution
 import compute_pareto
 import plot_dse
@@ -50,17 +49,16 @@ def optimize(parameters_file, black_box_function=None):
         run_directory = hypermapper_pwd
         config["run_directory"] = run_directory
     log_file = config["log_file"]
-    log_file = deal_with_relative_and_absolute_path(run_directory, log_file)
+    if log_file == "hypermapper_logfile.log":
+        log_file = deal_with_relative_and_absolute_path(run_directory, log_file)
     sys.stdout = Logger(log_file)
 
     optimization_method = config["optimization_method"]
 
-    if (optimization_method == "random_scalarizations") or (optimization_method == "bayesian_optimization"):
-        random_scalarizations.main(config, black_box_function=black_box_function)
+    if (optimization_method == "random_scalarizations") or (optimization_method == "bayesian_optimization") or (optimization_method == 'prior_guided_optimization'):
+        bo.main(config, black_box_function=black_box_function)
     elif optimization_method == "local_search":
         local_search.main(config, black_box_function=black_box_function)
-    elif optimization_method == "prior_guided_optimization":
-        prior_optimization.main(config, black_box_function=black_box_function)
     elif optimization_method == "evolutionary_optimization":
         evolution.main(config, black_box_function=black_box_function)
     else:
