@@ -10,12 +10,12 @@ import os
 from utility_functions import *
 
 def sequential_is_pareto_efficient_dumb(costs):
-    """ This function is in general more efficient for high-dimensional Pareto fronts. 
+    """ This function is in general more efficient for high-dimensional Pareto fronts.
         Use sequential_is_pareto_efficient(costs) for low-dimensional Pareto fronts
     :param costs: An (n_points, n_costs) array
     :return: A (n_points, ) boolean array, indicating whether each point is Pareto efficient
     """
-    isString = isinstance(costs[0][0], str) 
+    isString = isinstance(costs[0][0], str)
     if isString :
         costs = costs.astype(np.float)
     is_efficient = np.ones(costs.shape[0], dtype = bool)
@@ -30,14 +30,14 @@ def sequential_is_pareto_efficient_dumb(costs):
 
 
 def sequential_is_pareto_efficient(costs):
-    """ This function is in general more efficient for low-dimensional Pareto fronts. 
+    """ This function is in general more efficient for low-dimensional Pareto fronts.
         Use sequential_is_pareto_efficient_dumb(costs) for high-dimensional Pareto fronts
     :param costs: An (n_points, n_costs) array
     :return: A (n_points, ) boolean array, indicating whether each point is Pareto efficient
     """
 
     isString = isinstance(costs[0][0], str)
-    if isString : 
+    if isString :
         costs = costs.astype(np.float)
     is_efficient = np.ones(costs.shape[0], dtype = bool)
     for i, c in enumerate(costs):
@@ -104,17 +104,17 @@ def parallel_is_pareto_efficient(debug, predictions, costs, number_of_cpus=0):
     :return:
     """
     only_keep_concatenated = domain_decomposition_and_parallel_computation(debug, sequential_is_pareto_efficient, np.concatenate, costs, number_of_cpus)
-    
+
     for p_k in predictions:
         predictions[p_k] = predictions[p_k][only_keep_concatenated]
 
-    # We need to apply the Pareto again with the results of the parallel Pareto computation. 
+    # We need to apply the Pareto again with the results of the parallel Pareto computation.
     #The single Pareto computations give Paretos for those subset and now we are computing the final aggregated Pareto (this time the input array will be much smaller).
     costs_reduction = costs[only_keep_concatenated]
     only_keep = sequential_is_pareto_efficient(costs_reduction)
     return only_keep
 
-def compute_pareto(param_space, input_data_file, output_pareto_file, 
+def compute_pareto(param_space, input_data_file, output_pareto_file,
                     debug=False, number_of_cpus=0):
     """
     This function computes a Pareto from a csv file called input_data_file.
@@ -189,6 +189,13 @@ def main(parameters_file="example_scenarios/spatial/BlackScholes_scenario.json",
     :param parameters_file: the json file the specify all the HyperMapper input parameters.
     :return: the csv file is written on disk.
     """
+    try:
+        hypermapper_pwd = os.environ['PWD']
+        hypermapper_home = os.environ['HYPERMAPPER_HOME']
+        os.chdir(hypermapper_home)
+    except:
+        hypermapper_home = "."
+        hypermapper_pwd = "."
 
     print("######## compute_pareto.py #####################");
     print("### Parameters file is %s" % parameters_file); sys.stdout.flush()
@@ -212,16 +219,19 @@ def main(parameters_file="example_scenarios/spatial/BlackScholes_scenario.json",
     optimization_metrics = config["optimization_objectives"]
     number_of_cpus = config["number_of_cpus"]
     run_directory = config["run_directory"]
+    if run_directory == ".":
+        run_directory = hypermapper_pwd
+        config["run_directory"] = run_directory
     if input_data_file == None:
-        output_data_file = config["output_data_file"]
-        if output_data_file == "output_samples.csv":
-            output_data_file = application_name + "_" + output_data_file
-        input_data_file = deal_with_relative_and_absolute_path(run_directory, output_data_file)
+        input_data_file = config["output_data_file"]
+        if input_data_file == "output_samples.csv":
+            input_data_file = application_name + "_" + input_data_file
+    input_data_file = deal_with_relative_and_absolute_path(run_directory, input_data_file)
     if output_pareto_file == None:
         output_pareto_file = config["output_pareto_file"]
         if output_pareto_file == "output_pareto.csv":
             output_pareto_file = application_name + "_" + output_pareto_file
-        output_pareto_file = deal_with_relative_and_absolute_path(run_directory, output_pareto_file)
+    output_pareto_file = deal_with_relative_and_absolute_path(run_directory, output_pareto_file)
 
     param_space = space.Space(config)
     print("### The input data file is %s" % input_data_file)
