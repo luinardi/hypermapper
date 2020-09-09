@@ -21,7 +21,13 @@ def main(parameters_file, list_of_pairs_of_files=[], image_output_file = None):
     """
     Plot the results of the previously run design space exploration.
     """
-
+    try:
+        hypermapper_pwd = os.environ['PWD']
+        hypermapper_home = os.environ['HYPERMAPPER_HOME']
+        os.chdir(hypermapper_home)
+    except:
+        hypermapper_home = "."
+        hypermapper_pwd = "."
     show_samples = False
 
     filename, file_extension = os.path.splitext(parameters_file)
@@ -43,6 +49,9 @@ def main(parameters_file, list_of_pairs_of_files=[], image_output_file = None):
     feasible_output = config["feasible_output"]
     feasible_output_name = feasible_output["name"]
     run_directory = config["run_directory"]
+    if run_directory == ".":
+        run_directory = hypermapper_pwd
+        config["run_directory"] = run_directory
 
     xlog = config["output_image"]["image_xlog"]
     ylog = config["output_image"]["image_ylog"]
@@ -60,15 +69,16 @@ def main(parameters_file, list_of_pairs_of_files=[], image_output_file = None):
         output_data_file = config["output_data_file"]
         if output_data_file == "output_samples.csv":
             output_data_file = application_name + "_" + output_data_file
-        list_of_pairs_of_files.append((deal_with_relative_and_absolute_path(run_directory, output_pareto_file), deal_with_relative_and_absolute_path(run_directory, output_data_file)))
+    list_of_pairs_of_files.append((deal_with_relative_and_absolute_path(run_directory, output_pareto_file), deal_with_relative_and_absolute_path(run_directory, output_data_file)))
 
     if image_output_file != None:
         output_image_pdf_file = image_output_file
+        output_image_pdf_file = deal_with_relative_and_absolute_path(run_directory, output_image_pdf_file)
         filename = os.path.basename(image_output_file)
         path = os.path.dirname(image_output_file)
-        if path == "": 
+        if path == "":
             output_image_pdf_file_with_all_samples = "all_" + filename
-        else: 
+        else:
             output_image_pdf_file_with_all_samples = path + "/" + "all_" + filename
     else:
         tmp_file_name = config["output_image"]["output_image_pdf_file"]
@@ -151,7 +161,7 @@ def main(parameters_file, list_of_pairs_of_files=[], image_output_file = None):
             if objective_2_is_percentage :
                 input_data_array[file][yelem] = [input_data_array[file][yelem][i] * 100 for i in range(len(input_data_array[file][yelem]))]
 
-            x_max, x_min, y_max, y_min = compute_min_max_samples(input_data_array[file], x_max, x_min, xelem, y_max, y_min, yelem) 
+            x_max, x_min, y_max, y_min = compute_min_max_samples(input_data_array[file], x_max, x_min, xelem, y_max, y_min, yelem)
 
             input_data_array_size = len(input_data_array[file][list(input_data_array[file].keys())[0]])
             print("Size of the data file %s is %d" % (file, input_data_array_size))
