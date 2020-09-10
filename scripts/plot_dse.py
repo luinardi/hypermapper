@@ -74,8 +74,8 @@ def main(parameters_file, list_of_pairs_of_files=[], image_output_file = None):
     if image_output_file != None:
         output_image_pdf_file = image_output_file
         output_image_pdf_file = deal_with_relative_and_absolute_path(run_directory, output_image_pdf_file)
-        filename = os.path.basename(image_output_file)
-        path = os.path.dirname(image_output_file)
+        filename = os.path.basename(output_image_pdf_file)
+        path = os.path.dirname(output_image_pdf_file)
         if path == "":
             output_image_pdf_file_with_all_samples = "all_" + filename
         else:
@@ -85,13 +85,12 @@ def main(parameters_file, list_of_pairs_of_files=[], image_output_file = None):
         if tmp_file_name == "output_pareto.pdf":
             tmp_file_name = application_name + "_" + tmp_file_name
         output_image_pdf_file = deal_with_relative_and_absolute_path(run_directory, tmp_file_name)
-
-        if tmp_file_name[0] == "/":
-            filename = os.path.basename(output_image_pdf_file)
-            path = os.path.dirname(output_image_pdf_file)
-            output_image_pdf_file_with_all_samples = path + "/" + "all_" + filename
+        filename = os.path.basename(output_image_pdf_file)
+        path = os.path.dirname(output_image_pdf_file)
+        if path == "":
+            output_image_pdf_file_with_all_samples = "all_" + filename
         else:
-            output_image_pdf_file_with_all_samples = str(run_directory + "/" + "all_" + tmp_file_name)
+            output_image_pdf_file_with_all_samples = path + "/" + "all_" + filename
 
     str_files = ""
     for e in list_of_pairs_of_files:
