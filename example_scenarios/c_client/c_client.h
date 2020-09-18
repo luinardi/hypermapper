@@ -113,8 +113,13 @@ public:
       }
       out << "}";
     } else if (IP.getType() == ParamType::Integer) {
-      out << "\n  Range: [" << IP.getStartVal() << ", " << IP.getEndVal()
-          << "]";
+      out << "\n  Range: [";
+      char separator[1] = "";
+      for (auto i : IP.getRange()) {
+        out << separator << i;
+        separator[0] = ',';
+      }
+      out << "]";
     }
     return out;
   }

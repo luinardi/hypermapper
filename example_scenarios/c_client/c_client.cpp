@@ -117,6 +117,7 @@ string createjson(string AppName, string OutputFoldername, int NumIterations,
     switch (InParam->getType()) {
     case Ordinal:
     case Categorical:
+    case Integer:
       HMParam["values"] = json(InParam->getRange());
       break;
     default:
@@ -161,11 +162,15 @@ int collectInputParams(vector<HMInputParam *> &InParams) {
 
   vector<int> Range = {-20, 20};
 
-  HMInputParam x0Param("x0", ParamType::Integer);
-  x0Param.setRange(Range);
+  HMInputParam *x0Param = new HMInputParam("x0", ParamType::Integer);
+  x0Param->setRange(Range);
+  InParams.push_back(x0Param);
+  numParams++;
 
-  HMInputParam x1Param("x1", ParamType::Integer);
-  x1Param.setRange(Range);
+  HMInputParam *x1Param = new HMInputParam("x1", ParamType::Integer);
+  x1Param->setRange(Range);
+  InParams.push_back(x1Param);
+  numParams++;
   return numParams;
 }
 
@@ -201,7 +206,7 @@ int main(int argc, char **argv) {
   string AppName = "test";
   int NumIterations = 20;
   int NumSamples = 10;
-  bool Predictor = 1;
+  bool Predictor = 0;
   vector<string> Objectives = {"f1_value", "f2_value"};
 
   string CurrentDir = fs::current_path();
@@ -276,13 +281,17 @@ int main(int argc, char **argv) {
       }
       pos = bufferStr.find_first_of(",\n", pos) + 1;
     }
-    response += "Resources,Fmax,Valid\n";
+    for (auto objString : Objectives)
+      response += objString + ",";
+    if (Predictor)
+      response += "Valid";
+    response += "\n";
     //    response += "Fmax,Valid\n";
     // For each request
     for (int request = 0; request < numRequests; request++) {
       // Receiving paramter values
       fgets(buffer, max_buffer, instream);
-      //      cout << "Received: " << buffer;
+      cout << "Received: " << buffer;
       bufferStr = string(buffer);
       pos = 0;
       for (int param = 0; param < numParams; param++) {
@@ -309,7 +318,6 @@ int main(int argc, char **argv) {
     i++;
   }
 
-  //  waitpid(hypermapper.child_pid, &status, 0);
   close(hypermapper.from_child);
   close(hypermapper.to_child);
 
