@@ -8,6 +8,7 @@
 class HMInputParam;
 void fatalError(const std::string &msg);
 
+// Enum for HyperMapper parameter types
 enum ParamType { Real, Integer, Ordinal, Categorical };
 
 std::ostream &operator<<(std::ostream &out, const ParamType &PT) {
@@ -48,20 +49,19 @@ std::string getTypeAsString(const ParamType &PT) {
   return TypeString;
 }
 
+// HyperMapper Input Parameter object
 class HMInputParam {
 private:
   std::string Name;
   std::string const Key;
   ParamType Type;
-  int startVal;
-  int endVal;
   std::vector<int> Range;
   static int count;
   int Value;
 
 public:
   HMInputParam(std::string _Name = "", ParamType _Type = ParamType::Integer)
-      : Name(_Name), Type(_Type), startVal(0), endVal(0),
+      : Name(_Name), Type(_Type),
         Key("x" + std::to_string(count++)) {}
 
   std::string getName() const { return Name; }
@@ -69,12 +69,6 @@ public:
 
   ParamType getType() const { return Type; }
   void setType(ParamType _Type) { Type = _Type; }
-
-  void setStartVal(int _Val) { startVal = _Val; }
-  int getStartVal() const { return startVal; }
-
-  void setEndVal(int _Val) { endVal = _Val; }
-  int getEndVal() const { return endVal; }
 
   void setRange(std::vector<int> const &_Range) { Range = _Range; }
   std::vector<int> getRange() const { return Range; }
@@ -125,6 +119,7 @@ public:
   }
 };
 
+// HyperMapper Objective object
 struct HMObjective {
   int f1_value;
   int f2_value;

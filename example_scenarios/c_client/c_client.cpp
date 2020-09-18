@@ -19,9 +19,6 @@ using namespace std;
 using json = nlohmann::json;
 namespace fs = experimental::filesystem;
 
-int SampleCount;
-int InvalidPoints;
-
 // popen2 implementation adapted from:
 // https://github.com/vi/syscall_limiter/blob/master/writelimiter/popen2.c
 struct popen2 {
@@ -66,6 +63,15 @@ void fatalError(const string &msg) {
   exit(EXIT_FAILURE);
 }
 
+// Function that creates the json scenario for hypermapper
+// Arguments:
+// - AppName: Name of application
+// - OutputFolderName: Name of output folder
+// - NumIterations: Number of HP iterations
+// - NumDSERandomSamples: Number of HP random samples
+// - Predictor: Boolean for enabling/disabling feasibility predictor
+// - InParams: vector of input parameters
+// - Objectives: string with objective names
 string createjson(string AppName, string OutputFoldername, int NumIterations,
                   int NumDSERandomSamples, bool Predictor,
                   vector<HMInputParam *> &InParams, vector<string> Objectives) {
@@ -142,6 +148,7 @@ string createjson(string AppName, string OutputFoldername, int NumIterations,
   return JSonFileNameStr;
 }
 
+// Function that takes input parameters and generates objective
 HMObjective calculateObjective(vector<HMInputParam *> &InputParams) {
 
   HMObjective Obj;
@@ -157,6 +164,7 @@ HMObjective calculateObjective(vector<HMInputParam *> &InputParams) {
   return Obj;
 }
 
+// Function that populates input parameters
 int collectInputParams(vector<HMInputParam *> &InParams) {
   int numParams = 0;
 
@@ -174,6 +182,7 @@ int collectInputParams(vector<HMInputParam *> &InParams) {
   return numParams;
 }
 
+// Function for mapping input parameter based on key
 auto findHMParamByKey(vector<HMInputParam *> &InParams, string Key) {
   for (auto it = InParams.begin(); it != InParams.end(); ++it) {
     HMInputParam Param = **it;
@@ -182,10 +191,6 @@ auto findHMParamByKey(vector<HMInputParam *> &InParams, string Key) {
     }
   }
   return InParams.end();
-}
-
-void setParamValue(HMInputParam *Param, int ParamVal) {
-  Param->setVal(ParamVal);
 }
 
 int main(int argc, char **argv) {
@@ -197,18 +202,19 @@ int main(int argc, char **argv) {
   }
 
   srand(0);
-  SampleCount = 0;
-  InvalidPoints = 0;
 
   vector<HMInputParam *> InParams;
-
+  
+  // Set these values accordingly
+  // TODO: make these command line inputs
   string OutputFoldername = "outdata";
   string AppName = "test";
   int NumIterations = 20;
   int NumSamples = 10;
   bool Predictor = 0;
   vector<string> Objectives = {"f1_value", "f2_value"};
-
+  
+  // Create output directory if it doesn't exist
   string CurrentDir = fs::current_path();
   string OutputDir = CurrentDir + "/" + OutputFoldername + "/";
   if (fs::exists(OutputDir)) {
@@ -220,16 +226,19 @@ int main(int argc, char **argv) {
       fatalError("Unable to create Directory: " + OutputDir);
     }
   }
-
+  
+  // Collect input parameters
   int numParams = collectInputParams(InParams);
   for (auto param : InParams) {
     cout << "Param: " << *param << "\n";
   }
-
+  
+  // Create json scenario
   string JSonFileNameStr =
       createjson(AppName, OutputFoldername, NumIterations, NumSamples,
                  Predictor, InParams, Objectives);
 
+  // Launch HyperMapper
   string cmd("python3 ");
   cmd += getenv("HYPERMAPPER_HOME");
   cmd += "/scripts/hypermapper.py";
@@ -244,7 +253,9 @@ int main(int argc, char **argv) {
 
   const int max_buffer = 1000;
   char buffer[max_buffer];
-
+  // Loop that communicates with HyperMapper
+  // Everything is done through function calls,
+  // there should be no need to modify bellow this line.
   int i = 0;
   while (true) {
     fgets(buffer, max_buffer, instream);
@@ -273,7 +284,6 @@ int main(int argc, char **argv) {
       auto paramIt = findHMParamByKey(InParams, ParamStr);
       if (paramIt != InParams.end()) {
         InputParamsMap[param] = *paramIt;
-        //        cout << "  Param: " << *paramIt << endl;
         response += ParamStr;
         response += ",";
       } else {
@@ -286,7 +296,6 @@ int main(int argc, char **argv) {
     if (Predictor)
       response += "Valid";
     response += "\n";
-    //    response += "Fmax,Valid\n";
     // For each request
     for (int request = 0; request < numRequests; request++) {
       // Receiving paramter values
@@ -297,8 +306,7 @@ int main(int argc, char **argv) {
       for (int param = 0; param < numParams; param++) {
         size_t len = bufferStr.find_first_of(",\n", pos) - pos;
         string ParamValStr = bufferStr.substr(pos, len);
-        //        cout << "  -- Value: " << ParamValStr << "\n";
-        setParamValue(InputParamsMap[param], stoi(ParamValStr));
+        InputParamsMap[param]->setVal(stoi(ParamValStr));
         response += ParamValStr;
         response += ",";
         pos = bufferStr.find_first_of(",\n", pos) + 1;
@@ -310,7 +318,6 @@ int main(int argc, char **argv) {
       response += ",";
       response += to_string(Obj.valid);
       response += "\n";
-      SampleCount++;
     }
     cout << "Response:\n" << response;
     fputs(response.c_str(), outstream);
@@ -331,8 +338,6 @@ int main(int argc, char **argv) {
   while (fgets(buffer, max_buffer, fp))
     printf("%s", buffer);
   pclose(fp);
-
-  cout << "Number of Invalid points: " << InvalidPoints << endl;
 
   return 0;
 }
