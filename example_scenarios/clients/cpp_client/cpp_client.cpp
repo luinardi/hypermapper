@@ -11,7 +11,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include "c_client.h"
+#include "cpp_client.h"
 #include "json.hpp"
 
 using namespace std;
@@ -204,16 +204,16 @@ int main(int argc, char **argv) {
   srand(0);
 
   vector<HMInputParam *> InParams;
-  
+
   // Set these values accordingly
   // TODO: make these command line inputs
   string OutputFoldername = "outdata";
-  string AppName = "test";
+  string AppName = "cpp_chakong_haimes";
   int NumIterations = 20;
   int NumSamples = 10;
-  bool Predictor = 0;
+  bool Predictor = 1;
   vector<string> Objectives = {"f1_value", "f2_value"};
-  
+
   // Create output directory if it doesn't exist
   string CurrentDir = fs::current_path();
   string OutputDir = CurrentDir + "/" + OutputFoldername + "/";
@@ -226,13 +226,13 @@ int main(int argc, char **argv) {
       fatalError("Unable to create Directory: " + OutputDir);
     }
   }
-  
+
   // Collect input parameters
   int numParams = collectInputParams(InParams);
   for (auto param : InParams) {
     cout << "Param: " << *param << "\n";
   }
-  
+
   // Create json scenario
   string JSonFileNameStr =
       createjson(AppName, OutputFoldername, NumIterations, NumSamples,
