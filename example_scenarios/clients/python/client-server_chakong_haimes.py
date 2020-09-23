@@ -2,31 +2,31 @@
 import math, sys
 from subprocess import Popen, PIPE
 
-def branin_function(x1, x2):
+def chakong_haimes(x1, x2):
     """
-    Compute the branin function.
-    :param x1: the first input of branin.
-    :param x2: the second input of branin.
-    :return: the value of the braning function and the (fake) energy used to compute that function.
+    Compute the Chakong and Haimes two-objective function to demonstrate a two-objective optimization example.
+    The value is computed as defined in https://en.wikipedia.org/wiki/Test_functions_for_optimization
+    :param x1: the first input of the function.
+    :param x2: the second input of function.
+    :return: the two values of the Chakong and Haimes function and the feasibility indicator.
     """
-    a = 1.0
-    b = 5.1 / (4.0 * math.pi * math.pi)
-    c = 5.0 / math.pi
-    r = 6.0
-    s = 10.0
-    t = 1.0 / (8.0 * math.pi)
+    f1_value = 2 + (x1 - 2)*(x1 - 2) + (x2 - 1)*(x2 - 1)
+    f2_value = 9*x1 - (x2 - 1)*(x2 - 1)
 
-    y_value = a * (x2 - b * x1 * x1 + c * x1 - r) ** 2 + s * (1 - t) * math.cos(x1) + s
+    # check constraints
+    g1 = x1*x1 + x2*x2 <= 225
+    g2 = x1 - 3*x2 + 10 <= 0
+    valid = g1 and g2
 
-    return y_value
+    return f1_value, f2_value, valid
 
-def communication_protocol_branin_hypermapper():
+def communication_protocol_chakong_haimes_hypermapper():
     """
-    This method implements the communication protocol between the Branin function and HyperMapper.
-    The protocol is specified in the HyperMapper wiki and it is basically and exchange of data via
+    This method implements the communication protocol between the Chakong and Haimes function and HyperMapper.
+    The protocol is specified in the HyperMapper wiki and it is basically an exchange of data via
     stdin and stdout using a csv-like format.
     """
-    cmd = ["python", "scripts/hypermapper.py", "example_scenarios/synthetic/client-server_branin/client-server_branin_scenario.json"]
+    cmd = ["python", "scripts/hypermapper.py", "example_scenarios/clients/python/client-server_chakong_haimes_scenario.json"]
     print(cmd) # Command to launch HyperMapper
     p = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, encoding="utf-8") # Create a subprocess and launch HyperMapper
     i = 0
@@ -37,7 +37,7 @@ def communication_protocol_branin_hypermapper():
             break
         print("Iteration %d" %i)
         sys.stdout.write(request)
-        str_to_hypermapper = "x1,x2,Value\n"
+        str_to_hypermapper = "x1,x2,f1_value,f2_value,Valid\n"
         num_of_eval_requests = int(request.split(' ')[1]) # Get the #_of_evaluation_requests
         headers = p.stdout.readline(); p.stdin.flush() # The second line contains the header in the form: x1,x2
         sys.stdout.write(headers)
@@ -47,15 +47,15 @@ def communication_protocol_branin_hypermapper():
             parameters_values = [x.strip() for x in parameters_values.split(',')]
             x1 = float(parameters_values[0])
             x2 = float(parameters_values[1])
-            y_value = branin_function(x1, x2) # Evaluate Branin function
-            str_to_hypermapper += str(x1) + "," + str(x2) + "," + str(y_value) + "\n" # Add to the reply string in a csv-style
+            f1_value, f2_value, valid = chakong_haimes(x1, x2) # Evaluate objective function
+            str_to_hypermapper += str(x1) + "," + str(x2) + "," + str(f1_value) + "," + str(f2_value) + "," + str(valid) + "\n" # Add to the reply string in a csv-style
         print(str_to_hypermapper)
         p.stdin.write(str_to_hypermapper); p.stdin.flush() # Reply to HyperMapper with all the evaluations
         i += 1
 
 def main():
-    communication_protocol_branin_hypermapper()
-    print("End of Branin.")
+    communication_protocol_chakong_haimes_hypermapper()
+    print("End of Chakong and Haimes.")
 
 if __name__ == "__main__":
     main()
