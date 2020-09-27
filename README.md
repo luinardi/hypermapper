@@ -16,7 +16,7 @@ HyperMapper was succesfully applied to real-world problems involving design sear
 To learn about the core principles of HyperMapper refer to the papers section at the bottom. 
 
 ## Contact and Info
-For any questions please contact [Luigi Nardi](lnardi@stanford.edu).
+For any questions please contact Luigi Nardi: luigi.nardi at cs.lth.se.
 
 ## HyperMapper Slack Channel
 Join the channel for a quicker communication with the dev team: 
