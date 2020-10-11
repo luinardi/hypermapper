@@ -74,7 +74,7 @@ void fatalError(const string &msg) {
 // - Objectives: string with objective names
 string createjson(string AppName, string OutputFoldername, int NumIterations,
                   int NumDSERandomSamples, bool Predictor,
-                  vector<HMInputParam *> &InParams, vector<string> Objectives) {
+                  vector<HMInputParamBase *> &InParams, vector<string> Objectives) {
 
   string CurrentDir = fs::current_path();
   string OutputDir = CurrentDir + "/" + OutputFoldername + "/";
@@ -120,15 +120,13 @@ string createjson(string AppName, string OutputFoldername, int NumIterations,
   for (auto InParam : InParams) {
     json HMParam;
     HMParam["parameter_type"] = getTypeAsString(InParam->getType());
-    switch (InParam->getType()) {
-    case Ordinal:
-    case Categorical:
-    case Integer:
-      HMParam["values"] = json(InParam->getRange());
-      break;
-    default:
-      fatalError("Only Ordinal and Categorical handled!");
-      break;
+    switch (InParam->getDType()) {
+      case Int:
+        HMParam["values"] = json(static_cast<HMInputParam<int>*>(InParam)->getRange()); 
+        break;
+      case Float:
+        HMParam["values"] = json(static_cast<HMInputParam<float>*>(InParam)->getRange()); 
+        break;
     }
     HMScenario["input_parameters"][InParam->getKey()] = HMParam;
   }
@@ -149,11 +147,11 @@ string createjson(string AppName, string OutputFoldername, int NumIterations,
 }
 
 // Function that takes input parameters and generates objective
-HMObjective calculateObjective(vector<HMInputParam *> &InputParams) {
+HMObjective calculateObjective(vector<HMInputParamBase *> &InputParams) {
 
   HMObjective Obj;
-  int x1 = InputParams[0]->getVal();
-  int x2 = InputParams[1]->getVal();
+  float x1 = static_cast<HMInputParam<float>*>(InputParams[0])->getVal();
+  int x2 = static_cast<HMInputParam<int>*>(InputParams[1])->getVal();
 
   Obj.f1_value = 2 + (x1 - 2) * (x1 - 2) + (x2 - 1) * (x2 - 1);
   Obj.f2_value = 9 * x1 - (x2 - 1) * (x2 - 1);
@@ -165,32 +163,45 @@ HMObjective calculateObjective(vector<HMInputParam *> &InputParams) {
 }
 
 // Function that populates input parameters
-int collectInputParams(vector<HMInputParam *> &InParams) {
+int collectInputParams(vector<HMInputParamBase *> &InParams) {
   int numParams = 0;
 
-  vector<int> Range = {-20, 20};
+  vector<float> floatRange = {-20.0, 20.0};
+  vector<int> intRange = {-20, 20};
 
-  HMInputParam *x0Param = new HMInputParam("x0", ParamType::Integer);
-  x0Param->setRange(Range);
+  HMInputParam<float> *x0Param = new HMInputParam<float>("x0", ParamType::Real);
+  x0Param->setRange(floatRange);
   InParams.push_back(x0Param);
   numParams++;
 
-  HMInputParam *x1Param = new HMInputParam("x1", ParamType::Integer);
-  x1Param->setRange(Range);
+  HMInputParam<int> *x1Param = new HMInputParam<int>("x1", ParamType::Integer);
+  x1Param->setRange(intRange);
   InParams.push_back(x1Param);
   numParams++;
   return numParams;
 }
 
 // Function for mapping input parameter based on key
-auto findHMParamByKey(vector<HMInputParam *> &InParams, string Key) {
+auto findHMParamByKey(vector<HMInputParamBase *> &InParams, string Key) {
   for (auto it = InParams.begin(); it != InParams.end(); ++it) {
-    HMInputParam Param = **it;
+    HMInputParamBase Param = **it;
     if (Param == Key) {
       return it;
     }
   }
   return InParams.end();
+}
+
+//Function that sets the input parameter value
+void setInputValue(HMInputParamBase *Param, string ParamVal) {
+  switch(Param->getDType()) {
+    case Int:
+      static_cast<HMInputParam<int>*>(Param)->setVal(stoi(ParamVal));
+      break;
+    case Float:
+      static_cast<HMInputParam<float>*>(Param)->setVal(stof(ParamVal));
+      break;
+  }
 }
 
 int main(int argc, char **argv) {
@@ -202,8 +213,6 @@ int main(int argc, char **argv) {
   }
 
   srand(0);
-
-  vector<HMInputParam *> InParams;
 
   // Set these values accordingly
   // TODO: make these command line inputs
@@ -228,6 +237,8 @@ int main(int argc, char **argv) {
   }
 
   // Collect input parameters
+  vector<HMInputParamBase *> InParams;
+
   int numParams = collectInputParams(InParams);
   for (auto param : InParams) {
     cout << "Param: " << *param << "\n";
@@ -275,7 +286,7 @@ int main(int argc, char **argv) {
     cout << "Recieved: " << buffer;
     size_t pos = 0;
     // Create mapping for InputParam objects to keep track of order
-    map<int, HMInputParam *> InputParamsMap;
+    map<int, HMInputParamBase *> InputParamsMap;
     string response;
     for (int param = 0; param < numParams; param++) {
       size_t len = bufferStr.find_first_of(",\n", pos) - pos;
@@ -306,7 +317,7 @@ int main(int argc, char **argv) {
       for (int param = 0; param < numParams; param++) {
         size_t len = bufferStr.find_first_of(",\n", pos) - pos;
         string ParamValStr = bufferStr.substr(pos, len);
-        InputParamsMap[param]->setVal(stoi(ParamValStr));
+        setInputValue(InputParamsMap[param], ParamValStr);
         response += ParamValStr;
         response += ",";
         pos = bufferStr.find_first_of(",\n", pos) + 1;
@@ -342,4 +353,4 @@ int main(int argc, char **argv) {
   return 0;
 }
 
-int HMInputParam::count = 0;
+int HMInputParamBase::count = 0;
