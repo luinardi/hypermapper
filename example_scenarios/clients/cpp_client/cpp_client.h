@@ -1,15 +1,16 @@
 #ifndef HPVM_HYPERMAPPER_H
 #define HPVM_HYPERMAPPER_H
-#include <string>
-#include <iostream>
 #include <iomanip>
+#include <iostream>
+#include <string>
 #include <vector>
 
-class HMInputParam;
+template <class T> class HMInputParam;
 void fatalError(const std::string &msg);
 
 // Enum for HyperMapper parameter types
 enum ParamType { Real, Integer, Ordinal, Categorical };
+enum DataType { Int, Float };
 
 std::ostream &operator<<(std::ostream &out, const ParamType &PT) {
   switch (PT) {
@@ -49,19 +50,18 @@ std::string getTypeAsString(const ParamType &PT) {
   return TypeString;
 }
 
-// HyperMapper Input Parameter object
-class HMInputParam {
+class HMInputParamBase {
 private:
   std::string Name;
   std::string const Key;
   ParamType Type;
-  std::vector<int> Range;
   static int count;
-  int Value;
+  DataType DType;
 
 public:
-  HMInputParam(std::string _Name = "", ParamType _Type = ParamType::Integer)
-      : Name(_Name), Type(_Type),
+  HMInputParamBase(std::string _Name = "", ParamType _Type = ParamType::Integer,
+                   DataType _DType = DataType::Int)
+      : Name(_Name), Type(_Type), DType(_DType),
         Key("x" + std::to_string(count++)) {}
 
   std::string getName() const { return Name; }
@@ -70,13 +70,10 @@ public:
   ParamType getType() const { return Type; }
   void setType(ParamType _Type) { Type = _Type; }
 
-  void setRange(std::vector<int> const &_Range) { Range = _Range; }
-  std::vector<int> getRange() const { return Range; }
-
   std::string getKey() const { return Key; }
 
-  int getVal() const {return Value;}
-  void setVal(int _Value) {Value = _Value;}
+  DataType getDType() const { return DType; }
+  void setDType( DataType _DType) {DType = _DType;}
 
   bool operator==(const std::string &_Key) {
     if (Key == _Key) {
@@ -86,42 +83,107 @@ public:
     }
   }
 
-  bool operator==(const HMInputParam &IP) {
+  bool operator==(const HMInputParamBase &IP) {
     if (Key == IP.getKey()) {
       return true;
     } else {
       return false;
     }
   }
-  friend std::ostream &operator<<(std::ostream &out, const HMInputParam &IP) {
+
+  void print () {
+    std::cout << getKey() << ":";
+    std::cout << "\n  Name: " << getName();
+    std::cout << "\n  Type: " << getType();
+    print(std::cout);
+  }
+
+  virtual void print(std::ostream &out) const {}
+
+  friend std::ostream &operator<<(std::ostream &out,
+                                  const HMInputParamBase &IP) {
     out << IP.getKey() << ":";
-    out << "\n  Name: " << IP.Name;
-    out << "\n  Type: " << IP.Type;
-    if (IP.getType() == ParamType::Ordinal ||
-        IP.getType() == ParamType::Categorical) {
+    out << "\n  Name: " << IP.getName();
+    out << "\n  Type: " << IP.getType();
+    IP.print(out);
+    return out;
+  }
+};
+
+// HyperMapper Input Parameter object
+template <class T> class HMInputParam : public HMInputParamBase {
+private:
+  std::vector<T> Range;
+  T Value;
+
+public:
+  HMInputParam(std::string _Name = "", ParamType _Type = ParamType::Integer)
+      : HMInputParamBase(_Name, _Type) {
+        if (std::is_same<T, int>::value)
+          setDType(Int);
+        else if (std::is_same<T, float>::value)
+          setDType(Float);
+        else
+          fatalError("Unhandled data type used for input parameter. New data types can be added by augmenting the DataType enum, and modifying this constructor accordingly.");
+      }
+
+  void setRange(std::vector<T> const &_Range) { Range = _Range; }
+  std::vector<T> getRange() const { return Range; }
+
+  T getVal() const { return Value; }
+  void setVal(T _Value) { Value = _Value; }
+
+  bool operator==(const std::string &_Key) {
+    if (getKey() == _Key) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  bool operator==(const HMInputParam<T> &IP) {
+    if (getKey() == IP.getKey()) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  void print(std::ostream &out) const {
+    if (getType() == ParamType::Ordinal ||
+        getType() == ParamType::Categorical) {
       out << "\n  Range: {";
       char separator[1] = "";
-      for (auto i : IP.getRange()) {
+      for (auto i : getRange()) {
         out << separator << i;
         separator[0] = ',';
       }
       out << "}";
-    } else if (IP.getType() == ParamType::Integer) {
+    } else if (getType() == ParamType::Integer ||
+               getType() == ParamType::Real) {
       out << "\n  Range: [";
       char separator[1] = "";
-      for (auto i : IP.getRange()) {
+      for (auto i : getRange()) {
         out << separator << i;
         separator[0] = ',';
       }
       out << "]";
     }
+  }
+
+  friend std::ostream &operator<<(std::ostream &out,
+                                  const HMInputParam<T> &IP) {
+    out << IP.getKey() << ":";
+    out << "\n  Name: " << IP.getName();
+    out << "\n  Type: " << IP.getType();
+    IP.print(out);
     return out;
   }
 };
 
 // HyperMapper Objective object
 struct HMObjective {
-  int f1_value;
+  float f1_value;
   int f2_value;
   bool valid;
 };
