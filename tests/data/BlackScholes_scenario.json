@@ -23,7 +23,7 @@
         "feasible_predictor_grid_search_validation_file": "/home/lnardi/spatial-lang/results/apps_classification_test_set/BlackScholes.csv"
     },
     "timestamp": "Timestamp",
-    "evaluations_per_optimization_iteration": 10,
+    "evaluations_per_optimization_iteration": 1,
     "run_directory": "tests/data/",
     "output_data_file": "BlackScholes_output_data.csv",
     "output_pareto_file": "BlackScholes_output_pareto.csv",
