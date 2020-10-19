@@ -147,6 +147,14 @@ def compute_EI_from_posteriors(
 
     prior_bad[prior_bad < posterior_floor] = posterior_floor
 
+    discrete_space = True
+    for parameter in param_space.get_input_parameters():
+        if param_space.get_type(parameter) == "real":
+            discrete_space = False
+
+
+    if discrete_space:
+        prior_bad = prior_bad/(param_space.get_discrete_space_size() - 1)
 
     sys.stdout.write_to_logfile(("EI: user prior time %10.4f sec\n" % ((datetime.datetime.now() - user_prior_t0).total_seconds())))
 

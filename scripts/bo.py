@@ -238,10 +238,6 @@ def main(config, black_box_function=None, output_file=""):
         optimization_iterations = 0
 
     ### Main optimization loop
-    if evaluations_per_optimization_iteration > 1:
-        print("Warning, number of evaluations per iteration > 1")
-        print("HyperMapper bayesian optimization currently does not support multiple runs per iteration, setting evaluations per iteration to 1")
-
     bo_t0 = datetime.datetime.now()
     run_time = (datetime.datetime.now() - start_time).total_seconds() / 60
     # run_time / time_budget < 1 if budget > elapsed time or budget == -1
@@ -251,9 +247,16 @@ def main(config, black_box_function=None, output_file=""):
         print('Time budget cannot be zero. To not limit runtime set time_budget = -1')
         sys.exit()
 
-    while iteration_number <= optimization_iterations and run_time / time_budget < 1:
-        print("Starting optimization iteration", iteration_number)
-        iteration_t0 = datetime.datetime.now()
+    configurations = []
+    evaluation_budget = optimization_iterations * evaluations_per_optimization_iteration
+    iteration_number = 0
+    evaluation_count = 0
+    while evaluation_count < evaluation_budget and run_time / time_budget < 1:
+        if evaluation_count % evaluations_per_optimization_iteration == 0:
+            iteration_number += 1
+            print("Starting optimization iteration", iteration_number)
+            iteration_t0 = datetime.datetime.now()
+
         model_t0 = datetime.datetime.now()
         regression_models,_,_ = models.generate_mono_output_regression_models(
                                                                             data_array,
@@ -284,8 +287,9 @@ def main(config, black_box_function=None, output_file=""):
                                                                             feasible_predictor_grid_search_validation_file=feasible_predictor_grid_search_validation_file,
                                                                             print_importances=print_importances)
         model_t1 = datetime.datetime.now()
+        sys.stdout.write_to_logfile(("Model fitting time %10.4f sec\n" % ((model_t1 - model_t0).total_seconds())))
         if (weight_sampling == "bounding_box"):
-            objective_weights = sample_weight_bbox(optimization_metrics, objective_bounds, 1)[0]
+            objective_weights = sample_weight_bbox(optimization_metrics, objective_bounds, objective_limits, 1)[0]
         elif (weight_sampling == "flat"):
             objective_weights = sample_weight_flat(optimization_metrics, 1)[0]
         else:
@@ -315,47 +319,79 @@ def main(config, black_box_function=None, output_file=""):
 
         else:
             sys.stdout.write_to_logfile(str(epsilon) + " < " + str(epsilon_greedy_threshold) + " random sampling a configuration to run\n")
-            best_configuration = param_space.random_sample_configurations_without_repetitions(fast_addressing_of_data_array, 1)[0]
+            tmp_fast_addressing_of_data_array = copy.deepcopy(fast_addressing_of_data_array)
+            best_configuration = param_space.random_sample_configurations_without_repetitions(tmp_fast_addressing_of_data_array, 1)[0]
         local_search_t1 = datetime.datetime.now()
+        sys.stdout.write_to_logfile(("Local search time %10.4f sec\n" % ((local_search_t1 - local_search_t0).total_seconds())))
 
-        configurations = [best_configuration]
-        str_data = param_space.get_unique_hash_string_from_values(best_configuration)
-        fast_addressing_of_data_array[str_data] = absolute_configuration_index
-        absolute_configuration_index += 1
+        configurations.append(best_configuration)
 
-        black_box_function_t0 = datetime.datetime.now()
-        new_data_array = param_space.run_configurations(
-                                                        hypermapper_mode,
-                                                        configurations,
-                                                        beginning_of_time,
-                                                        black_box_function,
-                                                        exhaustive_search_data_array,
-                                                        exhaustive_search_fast_addressing_of_data_array,
-                                                        run_directory)
-        black_box_function_t1 = datetime.datetime.now()
+        # When we have selected "evaluations_per_optimization_iteration" configurations, evaluate the batch 
+        if evaluation_count % evaluations_per_optimization_iteration == (evaluations_per_optimization_iteration - 1):
+            black_box_function_t0 = datetime.datetime.now()
+            new_data_array = param_space.run_configurations(
+                                                            hypermapper_mode,
+                                                            configurations,
+                                                            beginning_of_time,
+                                                            black_box_function,
+                                                            exhaustive_search_data_array,
+                                                            exhaustive_search_fast_addressing_of_data_array,
+                                                            run_directory)
+            black_box_function_t1 = datetime.datetime.now()
+            sys.stdout.write_to_logfile(("Black box function time %10.4f sec\n" % ((black_box_function_t1 - black_box_function_t0).total_seconds())))
 
-        with open(deal_with_relative_and_absolute_path(run_directory, output_data_file), 'a') as f:
-            w = csv.writer(f)
-            tmp_list = [param_space.convert_types_to_string(j, new_data_array) for j in list(param_space.get_input_output_and_timestamp_parameters())]
-            tmp_list = list(zip(*tmp_list))
-            for i in range(len(new_data_array[optimization_metrics[0]])):
-                w.writerow(tmp_list[i])
+            # If running batch BO, we will have some liars in fast_addressing_of_data, update them with the true value
+            for configuration_idx in range(len(new_data_array[list(new_data_array.keys())[0]])):
+                configuration = get_single_configuration(new_data_array, configuration_idx)
+                str_data = param_space.get_unique_hash_string_from_values(configuration)
+                if str_data in fast_addressing_of_data_array:
+                    absolute_index = fast_addressing_of_data_array[str_data]
+                    for header in configuration:
+                        data_array[header][absolute_index] = configuration[header]
+                else:
+                    fast_addressing_of_data_array[str_data] = absolute_configuration_index
+                    absolute_configuration_index += 1
+                    for header in configuration:
+                        data_array[header].append(configuration[header])
 
-        data_array = concatenate_data_dictionaries(
-                                                new_data_array,
-                                                data_array,
-                                                param_space.input_output_and_timestamp_parameter_names)
+            # and save results
+            with open(deal_with_relative_and_absolute_path(run_directory, output_data_file), 'a') as f:
+                w = csv.writer(f)
+                tmp_list = [param_space.convert_types_to_string(j, new_data_array) for j in list(param_space.get_input_output_and_timestamp_parameters())]
+                tmp_list = list(zip(*tmp_list))
+                for i in range(len(new_data_array[optimization_metrics[0]])):
+                    w.writerow(tmp_list[i])
+            configurations = []
+        else:
+            # If we have not selected all points in the batch yet, add the model prediction as a 'liar'
+            for header in best_configuration:
+                data_array[header].append(best_configuration[header])
+
+            bufferx = [tuple(best_configuration.values())]
+            prediction_means, _ = models.compute_model_mean_and_uncertainty(bufferx, regression_models, model_type, param_space)
+            for objective in prediction_means:
+                data_array[objective].append(prediction_means[objective][0])
+
+            if classification_model is not None:
+                classification_prediction_results = models.model_probabilities(bufferx,classification_model,param_space)
+                true_value_index = classification_model[feasible_parameter[0]].classes_.tolist().index(True)
+                feasibility_indicator = classification_prediction_results[feasible_parameter[0]][:,true_value_index]
+                data_array[feasible_output_name].append(True if feasibility_indicator[0] >= 0.5 else False)
+
+            data_array[param_space.get_timestamp_parameter()[0]].append(absolute_configuration_index)
+            str_data = param_space.get_unique_hash_string_from_values(best_configuration)
+            fast_addressing_of_data_array[str_data] = absolute_configuration_index
+            absolute_configuration_index += 1
+
+
         for objective in optimization_metrics:
             lower_bound = min(objective_limits[objective][0], min(data_array[objective]))
             upper_bound = max(objective_limits[objective][1], max(data_array[objective]))
             objective_limits[objective] = [lower_bound, upper_bound]
 
-        iteration_number += 1
+        evaluation_count += 1
         run_time = (datetime.datetime.now() - start_time).total_seconds() / 60
 
-        sys.stdout.write_to_logfile(("Model fitting time %10.4f sec\n" % ((model_t1 - model_t0).total_seconds())))
-        sys.stdout.write_to_logfile(("Local search time %10.4f sec\n" % ((local_search_t1 - local_search_t0).total_seconds())))
-        sys.stdout.write_to_logfile(("Black box function time %10.4f sec\n" % ((black_box_function_t1 - black_box_function_t0).total_seconds())))
         sys.stdout.write_to_logfile(("Total iteration time %10.4f sec\n" % ((datetime.datetime.now() - iteration_t0).total_seconds())))
     sys.stdout.write_to_logfile(("End of BO phase - Time %10.4f sec\n" % ((datetime.datetime.now() - bo_t0).total_seconds())))
 
