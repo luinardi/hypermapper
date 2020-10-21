@@ -40,6 +40,7 @@ def main(config, black_box_function=None, output_file=""):
     optimization_metrics = config["optimization_objectives"]
     optimization_iterations = config["optimization_iterations"]
     evaluations_per_optimization_iteration = config["evaluations_per_optimization_iteration"]
+    batch_mode = evaluations_per_optimization_iteration > 1
     number_of_cpus = config["number_of_cpus"]
     print_importances = config["print_parameter_importance"]
     epsilon_greedy_threshold = config["epsilon_greedy_threshold"]
@@ -186,7 +187,8 @@ def main(config, black_box_function=None, output_file=""):
                                                         black_box_function,
                                                         exhaustive_search_data_array,
                                                         exhaustive_search_fast_addressing_of_data_array,
-                                                        run_directory)
+                                                        run_directory,
+                                                        batch_mode=batch_mode)
         data_array = concatenate_data_dictionaries(
                                                 data_array,
                                                 doe_data_array,
@@ -210,7 +212,8 @@ def main(config, black_box_function=None, output_file=""):
                                                             black_box_function,
                                                             exhaustive_search_data_array,
                                                             exhaustive_search_fast_addressing_of_data_array,
-                                                            run_directory)
+                                                            run_directory,
+                                                            batch_mode=batch_mode)
             data_array = concatenate_data_dictionaries(
                                                         new_data_array,
                                                         data_array,
@@ -326,7 +329,7 @@ def main(config, black_box_function=None, output_file=""):
 
         configurations.append(best_configuration)
 
-        # When we have selected "evaluations_per_optimization_iteration" configurations, evaluate the batch 
+        # When we have selected "evaluations_per_optimization_iteration" configurations, evaluate the batch
         if evaluation_count % evaluations_per_optimization_iteration == (evaluations_per_optimization_iteration - 1):
             black_box_function_t0 = datetime.datetime.now()
             new_data_array = param_space.run_configurations(
@@ -336,7 +339,8 @@ def main(config, black_box_function=None, output_file=""):
                                                             black_box_function,
                                                             exhaustive_search_data_array,
                                                             exhaustive_search_fast_addressing_of_data_array,
-                                                            run_directory)
+                                                            run_directory,
+                                                            batch_mode=batch_mode)
             black_box_function_t1 = datetime.datetime.now()
             sys.stdout.write_to_logfile(("Black box function time %10.4f sec\n" % ((black_box_function_t1 - black_box_function_t0).total_seconds())))
 

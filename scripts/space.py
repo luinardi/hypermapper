@@ -1803,6 +1803,28 @@ class Space :
             new_data_array[self.time_metrics[0]].append(self.current_milli_time() - beginning_of_time)
         return new_data_array
 
+    def _run_configurations_with_black_box_function(self, configurations, black_box_function, beginning_of_time, batch_mode=False):
+        """
+        Run a list of configurations.
+        This method was added for compatibility purposes: it decides whether to send all configurations to the black-box function at once or one at a time.
+        compatibility option is sending them one at a time.
+        :param configurations: a list of configurations (dict).
+        :param black_box_function: objective function being optimized.
+        :param beginning_of_time: time from the beginning of the HyperMapper design space exploration.
+        :param batch_mode: whether the black-box function supports batch execution.
+        :return:
+        """
+        if batch_mode:
+            data_array = self.run_configurations_with_black_box_function(configurations, black_box_function, beginning_of_time)
+        else:
+            data_array = defaultdict(list)
+            for configuration in configurations:
+                tmp_data_array = self.run_configurations_with_black_box_function([configuration], black_box_function, beginning_of_time)
+                for key in tmp_data_array:
+                    data_array[key] += tmp_data_array[key]
+        return data_array
+
+
     def run_configurations_with_black_box_function(self, configurations, black_box_function, beginning_of_time):
         """
         Run a list of configurations.
@@ -1812,6 +1834,7 @@ class Space :
         :return:
         """
         new_data_array = defaultdict(list)
+        tmp_configurations = defaultdict(list)
         for configuration in configurations:
             if sorted(list(configuration.keys())) != sorted(self.get_input_parameters()):
                 print("Configuration does not match input parameters")
@@ -1825,25 +1848,39 @@ class Space :
                 else:
                     tmp_configuration[param] = configuration[param]
                 new_data_array[param].append(configuration[param])
+                tmp_configurations[param].append(tmp_configuration[param])
 
-            objective_values = black_box_function(tmp_configuration)
+        # For compatibility, we send a dictionary of numbers instead of a dictionary of lists if we have only one configuration
+        if len(configurations) == 1:
+            tmp_configurations = tmp_configuration
 
-            output_parameters = self.get_output_parameters()
-            if type(objective_values) is dict:
-                for output_param in output_parameters:
-                    new_data_array[output_param].append(objective_values[output_param])
+        objective_values = black_box_function(tmp_configurations)
+        output_parameters = self.get_output_parameters()
+
+        # if we have a single output_parameter, black-box return does not need to be a dictionary
+        # convert it so that we always have a dictionary
+        if len(output_parameters) == 1 and type(objective_values) is not dict:
+            objective_values = {output_parameters[0]: objective_values}
+
+        for output_param in output_parameters:
+            if type(objective_values[output_param]) is list:
+                if len(objective_values[output_param]) != len(configurations):
+                    print("Error running black-box function:")
+                    print(f"Requested evaluation of {len(configurations)} configurations, but received {len(objective_values[output_param])} values instead.")
+                    raise SystemExit
+                new_data_array[output_param] += objective_values[output_param]
+            elif (isinstance(objective_values[output_param], Number)) or (type(objective_values[output_param]) is str):
+                if len(configurations) > 1:
+                    print("Error running black-box function:")
+                    print(f"Requested evaluation of multiple configurations, black box function should have returned a list. Returned {type(objective_values[output_param])} instead.")
+                    raise SystemExit
+                new_data_array[output_param].append(objective_values[output_param])
             else:
-                if len(output_parameters) > 1:
-                    print("Error, more than one optimization metric, black box function must return a dictionary with optimization metrics")
-                    print("Instead, rececived", type(objective_values))
-                    raise SystemExit
-                elif not isinstance(objective_values, Number):
-                    print("Error, expected either dictionary or a single numeric value")
-                    print("Received unrecognized type:", type(objective_values))
-                    raise SystemExit
-                else:
-                    new_data_array[output_parameters[0]].append(objective_values)
-            new_data_array[self.get_timestamp_parameter()[0]].append(self.current_milli_time() - beginning_of_time)
+                print("Error running black-box function:")
+                print(f"Black-box output not supported: {type(objective_values[output_param])}.")
+                raise SystemExit
+
+        new_data_array[self.get_timestamp_parameter()[0]] = [self.current_milli_time() - beginning_of_time]*len(configurations)
         return new_data_array
 
     def run_configurations(
@@ -1855,7 +1892,8 @@ class Space :
                         exhaustive_search_data_array=None,
                         exhaustive_search_fast_addressing_of_data_array=None,
                         run_directory=None,
-                        number_of_cpus=0):
+                        number_of_cpus=0,
+                        batch_mode=False):
         """
         Run a set of configurations in one of HyperMappers modes.
         :param hypermapper_mode: which HyperMapper mode to run as.
@@ -1874,10 +1912,11 @@ class Space :
             if black_box_function is None:
                 print("Error: a black box function is required in default mode")
                 raise SystemExit
-            data_array = self.run_configurations_with_black_box_function(
+            data_array = self._run_configurations_with_black_box_function(
                                                                         configurations,
                                                                         black_box_function,
-                                                                        beginning_of_time)
+                                                                        beginning_of_time,
+                                                                        batch_mode)
             self.print_data_array(data_array)
         elif (hypermapper_mode == 'exhaustive'):
             print("Running on exhaustive mode.")

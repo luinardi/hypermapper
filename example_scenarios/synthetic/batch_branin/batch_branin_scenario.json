@@ -1,0 +1,18 @@
+{
+    "application_name": "batch_branin",
+    "optimization_objectives": ["Value"],
+    "optimization_iterations": 10,
+    "evaluations_per_optimization_iteration": 2,
+    "input_parameters" : {
+        "x1": {
+            "parameter_type" : "real",
+            "values" : [-5, 10],
+            "parameter_default" : 0
+        },
+        "x2": {
+            "parameter_type" : "real",
+            "values" : [0, 15],
+            "parameter_default" : 0
+        }
+    }
+}
