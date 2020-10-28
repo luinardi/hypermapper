@@ -69,7 +69,11 @@ def main(parameters_file, list_of_pairs_of_files=[], image_output_file = None):
         output_data_file = config["output_data_file"]
         if output_data_file == "output_samples.csv":
             output_data_file = application_name + "_" + output_data_file
-    list_of_pairs_of_files.append((deal_with_relative_and_absolute_path(run_directory, output_pareto_file), deal_with_relative_and_absolute_path(run_directory, output_data_file)))
+        list_of_pairs_of_files.append((deal_with_relative_and_absolute_path(run_directory, output_pareto_file), deal_with_relative_and_absolute_path(run_directory, output_data_file)))
+    else:
+        for idx, (output_data_file, output_pareto_file) in enumerate(list_of_pairs_of_files):
+            list_of_pairs_of_files[idx] = (deal_with_relative_and_absolute_path(run_directory, output_pareto_file), deal_with_relative_and_absolute_path(run_directory, output_data_file))
+
 
     if image_output_file != None:
         output_image_pdf_file = image_output_file
