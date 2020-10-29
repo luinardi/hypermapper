@@ -1869,16 +1869,12 @@ class Space :
                     print(f"Requested evaluation of {len(configurations)} configurations, but received {len(objective_values[output_param])} values instead.")
                     raise SystemExit
                 new_data_array[output_param] += objective_values[output_param]
-            elif (isinstance(objective_values[output_param], Number)) or (type(objective_values[output_param]) is str):
+            else:
                 if len(configurations) > 1:
                     print("Error running black-box function:")
                     print(f"Requested evaluation of multiple configurations, black box function should have returned a list. Returned {type(objective_values[output_param])} instead.")
                     raise SystemExit
                 new_data_array[output_param].append(objective_values[output_param])
-            else:
-                print("Error running black-box function:")
-                print(f"Black-box output not supported: {type(objective_values[output_param])}.")
-                raise SystemExit
 
         new_data_array[self.get_timestamp_parameter()[0]] = [self.current_milli_time() - beginning_of_time]*len(configurations)
         return new_data_array
