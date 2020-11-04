@@ -99,7 +99,7 @@ def main(parameters_file, list_of_pairs_of_files=[], image_output_file = None):
     for e in list_of_pairs_of_files:
         str_files += str(e[0] + " " + e[1] + " ")
 
-    print("######### plot_dse.py ##########################")
+    print("######### plot_pareto.py ##########################")
     print("### Parameters file is %s" %parameters_file)
     print("### The Pareto and DSE data files are: %s" %str_files)
     print("### The first output pdf image is %s" %output_image_pdf_file)
@@ -306,13 +306,13 @@ if __name__ == "__main__":
         print("################################################")
         print("### cd hypemapper")
         print("### Example 1: ")
-        print("### python3 scripts/plot_dse.py example_scenarios/spatial/BlackScholes_scenario.json")
+        print("### python3 scripts/plot_pareto.py example_scenarios/spatial/BlackScholes_scenario.json")
         print("### Example 2: ")
-        print("### python3 scripts/plot_dse.py example_scenarios/spatial/BlackScholes_scenario.json /path/to/output/image.pdf file1_pareto file1_search file2_pareto file2_search file3_pareto file3_search")
+        print("### python3 scripts/plot_pareto.py example_scenarios/spatial/BlackScholes_scenario.json /path/to/output/image.pdf file1_pareto file1_search file2_pareto file2_search file3_pareto file3_search")
         print("################################################")
         exit(1)
 
     main(parameters_file, list_of_pairs_of_files, image_output_file)
-    print("End of the plot_dse script!")
+    print("End of the plot_pareto script!")
 
 

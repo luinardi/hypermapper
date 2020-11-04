@@ -8,7 +8,7 @@ import multiobjective_branin
 import branin
 import pytest
 import compute_pareto
-import plot_dse
+import plot_pareto
 import hypermapper
 from plot_hvi import HVI_from_files
 import os
@@ -26,7 +26,7 @@ def test_quick_start():
     validate_json(parameters_file)
     multiobjective_branin.main()
     compute_pareto.main(parameters_file)
-    plot_dse.main(parameters_file)
+    plot_pareto.main(parameters_file)
 
     hvi = HVI_from_files(exhaustive_pareto_file, parameters_file)
     assert hvi < 500
