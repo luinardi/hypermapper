@@ -2,8 +2,6 @@ import sys
 import local_search
 import bo
 import evolution
-import compute_pareto
-import plot_dse
 import json
 import os
 from utility_functions import *

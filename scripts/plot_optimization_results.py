@@ -77,7 +77,7 @@ def main(
 
     regrets = {}
     log_regrets = {}
-    total_iterations = {}
+    total_evaluations = {}
     max_iters = float("-inf")
     for data_dir_idx, data_dir in enumerate(data_dirs):
         dir_regrets = []
@@ -92,11 +92,11 @@ def main(
             total_iters = min(len(data_array[output_metric]), budget)
             min_dir_iters = min(total_iters, min_dir_iters)
             max_iters = max(max_iters, total_iters)
-            iterations = list(range(total_iters))
+            evaluations = list(range(total_iters))
             simple_regret = []
             log_regret = []
             incumbent = float("inf")
-            for idx in iterations:
+            for idx in evaluations:
                 if feasibility_flag is not None:
                     if data_array[feasibility_flag][idx] == True:
                         incumbent = min(incumbent, data_array[output_metric][idx])
@@ -114,13 +114,13 @@ def main(
 
         regrets[data_dir] = np.array(dir_regrets)
         log_regrets[data_dir] = np.array(dir_log_regrets)
-        total_iterations[data_dir] = list(range(min_dir_iters))
+        total_evaluations[data_dir] = list(range(1,min_dir_iters+1))
 
     mpl.rcParams.update({'font.size':40})
     plt.rcParams["figure.figsize"] = [16, 12]
     linewidth= 6
     fig, ax = plt.subplots()
-    colors = ["red", "green", "blue", "magenta", "yellow", "purple", "orange", "cyan"]
+    colors = ["blue", "green", "red", "magenta", "yellow", "purple", "orange", "cyan", "gray"]
     legend_elements = []
     if expert_configuration is not None:
         if plot_log:
@@ -146,8 +146,8 @@ def main(
             upper_bound.append(plot_means[idx] + plot_stds[idx])
 
         next_color = colors[key_idx % len(colors)]
-        plt.plot(total_iterations[key], plot_means, color=next_color, linewidth=linewidth)
-        plt.fill_between(total_iterations[key], lower_bound, upper_bound, color=next_color, alpha=.2)
+        plt.plot(total_evaluations[key], plot_means, color=next_color, linewidth=linewidth)
+        plt.fill_between(total_evaluations[key], lower_bound, upper_bound, color=next_color, alpha=.2)
 
         if labels is None:
             label = key
@@ -167,7 +167,11 @@ def main(
 
     if show_doe:
         legend_elements.append(Line2D([0], [0], color="black", linewidth=linewidth, linestyle="dashed", label="Initialization"))
-    plt.legend(handles=legend_elements, loc='center', bbox_to_anchor=(0.5, 1.08), fancybox=True, shadow=True, ncol=ncol, bbox_transform=plt.gcf().transFigure)
+        plt.axvline(x=doe_size, color="black", linewidth=linewidth, linestyle="dashed")
+
+    rows = np.ceil(len(legend_elements)/ncol)
+    height = 1 + (0.03)*rows
+    plt.legend(handles=legend_elements, loc='center', bbox_to_anchor=(0.5, height), fancybox=True, shadow=True, ncol=ncol, bbox_transform=plt.gcf().transFigure)
 
 
     if x_label is None:
@@ -184,8 +188,8 @@ def main(
         title = config["application_name"]
     plt.title(title, y=1)
 
-    plt.xlim(0,)
-    plt.axvline(x=doe_size, color="black", linewidth=linewidth, linestyle="dashed")
+    # we have not evaluated any point at 0
+    plt.xlim(1,)
 
     if out_dir != "":
         if not out_dir.endswith("/"):
@@ -220,6 +224,7 @@ if __name__ == "__main__":
     if args.config is None or args.data_dirs is None:
         print("Error, needs config file and at least one data dir")
         raise SystemExit
+
 
     main(
         args.config,
