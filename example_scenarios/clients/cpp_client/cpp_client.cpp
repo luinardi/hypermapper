@@ -267,9 +267,13 @@ int main(int argc, char **argv) {
   // Loop that communicates with HyperMapper
   // Everything is done through function calls,
   // there should be no need to modify bellow this line.
+  char* fgets_res;
   int i = 0;
   while (true) {
-    fgets(buffer, max_buffer, instream);
+    fgets_res = fgets(buffer, max_buffer, instream);
+    if (fgets_res == NULL) {
+      fatalError("'fgets' reported an error.");
+    }
     cout << "Iteration: " << i << endl;
     cout << "Recieved: " << buffer;
     // Receiving Num Requests
@@ -281,7 +285,10 @@ int main(int argc, char **argv) {
     string NumReqStr = bufferStr.substr(bufferStr.find(' ') + 1);
     int numRequests = stoi(NumReqStr);
     // Receiving input param names
-    fgets(buffer, max_buffer, instream);
+    fgets_res = fgets(buffer, max_buffer, instream);
+    if (fgets_res == NULL) {
+      fatalError("'fgets' reported an error.");
+    }
     bufferStr = string(buffer);
     cout << "Recieved: " << buffer;
     size_t pos = 0;
@@ -310,7 +317,10 @@ int main(int argc, char **argv) {
     // For each request
     for (int request = 0; request < numRequests; request++) {
       // Receiving paramter values
-      fgets(buffer, max_buffer, instream);
+      fgets_res = fgets(buffer, max_buffer, instream);
+      if (fgets_res == NULL) {
+        fatalError("'fgets' reported an error.");
+      }
       cout << "Received: " << buffer;
       bufferStr = string(buffer);
       pos = 0;
