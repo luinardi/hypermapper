@@ -298,8 +298,11 @@ def EI(
         scalarized_predictions = np.zeros(number_of_predictions)
         scalarized_value = 0
         for objective in regression_models:
-            f_min = 1 - (min(data_array[objective]) - tmp_objective_limits[objective][0])\
-                            /(tmp_objective_limits[objective][1] - tmp_objective_limits[objective][0])
+            if tmp_objective_limits[objective][1] == tmp_objective_limits[objective][0]:
+                f_min = 1
+            else:
+                f_min = 1 - (min(data_array[objective]) - tmp_objective_limits[objective][0])\
+                        /(tmp_objective_limits[objective][1] - tmp_objective_limits[objective][0])
             x_std = np.sqrt(prediction_variances[objective])
             x_mean = 1 - prediction_means[objective]
             v = (x_mean - f_min)/x_std
@@ -312,8 +315,11 @@ def EI(
         scalarized_predictions = np.zeros(number_of_predictions)
         total_value = np.zeros(number_of_predictions)
         for objective in regression_models:
-            f_min = 1 - (min(data_array[objective]) - tmp_objective_limits[objective][0])\
-                            /(tmp_objective_limits[objective][1] - tmp_objective_limits[objective][0])
+            if tmp_objective_limits[objective][1] == tmp_objective_limits[objective][0]:
+                f_min = 1
+            else:
+                f_min = 1 - (min(data_array[objective]) - tmp_objective_limits[objective][0])\
+                        /(tmp_objective_limits[objective][1] - tmp_objective_limits[objective][0])
             x_std = np.sqrt(prediction_variances[objective])
             x_mean = 1 - prediction_means[objective]
             v = (x_mean - f_min)/x_std
@@ -325,8 +331,11 @@ def EI(
         scalarized_predictions = np.full((number_of_predictions), float("inf"))
         reciprocated_weights = reciprocate_weights(objective_weights)
         for objective in regression_models:
-            f_min = 1 - (min(data_array[objective]) - tmp_objective_limits[objective][0])\
-                            /(tmp_objective_limits[objective][1] - tmp_objective_limits[objective][0])
+            if tmp_objective_limits[objective][1] == tmp_objective_limits[objective][0]:
+                f_min = 1
+            else:
+                f_min = 1 - (min(data_array[objective]) - tmp_objective_limits[objective][0])\
+                        /(tmp_objective_limits[objective][1] - tmp_objective_limits[objective][0])
             x_std = np.sqrt(prediction_variances[objective])
             x_mean = 1 - prediction_means[objective]
             v = (x_mean - f_min)/x_std
