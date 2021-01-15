@@ -1,0 +1,9 @@
+numpy
+matplotlib
+ply
+cython
+jsonschema
+pandas
+sklearn
+gpy
+pydoe
