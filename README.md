@@ -35,7 +35,7 @@ HyperMapper is distributed under the MIT license. More information on the licens
 ## People
 ### Main Contributors
     Artur Souza, Ph.D. student, Federal University of Minas Gerais
-    Leonard Papenmeier, Ph.D. student, Lund University
+    Leonard Papenmeier, Ph.D. student, Lund University 
     Carl Hvarfner, Ph.D. student, Lund University
     Luigi Nardi, Assistant Professor, Lund University, and Researcher, Stanford University
 ### Other Contributors    
