@@ -34,10 +34,10 @@ HyperMapper is distributed under the MIT license. More information on the licens
 
 ## People
 ### Main Contributors
-    Luigi Nardi, Assistant Professor (Lund University), Research Scientist (Stanford University)
-    Artur Souza, Ph.D. Student (Federal University of Minas Gerais)
-    Leonard Papenmeier , Ph.D. Student (Lund University)
-    Carl Hvarfner, Ph.D. Student (Lund University)
+    Artur Souza, Ph.D. student, Federal University of Minas Gerais
+    Leonard Papenmeier, Ph.D. student, Lund University
+    Carl Hvarfner, Ph.D. student, Lund University
+    Luigi Nardi, Assistant Professor, Lund University, and Researcher, Stanford University
 ### Other Contributors    
     Bruno Bodin, Assistant Professor (National University of Singapore) 
     Samuel Lundberg (Lund University)
