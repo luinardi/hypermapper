@@ -1,5 +1,5 @@
 CXX=g++
-CFLAGS=-std=c++17 -g
+CFLAGS=-std=c++17 -g -Wall
 LDFLGS=
 
 LIBS=-lstdc++fs
