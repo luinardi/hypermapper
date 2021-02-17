@@ -2,8 +2,13 @@
 
 [![Build Status](https://travis-ci.com/luinardi/hypermapper.svg?branch=master)](https://travis-ci.com/luinardi/hypermapper)
 
-## Software
-See the wiki for the [quick start guide](https://github.com/luinardi/hypermapper/wiki/Quick-Start-Guide).
+## Software and Installation
+We recommend installing HyperMapper with `pip`:
+```
+pip install hypermapper
+```
+
+Please see the wiki for the [quick start guide](https://github.com/luinardi/hypermapper/wiki) and [alternative installation](https://github.com/luinardi/hypermapper_dev/wiki/Install-HyperMapper).
 
 ## Abstract
 HyperMapper is a multi-objective black-box optimization tool based on Bayesian Optimization. 

@@ -1,87 +1,83 @@
-import sys
-import local_search
-import bo
-import evolution
-import json
 import os
-from utility_functions import *
-import json
-from jsonschema import Draft4Validator, validators, exceptions
+import sys
+import warnings
+from collections import OrderedDict
 
+# ensure backward compatibility
+# backward compatibility, check if imported as module
+if __name__ != "__main__":
+    warnings.warn(
+        "\n\t*****\n\tHyperMapper seems to have been imported as a module.\n\tThis might lead to errors.\n\t"
+        "Please be sure that you want to do this.\n\t"
+        "Otherwise, this is probably caused by a misconfiguration of HyperMapper when trying to execute an "
+        "example.\n\t"
+        "Please choose one of the following options to fix this issue.\n\t"
+        "1) (recommended)\n\t\t* Remove '.../hypermapper/scripts' from your PYTHONPATH.\n\t\t"
+        "* Run your example from the HyperMapper root directory "
+        "with 'python -m dir1.dir2.yourexample'\n\t2)\n\t\t"
+        "* Update your PYTHONPATH from '.../hypermapper/scripts' to '.../hypermapper'.\n\t\t"
+        "* Run your script as before.\n\t*****"
+    )
+try:
+    from hypermapper import optimizer
+except ImportError:
+    if os.getenv("HYPERMAPPER_HOME"):  # noqa
+        warnings.warn(
+            "Found environment variable 'HYPERMAPPER_HOME', used to update the system path. Support might be discontinued in the future. Please make sure your installation is working without this environment variable, e.g., by installing with 'pip install hypermapper'.",
+            DeprecationWarning,
+            2,
+        )  # noqa
+        sys.path.append(os.environ["HYPERMAPPER_HOME"])  # noqa
 
-def optimize(parameters_file, black_box_function=None):
+    scripts_path = ["hypermapper/scripts", "hypermapper_dev/scripts"]
 
-    try:
-        hypermapper_pwd = os.environ['PWD']
-        hypermapper_home = os.environ['HYPERMAPPER_HOME']
-        os.chdir(hypermapper_home)
-        #print(hypermapper_home); print(hypermapper_pwd)
-    except:
-        #print("HYPERMAPPER_HOME environment variable not found, set to '.'")
-        hypermapper_home = "."
-        hypermapper_pwd = "."
+    if os.getenv("HYPERMAPPER_HOME"):
+        scripts_path.append(os.path.join(os.getenv("HYPERMAPPER_HOME"), "scripts"))
 
-    if not parameters_file.endswith('.json'):
-        _, file_extension = os.path.splitext(parameters_file)
-        print("Error: invalid file name. \nThe input file has to be a .json file not a %s" %file_extension)
-        raise SystemExit
-    with open(parameters_file, 'r') as f:
-        config = json.load(f)
-
-    json_schema_file = 'scripts/schema.json'
-    with open(json_schema_file, 'r') as f:
-        schema = json.load(f)
-
-    DefaultValidatingDraft4Validator = extend_with_default(Draft4Validator)
-    try:
-        DefaultValidatingDraft4Validator(schema).validate(config)
-    except exceptions.ValidationError as ve:
-        print("Failed to validate json:")
-        print(ve)
-        raise SystemExit
-
-    # This handles the logger. The standard setting is that HyperMapper always logs both on screen and on the log file.
-    # In cases like the client-server mode we only want to log on the file.
-    run_directory = config["run_directory"]
-    if run_directory == ".":
-        run_directory = hypermapper_pwd
-        config["run_directory"] = run_directory
-    log_file = config["log_file"]
-    log_file = deal_with_relative_and_absolute_path(run_directory, log_file)
-    sys.stdout = Logger(log_file)
-
-    optimization_method = config["optimization_method"]
-
-    if (optimization_method == "random_scalarizations") or (optimization_method == "bayesian_optimization") or (optimization_method == 'prior_guided_optimization'):
-        bo.main(config, black_box_function=black_box_function)
-    elif optimization_method == "local_search":
-        local_search.main(config, black_box_function=black_box_function)
-    elif optimization_method == "evolutionary_optimization":
-        evolution.main(config, black_box_function=black_box_function)
+    truncated_items = [
+        p for p in sys.path if len([q for q in scripts_path if q in p]) == 0
+    ]
+    if len(truncated_items) < len(sys.path):
+        warnings.warn(
+            "Found hypermapper in PYTHONPATH. Usage is deprecated and might break things. "
+            "Please remove all hypermapper references from PYTHONPATH. Trying to import "
+            "without hypermapper in PYTHONPATH..."
+        )
+        sys.path = truncated_items
     else:
-        print("Unrecognized optimization method:", optimization_method)
-        raise SystemExit
+        # this removes the 'scripts' path from the sys path, enabling from importing from the hypermapper directory (name clash)
+        # only necessary in 'scripts' directory, all imports from scripts have to be done above
+        sys.path = (
+            sys.path[1:]
+            if "hypermapper/scripts" in sys.path[0]
+            or "hypermapper_dev/scripts" in sys.path[0]
+            else sys.path
+        )
+    sys.path.append(".")  # noqa
+    sys.path = list(OrderedDict.fromkeys(sys.path))
 
-    try:
-        os.chdir(hypermapper_pwd)
-    except:
-        pass
-
-    sys.stdout.write_protocol("End of HyperMapper\n")
+    from hypermapper import optimizer
 
 
 if __name__ == "__main__":
+    warnings.warn(
+        "Using 'scripts/hypermapper' is deprecated and it will be removed in the future. Use 'hypermapper/optimizer' instead.",
+        DeprecationWarning,
+        2,
+    )
     if len(sys.argv) == 2:
         parameters_file = sys.argv[1]
-    else :
+    else:
         print("Error: only one argument needed, the parameters json file.")
 
     if parameters_file == "--help" or len(sys.argv) != 2:
         print("################################################")
         print("### Example: ")
         print("### cd hypermapper")
-        print("### python3 scripts/hypermapper.py example_scenarios/spatial/BlackScholes_scenario.json")
+        print(
+            "### python3 hypermapper/optimizer.py example_scenarios/spatial/BlackScholes_scenario.json"
+        )
         print("################################################")
         exit(1)
 
-    optimize(parameters_file)
+    optimizer.optimize(parameters_file)

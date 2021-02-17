@@ -1,8 +1,14 @@
 #!/usr/bin/python
-import math, sys
-from subprocess import Popen, PIPE
-sys.path.append('scripts')
-import hypermapper
+import math
+
+import os
+import sys
+import warnings
+from collections import OrderedDict
+
+# ensure backward compatibility
+from hypermapper import optimizer  # noqa
+
 
 def branin_function_two_objectives(X):
     """
@@ -11,8 +17,8 @@ def branin_function_two_objectives(X):
     :param x2: the second input of branin.
     :return: the value of the braning function and the (fake) energy used to compute that function.
     """
-    x1 = X['x1']
-    x2 = X['x2']
+    x1 = X["x1"]
+    x2 = X["x2"]
     a = 1.0
     b = 5.1 / (4.0 * math.pi * math.pi)
     c = 5.0 / math.pi
@@ -29,10 +35,12 @@ def branin_function_two_objectives(X):
 
     return output_metrics
 
+
 def main():
     parameters_file = "example_scenarios/synthetic/multiobjective_branin/multiobjective_branin_scenario.json"
-    hypermapper.optimize(parameters_file, branin_function_two_objectives)
+    optimizer.optimize(parameters_file, branin_function_two_objectives)
     print("End of Branin.")
+
 
 if __name__ == "__main__":
     main()

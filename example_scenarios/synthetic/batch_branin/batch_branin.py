@@ -1,8 +1,14 @@
 #!/usr/bin/python
-import math, sys
-from subprocess import Popen, PIPE
-sys.path.append('scripts')
-import hypermapper
+import math
+
+import os
+import sys
+import warnings
+from collections import OrderedDict
+
+# ensure backward compatibility
+from hypermapper import optimizer  # noqa
+
 
 def branin_function(X):
     """
@@ -11,9 +17,9 @@ def branin_function(X):
     :return: the value of the branin function
     """
     values = []
-    for idx in range(len(X['x1'])):
-        x1 = X['x1'][idx]
-        x2 = X['x2'][idx]
+    for idx in range(len(X["x1"])):
+        x1 = X["x1"][idx]
+        x2 = X["x2"][idx]
         a = 1.0
         b = 5.1 / (4.0 * math.pi * math.pi)
         c = 5.0 / math.pi
@@ -21,15 +27,21 @@ def branin_function(X):
         s = 10.0
         t = 1.0 / (8.0 * math.pi)
 
-        y_value = a * (x2 - b * x1 * x1 + c * x1 - r) ** 2 + s * (1 - t) * math.cos(x1) + s
+        y_value = (
+            a * (x2 - b * x1 * x1 + c * x1 - r) ** 2 + s * (1 - t) * math.cos(x1) + s
+        )
         values.append(y_value)
 
     return values
 
+
 def main():
-    parameters_file = "example_scenarios/synthetic/batch_branin/batch_branin_scenario.json"
-    hypermapper.optimize(parameters_file, branin_function)
+    parameters_file = (
+        "example_scenarios/synthetic/batch_branin/batch_branin_scenario.json"
+    )
+    optimizer.optimize(parameters_file, branin_function)
     print("End of Branin.")
+
 
 if __name__ == "__main__":
     main()

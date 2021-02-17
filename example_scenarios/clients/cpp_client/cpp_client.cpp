@@ -197,6 +197,7 @@ void deleteInputParams(vector<HMInputParamBase *> &InParams) {
   }
 }
 
+
 // Function for mapping input parameter based on key
 auto findHMParamByKey(vector<HMInputParamBase *> &InParams, string Key) {
   for (auto it = InParams.begin(); it != InParams.end(); ++it) {
@@ -222,9 +223,9 @@ void setInputValue(HMInputParamBase *Param, string ParamVal) {
 
 int main(int argc, char **argv) {
 
-  if (!getenv("HYPERMAPPER_HOME") || !getenv("PYTHONPATH")) {
+  if (!getenv("HYPERMAPPER_HOME")) {
     string ErrMsg = "Environment variables are not set!\n";
-    ErrMsg += "Please set HYPERMAPPER_HOME and PYTHONPATH before running this ";
+    ErrMsg += "Please set HYPERMAPPER_HOME before running this ";
     fatalError(ErrMsg);
   }
 
