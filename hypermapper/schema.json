@@ -13,6 +13,26 @@
         "type": "string",
         "default": "hypermapper_logfile.log"
       },
+      "profiling": {
+        "description": "Run a profiling run of hypermapper, displaying the time allocation between different parts of the application.",
+        "type": "boolean",
+        "default": false
+      },
+      "noise": {
+        "description": "Whether the function is assumed to be noisy or not.",
+        "type": "boolean",
+        "default": true
+      },
+      "profiling_file": {
+        "description": "The name of the profiling output file",
+        "type": "string",
+        "default": "profiles/profile.csv"
+      },
+      "append_profiles": {
+        "description": "For profiling runs, whether to append output of the next profiling run to the same file as the previous one",
+        "type": "boolean",
+        "default": false
+      },
       "number_of_cpus": {
         "description": "This is the number of cpus to use. If 0 it means to let HyperMapper decide (querying the system), otherwise if forces the number of cpus to this number. ",
         "type": "integer",

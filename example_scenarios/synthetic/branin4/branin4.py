@@ -1,8 +1,14 @@
 #!/usr/bin/python
-import math, sys
-from subprocess import Popen, PIPE
-sys.path.append('scripts')
-import hypermapper
+import math
+
+import os
+import sys
+import warnings
+from collections import OrderedDict
+
+# ensure backward compatibility
+from hypermapper import optimizer  # noqa
+
 
 def branin_function(x1, x2):
     """
@@ -23,27 +29,30 @@ def branin_function(x1, x2):
 
     return y_value
 
+
 def branin4_function(X):
     """
-    Compute the four-dimensional branin function. 
+    Compute the four-dimensional branin function.
     Value in four-dimensional branin is defined as the product of two Brannin functions.
     :param X: dictionary containing the input points.
     :return: the value of the branin function.
     """
-    x1 = X['x1']
-    x2 = X['x2']
-    x3 = X['x3']
-    x4 = X['x4']
+    x1 = X["x1"]
+    x2 = X["x2"]
+    x3 = X["x3"]
+    x4 = X["x4"]
     f1_value = branin_function(x1, x2)
     f2_value = branin_function(x3, x4)
-    y_value  = f1_value*f2_value 
+    y_value = f1_value * f2_value
 
     return y_value
 
+
 def main():
     parameters_file = "example_scenarios/synthetic/branin4/branin4_scenario.json"
-    hypermapper.optimize(parameters_file, branin4_function)
+    optimizer.optimize(parameters_file, branin4_function)
     print("End of Branin4.")
+
 
 if __name__ == "__main__":
     main()

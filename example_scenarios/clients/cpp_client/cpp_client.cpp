@@ -181,22 +181,6 @@ int collectInputParams(vector<HMInputParamBase *> &InParams) {
   return numParams;
 }
 
-// Free memory of input parameters
-void deleteInputParams(vector<HMInputParamBase *> &InParams) {
-  for (auto p : InParams) {
-    switch(p->getDType()) {
-      case Int:
-        delete static_cast<HMInputParam<int>*>(p);
-        break;
-      case Float:
-        delete static_cast<HMInputParam<float>*>(p);
-        break;
-      default:
-        fatalError("Trying to free unhandled data type.");
-    }
-  }
-}
-
 // Function for mapping input parameter based on key
 auto findHMParamByKey(vector<HMInputParamBase *> &InParams, string Key) {
   for (auto it = InParams.begin(); it != InParams.end(); ++it) {
@@ -222,9 +206,9 @@ void setInputValue(HMInputParamBase *Param, string ParamVal) {
 
 int main(int argc, char **argv) {
 
-  if (!getenv("HYPERMAPPER_HOME") || !getenv("PYTHONPATH")) {
+  if (!getenv("HYPERMAPPER_HOME")) {
     string ErrMsg = "Environment variables are not set!\n";
-    ErrMsg += "Please set HYPERMAPPER_HOME and PYTHONPATH before running this ";
+    ErrMsg += "Please set HYPERMAPPER_HOME before running this ";
     fatalError(ErrMsg);
   }
 
@@ -352,7 +336,6 @@ int main(int argc, char **argv) {
     i++;
   }
 
-  deleteInputParams(InParams);
   close(hypermapper.from_child);
   close(hypermapper.to_child);
 

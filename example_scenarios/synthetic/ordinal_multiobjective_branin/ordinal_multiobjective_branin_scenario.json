@@ -1,7 +1,7 @@
 {
     "application_name": "ordinal_branin",    
     "optimization_objectives": ["Value", "Energy"],
-    "optimization_iterations": 50,
+    "optimization_iterations": 70,
     "input_parameters" : {
         "x1": {
             "parameter_type" : "ordinal",

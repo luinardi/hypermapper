@@ -1,7 +1,7 @@
 {
-    "application_name": "multiobjective_branin",
-    "optimization_objectives": ["Value", "Energy"],
-    "optimization_iterations": 70,
+    "application_name": "branin",
+    "optimization_objectives": ["Value"],
+    "optimization_iterations": 5,
     "input_parameters" : {
         "x1": {
             "parameter_type" : "real",
