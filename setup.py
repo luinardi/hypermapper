@@ -42,7 +42,7 @@ setup(
             "hm-plot-pareto=hypermapper._cli:_plot_pareto_cli",
             "hm-plot-hvi=hypermapper._cli:_plot_hvi_cli",
             "hm-quickstart=hypermapper._cli:_branin_quick_start_cli",
-            "hm-plot-optimization_results=hypermapper._cli:_plot_optimization_results_cli",
+            "hm-plot-optimization-results=hypermapper._cli:_plot_optimization_results_cli",
         ],
     },
 )
