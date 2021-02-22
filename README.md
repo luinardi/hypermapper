@@ -43,6 +43,7 @@ HyperMapper is distributed under the MIT license. More information on the licens
     Samuel Lundberg (Lund University)
     Alfonso White (Imperial College London)
     Adel Ejjeh, Ph.D. Student (University of Illinois at Urbana-Champaign)
+    Matthias Mayr, Ph.D. Student (Lund University) 
 
 ## Papers
 If you use HyperMapper in scientific publications, we would appreciate citations to the following paper: 
