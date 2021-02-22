@@ -70,7 +70,7 @@ from hypermapper import space
 from os import listdir
 from os.path import isfile, join
 from copy import deepcopy
-import statsmodels.stats.api as sms
+
 import scipy as sp
 import scipy.stats
 
@@ -448,6 +448,13 @@ def plot_hvi(parameters_file, output_hvi_file_name, list_of_dirs):
     # 2) a file containing all the samples of the exploration (not only the Pareto).
     #    From this file we can compute the Pareto at time t and then the hvi at time t
     """
+    try:
+        import statsmodels.stats.api as sms
+    except:
+        # TODO: Long-term: move this import to the top.
+        ImportError(
+            "Failed to import statsmodels. Statsmodels is required for plot_hvi."
+        )
     xlabel = "Time (sec)"
     ylabel = "HyperVolume Indicator (HVI)"
     number_of_bins = 20
