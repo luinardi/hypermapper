@@ -488,3 +488,4 @@ def main(config, black_box_function=None, output_file="", profiling=None):
             w.writerow(tmp_list[i])
 
     print("### End of the evolutionary search")
+    return evolution_data_array
