@@ -452,7 +452,9 @@ def plot_hvi(parameters_file, output_hvi_file_name, list_of_dirs):
         import statsmodels.stats.api as sms
     except:
         # TODO: Long-term: move this import to the top.
-        ImportError("Failed to import statsmodels. Statsmodels is required for plot_hvi.")
+        ImportError(
+            "Failed to import statsmodels. Statsmodels is required for plot_hvi."
+        )
     xlabel = "Time (sec)"
     ylabel = "HyperVolume Indicator (HVI)"
     number_of_bins = 20
