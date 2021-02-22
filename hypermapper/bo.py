@@ -608,9 +608,65 @@ def main(config, black_box_function=None, output_file="", profiling=None):
     )
 
     print("End of Bayesian Optimization")
+
+    print_posterior_best = config["print_posterior_best"]
+    if print_posterior_best:
+        if number_of_objectives > 1:
+            print(
+                "Warning: print_posterior_best is set to true, but application is not mono-objective."
+            )
+            print(
+                "Can only compute best according to posterior for mono-objective applications. Ignoring."
+            )
+        elif enable_feasible_predictor:
+            print(
+                "Warning: print_posterior_best is set to true, but application has feasibility constraints."
+            )
+            print(
+                "Cannot compute best according to posterior for applications with feasibility constraints. Ignoring."
+            )
+        else:
+            # Update model with latest data
+            regression_models, _, _ = models.generate_mono_output_regression_models(
+                data_array,
+                param_space,
+                input_params,
+                optimization_metrics,
+                1.00,
+                config,
+                model_type=model_type,
+                number_of_cpus=number_of_cpus,
+                print_importances=print_importances,
+                normalize_objectives=normalize_objectives,
+                objective_limits=objective_limits,
+            )
+
+            best_point = models.minimize_posterior_mean(
+                regression_models,
+                config,
+                param_space,
+                data_array,
+                objective_limits,
+                normalize_objectives,
+                profiling,
+            )
+            keys = ""
+            best_point_string = ""
+            for key in best_point:
+                keys += f"{key},"
+                best_point_string += f"{best_point[key]},"
+            keys = keys[:-1]
+            best_point_string = best_point_string[:-1]
+
+            sys.stdout.write_protocol("Minimum of the posterior mean:\n")
+            sys.stdout.write_protocol(f"{keys}\n")
+            sys.stdout.write_protocol(f"{best_point_string}\n\n")
+
     sys.stdout.write_to_logfile(
         (
             "Total script time %10.2f sec\n"
             % ((datetime.datetime.now() - start_time).total_seconds())
         )
     )
+
+    return data_array

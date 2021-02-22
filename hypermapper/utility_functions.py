@@ -226,6 +226,80 @@ def are_all_elements_equal(data_list):
     return data_list[1:] == data_list[:-1]
 
 
+def get_min_configurations(configurations, number_of_configurations, comparison_key):
+    """
+    Get the configurations with minimum value according to the comparison key
+    :param configurations: dictionary containing the configurations.
+    :param number_of_configurations: number of configurations to return.
+    :param comparison_key: name of the key used in the comparison.
+    :return: a dictionary containing the best configurations.
+    """
+    tmp_configurations = copy.deepcopy(configurations)
+    best_configurations = defaultdict(list)
+    configurations_size = len(configurations[list(configurations.keys())[0]])
+
+    # avoid requesting more configurations than possible
+    number_of_configurations = min(number_of_configurations, configurations_size)
+
+    for i in range(number_of_configurations):
+        min_idx = np.argmin(tmp_configurations[comparison_key])
+        for key in tmp_configurations:
+            param_value = tmp_configurations[key][min_idx]
+            best_configurations[key].append(param_value)
+            del tmp_configurations[key][min_idx]
+    return best_configurations
+
+
+def get_min_feasible_configurations(
+    configurations, number_of_configurations, comparison_key, feasible_parameter
+):
+    """
+    Get the feasible configurations with minimum value according to the comparison key.
+    If not enough feasible configurations are present, return the unfeasible configurations with minimum value.
+    :param configurations: dictionary containing the configurations.
+    :param number_of_configurations: number of configurations to return.
+    :param comparison_key: name of the key used in the comparison.
+    :param feasible_parameter: name of the key used to indicate feasibility.
+    :return: a dictionary containing the best configurations.
+    """
+    feasible_configurations = {}
+    unfeasible_configurations = {}
+
+    configurations_size = len(configurations[list(configurations.keys())[0]])
+    number_of_configurations = min(number_of_configurations, configurations_size)
+
+    feasible_counter = 0
+    for idx in range(configurations_size):
+        configuration = get_single_configuration(configurations, idx)
+        for key in configuration:
+            configuration[key] = [configuration[key]]
+        if configuration[feasible_parameter][0]:
+            feasible_configurations = concatenate_data_dictionaries(
+                feasible_configurations, configuration
+            )
+            feasible_counter += 1
+        else:
+            unfeasible_configurations = concatenate_data_dictionaries(
+                unfeasible_configurations, configuration
+            )
+
+    if feasible_counter < number_of_configurations:
+        missing_configurations = number_of_configurations - feasible_counter
+        best_unfeasible_configurations = get_min_configurations(
+            unfeasible_configurations, missing_configurations, comparison_key
+        )
+        best_configurations = concatenate_data_dictionaries(
+            feasible_configurations, best_unfeasible_configurations
+        )
+    elif feasible_counter > number_of_configurations:
+        best_configurations = get_min_configurations(
+            feasible_configurations, number_of_configurations, comparison_key
+        )
+    else:
+        best_configurations = feasible_configurations
+    return best_configurations
+
+
 ####################################################
 # Visualization
 ####################################################

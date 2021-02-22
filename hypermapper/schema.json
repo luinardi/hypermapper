@@ -382,6 +382,16 @@
         "type": "integer",
         "description": "number of samples to pick for tournament selection, crossover needs at least three.",
         "default": 2
+      },
+      "print_best":{
+        "type": ["string", "boolean"],
+        "description": "Whether to print out the best point found after optimization. By default, it will be printed if running on default mode and will not be printed if running on client-server mode. The best point is always written on the logfile.",
+        "default": "auto"
+      },
+      "print_posterior_best":{
+        "type": "boolean",
+        "description": "Whether to print out the best point according to HyperMapper's posterior model's mean after optimization. The best point is computed using HyperMapper's local search.",
+        "default": false
       }
     },
     "additionalProperties": false,

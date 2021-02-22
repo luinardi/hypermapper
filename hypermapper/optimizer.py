@@ -7,6 +7,8 @@ from collections import OrderedDict
 from jsonschema import exceptions, Draft4Validator
 from pkg_resources import resource_stream
 
+import numpy as np
+
 # ensure backward compatibility
 try:
     from hypermapper import bo
@@ -16,6 +18,8 @@ try:
         deal_with_relative_and_absolute_path,
         Logger,
         extend_with_default,
+        get_min_configurations,
+        get_min_feasible_configurations,
     )
     from hypermapper.profiling import Profiler
 except ImportError:
@@ -56,6 +60,8 @@ except ImportError:
         deal_with_relative_and_absolute_path,
         Logger,
         extend_with_default,
+        get_min_configurations,
+        get_min_feasible_configurations,
     )
     from hypermapper.profiling import Profiler
 
@@ -115,13 +121,15 @@ def optimize(parameters_file, black_box_function=None):
         or (optimization_method == "bayesian_optimization")
         or (optimization_method == "prior_guided_optimization")
     ):
-        bo.main(config, black_box_function=black_box_function, profiling=profiling)
+        data_array = bo.main(
+            config, black_box_function=black_box_function, profiling=profiling
+        )
     elif optimization_method == "local_search":
-        local_search.main(
+        data_array = local_search.main(
             config, black_box_function=black_box_function, profiling=profiling
         )
     elif optimization_method == "evolutionary_optimization":
-        evolution.main(
+        data_array = evolution.main(
             config, black_box_function=black_box_function, profiling=profiling
         )
     else:
@@ -134,6 +142,64 @@ def optimize(parameters_file, black_box_function=None):
         os.chdir(hypermapper_pwd)
     except:
         pass
+
+    # If mono-objective, compute the best point found
+    objectives = config["optimization_objectives"]
+    inputs = list(config["input_parameters"].keys())
+    if len(objectives) == 1:
+        explored_points = {}
+        for parameter in inputs + objectives:
+            explored_points[parameter] = data_array[parameter]
+        objective = objectives[0]
+        feasible_output = config["feasible_output"]
+        if feasible_output["enable_feasible_predictor"]:
+            feasible_parameter = feasible_output["name"]
+            explored_points[feasible_parameter] = data_array[feasible_parameter]
+            best_point = get_min_feasible_configurations(
+                explored_points, 1, objective, feasible_parameter
+            )
+        else:
+            best_point = get_min_configurations(explored_points, 1, objective)
+        keys = ""
+        best_point_string = ""
+        for parameter in inputs + objectives:
+            keys += f"{parameter},"
+            best_point_string += f"{best_point[parameter][0]},"
+        keys = keys[:-1]
+        best_point_string = best_point_string[:-1]
+
+    # If there is a best point, return it according the user's preference
+    print_best = config["print_best"]
+    if (print_best is not True) and (print_best is not False):
+        if print_best != "auto":
+            print(
+                f"Warning: unrecognized option for print_best: {print_best}. Should be either 'auto' or a boolean."
+            )
+            print("Using default.")
+        hypermapper_mode = config["hypermapper_mode"]
+        print_best = False if hypermapper_mode == "client-server" else True
+
+    if print_best:
+        if len(objectives) == 1:
+            sys.stdout.write_protocol("Best point found:\n")
+            sys.stdout.write_protocol(f"{keys}\n")
+            sys.stdout.write_protocol(f"{best_point_string}\n\n")
+        else:
+            if (
+                config["print_best"] is True
+            ):  # If the user requested this, let them know it is not possible
+                sys.stdout.write_protocol(
+                    "\nMultiple objectives, there is no single best point.\n"
+                )
+    else:
+        if len(objectives) > 1:
+            sys.stdout.write_to_logfile(
+                "\nMultiple objectives, there is no single best point.\n"
+            )
+        else:
+            sys.stdout.write_to_logfile("Best point found:\n")
+            sys.stdout.write_to_logfile(f"{keys}\n")
+            sys.stdout.write_to_logfile(f"{best_point}\n\n")
 
     sys.stdout.write_protocol("End of HyperMapper\n")
 

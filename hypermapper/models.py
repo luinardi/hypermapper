@@ -20,9 +20,11 @@ from sklearn.preprocessing import OneHotEncoder
 try:
     from hypermapper.utility_functions import (
         data_dictionary_to_tuple,
+        concatenate_list_of_dictionaries,
         domain_decomposition_and_parallel_computation,
         data_tuples_to_dictionary,
     )
+    from hypermapper.local_search import local_search
 except ImportError:
     if os.getenv("HYPERMAPPER_HOME"):  # noqa
         warnings.warn(
@@ -56,9 +58,11 @@ except ImportError:
 
     from hypermapper.utility_functions import (
         data_dictionary_to_tuple,
+        concatenate_list_of_dictionaries,
         domain_decomposition_and_parallel_computation,
         data_tuples_to_dictionary,
     )
+    from hypermapper.local_search import local_search
 
 
 class RFModel(RandomForestRegressor):
@@ -1035,3 +1039,90 @@ def sample_gp_posterior(bufferx, model, param_space):
         )
 
     return gp_samples
+
+
+def ls_compute_posterior_mean(configurations, model, model_type, param_space):
+    """
+    Compute the posterior mean for a list of configurations. This function follows the interface defined by
+    HyperMapper's local search. It receives configurations from the local search and returns their values.
+    :param configurations: configurations to compute posterior mean
+    :param model: posterior model to use for predictions
+    :param model_type: string with the type of model being used.
+    :param param_space: Space object containing the search space.
+    :return: the posterior mean value for each configuration. To satisfy the local search's requirements, also returns a list of feasibility flags, all set to 1.
+    """
+    configurations = concatenate_list_of_dictionaries(configurations)
+    configurations = data_dictionary_to_tuple(
+        configurations, param_space.get_input_parameters()
+    )
+    posterior_means, _ = compute_model_mean_and_uncertainty(
+        configurations, model, model_type, param_space
+    )
+
+    objective = param_space.get_optimization_parameters()[0]
+    return list(posterior_means[objective]), [1] * len(posterior_means[objective])
+
+
+def minimize_posterior_mean(
+    model,
+    config,
+    param_space,
+    data_array,
+    objective_limits,
+    normalize_objectives,
+    profiling,
+):
+    """
+    Compute the minimum of the posterior model using a multi-start local search.
+    :param model: posterior model to use for predictions
+    :param config: the application scenario defined in the json file
+    :param param_space: Space object containing the search space.
+    :param data_array: array containing all of the points that have been explored
+    :param objective_limits: estimated limits for the optimization objective, used to restore predictions to original range.
+    :param normalize_objectives: whether objective values were normalized before fitting the model.
+    :param profiling: whether to profile the local search run.
+    :return: the best configuration according to the mean of the posterior model.
+    """
+    local_search_starting_points = config["local_search_starting_points"]
+    local_search_random_points = config["local_search_random_points"]
+    fast_addressing_of_data_array = (
+        {}
+    )  # We don't mind exploring repeated points in this case
+    scalarization_key = config["scalarization_key"]
+    number_of_cpus = config["number_of_cpus"]
+    model_type = config["models"]["model"]
+
+    optimization_function_parameters = {}
+    optimization_function_parameters["model"] = model
+    optimization_function_parameters["model_type"] = model_type
+    optimization_function_parameters["param_space"] = param_space
+
+    _, best_configuration = local_search(
+        local_search_starting_points,
+        local_search_random_points,
+        param_space,
+        fast_addressing_of_data_array,
+        False,  # we do not want the local search to consider feasibility constraints
+        ls_compute_posterior_mean,
+        optimization_function_parameters,
+        scalarization_key,
+        number_of_cpus,
+        previous_points=data_array,
+        profiling=profiling,
+    )
+
+    objective = param_space.get_optimization_parameters()[0]
+    best_configuration[objective] = ls_compute_posterior_mean(
+        [best_configuration], model, model_type, param_space
+    )[0][0]
+    if normalize_objectives:
+        objective_min, objective_max = (
+            objective_limits[objective][0],
+            objective_limits[objective][1],
+        )
+        best_configuration[objective] = (
+            best_configuration[objective] * (objective_max - objective_min)
+            + objective_min
+        )
+
+    return best_configuration
