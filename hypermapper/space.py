@@ -470,9 +470,7 @@ class OrdinalParameter(Parameter):
         prior = self.prior
 
         if prior == "distribution":
-            return np.random.choice(self.values, size=size, p=self.distribution).astype(
-                int
-            )
+            return np.random.choice(self.values, size=size, p=self.distribution)
         else:
             samples = beta(
                 self.densities_alphas[prior], self.densities_betas[prior], size
@@ -485,7 +483,7 @@ class OrdinalParameter(Parameter):
         :param size: the number of sampled random points
         :return: the random sampled values from the set of available values.
         """
-        return np.random.choice(self.values, size=size).astype(int)
+        return np.random.choice(self.values, size=size)
 
     def pdf(self, x):
         """
