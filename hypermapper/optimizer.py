@@ -211,10 +211,18 @@ def main():
         print("Error: only one argument needed, the parameters json file.")
 
     if parameters_file == "--help" or len(sys.argv) != 2:
-        print("################################################")
-        print("### Example: ")
-        print("### hypermapper example_scenarios/spatial/BlackScholes_scenario.json")
-        print("################################################")
+        print("#########################################")
+        print("HyperMapper: a multi-objective black-box optimization tool")
+        print("Quickstart guide: https://github.com/luinardi/hypermapper/wiki/Quick-Start-Guide")
+        print("Full documentation: https://github.com/luinardi/hypermapper/wiki")
+        print("Useful commands:")
+        print("    hm-quickstart                                                            test the installation with a quick optimization run")
+        print("    hypermapper /path/to/configuration_file                                  run HyperMapper in client-server mode")
+        print("    hm-plot-optimization-results /path/to/configuration_file                 plot the results of a mono-objective optimization run")
+        print("    hm-compute-pareto /path/to/configuration_file                            compute the pareto of a two-objective optimization run")
+        print("    hm-plot-pareto /path/to/configuration_file /path/to/configuration_file   plot the pareto computed by hm-compute-pareto")
+        print("    hm-plot-hvi /path/to/configuration_file /path/to/configuration_file      plot the hypervolume indicator for a multi-objective optimization run")
+        print("###########################################")
         exit(1)
 
     optimize(parameters_file)
