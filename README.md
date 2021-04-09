@@ -8,7 +8,7 @@ We recommend installing HyperMapper with `pip`:
 pip install hypermapper
 ```
 
-We recommend using pip version 18 or higher. Please see the wiki for the [quick start guide](https://github.com/luinardi/hypermapper/wiki) and [alternative installation](https://github.com/luinardi/hypermapper_dev/wiki/Install-HyperMapper).
+We recommend using pip version 18 or higher. Please see the wiki for the [quick start guide](https://github.com/luinardi/hypermapper/wiki) and [alternative installation](https://github.com/luinardi/hypermapper/wiki/Install-HyperMapper).
 
 ## Abstract
 HyperMapper is a multi-objective black-box optimization tool based on Bayesian Optimization. 
