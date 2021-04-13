@@ -22,6 +22,7 @@ try:
     from hypermapper.utility_functions import (
         deal_with_relative_and_absolute_path,
         concatenate_data_dictionaries,
+        write_data_array,
     )
 except ImportError:
     if os.getenv("HYPERMAPPER_HOME"):  # noqa
@@ -57,6 +58,7 @@ except ImportError:
     from hypermapper.utility_functions import (
         deal_with_relative_and_absolute_path,
         concatenate_data_dictionaries,
+        write_data_array,
     )
 
 
@@ -728,6 +730,10 @@ class Space:
         self.input_output_and_timestamp_parameter_names = (
             self.input_output_parameter_names + self.time_metrics
         )
+        self.evaluations_per_optimization_iteration = config[
+            "evaluations_per_optimization_iteration"
+        ]
+
         self.parameter_means = {}
         self.parameter_stds = {}
         self.normalize_inputs = config["normalize_inputs"]
@@ -2184,6 +2190,7 @@ class Space:
         beginning_of_time,
         configurations,
         run_directory,
+        output_data_file,
         dontrun=False,
         doSleep=False,
         number_of_cpus=0,
@@ -2342,6 +2349,7 @@ class Space:
                 "The size of the new set of samples in the run configurations method is %d"
                 % len(next(iter(new_data_array.values())))
             )
+        write_data_array(self, new_data_array, output_data_file)
         return new_data_array
 
     def run_configurations_from_data_array(
@@ -2349,6 +2357,7 @@ class Space:
         all_data_array,
         all_fast_addressing_of_data_array,
         beginning_of_time,
+        output_data_file,
         configurations,
         doSleep=False,
     ):
@@ -2383,10 +2392,16 @@ class Space:
             new_data_array[self.time_metrics[0]].append(
                 self.current_milli_time() - beginning_of_time
             )
+        write_data_array(self, new_data_array, output_data_file)
         return new_data_array
 
     def _run_configurations_with_black_box_function(
-        self, configurations, black_box_function, beginning_of_time, batch_mode=False
+        self,
+        configurations,
+        black_box_function,
+        beginning_of_time,
+        output_data_file,
+        batch_mode=False,
     ):
         """
         Run a list of configurations.
@@ -2399,9 +2414,20 @@ class Space:
         :return:
         """
         if batch_mode:
-            data_array = self.run_configurations_with_black_box_function(
-                configurations, black_box_function, beginning_of_time
-            )
+            configurations_run = 0
+            data_array = {}
+            while configurations_run < len(configurations):
+                new_data_array = self.run_configurations_with_black_box_function(
+                    configurations[
+                        configurations_run : configurations_run
+                        + self.evaluations_per_optimization_iteration
+                    ],
+                    black_box_function,
+                    beginning_of_time,
+                )
+                write_data_array(self, new_data_array, output_data_file)
+                data_array = concatenate_data_dictionaries(data_array, new_data_array)
+                configurations_run += self.evaluations_per_optimization_iteration
         else:
             data_array = defaultdict(list)
             for configuration in configurations:
@@ -2410,6 +2436,7 @@ class Space:
                 )
                 for key in tmp_data_array:
                     data_array[key] += tmp_data_array[key]
+                write_data_array(self, tmp_data_array, output_data_file)
         return data_array
 
     def run_configurations_with_black_box_function(
@@ -2483,6 +2510,7 @@ class Space:
         hypermapper_mode,
         configurations,
         beginning_of_time,
+        output_data_file,
         black_box_function=None,
         exhaustive_search_data_array=None,
         exhaustive_search_fast_addressing_of_data_array=None,
@@ -2509,7 +2537,11 @@ class Space:
                 print("Error: a black box function is required in default mode")
                 raise SystemExit
             data_array = self._run_configurations_with_black_box_function(
-                configurations, black_box_function, beginning_of_time, batch_mode
+                configurations,
+                black_box_function,
+                beginning_of_time,
+                output_data_file,
+                batch_mode,
             )
             self.print_data_array(data_array)
         elif hypermapper_mode == "exhaustive":
@@ -2526,6 +2558,7 @@ class Space:
                 exhaustive_search_data_array,
                 exhaustive_search_fast_addressing_of_data_array,
                 beginning_of_time,
+                output_data_file,
                 configurations=configurations,
                 doSleep=False,
             )
@@ -2538,6 +2571,7 @@ class Space:
                 beginning_of_time,
                 configurations,
                 run_directory,
+                output_data_file,
                 dontrun=False,
                 doSleep=False,
                 number_of_cpus=number_of_cpus,
@@ -2553,13 +2587,13 @@ class Space:
         :param data_array: the data array to print. A dict of lists.
         """
         keys = ""
-        for key in data_array.keys():
+        for key in self.get_input_output_and_timestamp_parameters():
             keys += str(key) + ","
         print(keys[:-1])
 
         for idx in range(len(data_array[list(data_array.keys())[0]])):
             configuration = ""
-            for key in data_array.keys():
+            for key in self.get_input_output_and_timestamp_parameters():
                 # configuration += str(data_array[key][idx]) + ','
                 configuration += (
                     str(self.convert_types_to_string(key, data_array)[idx]) + ","

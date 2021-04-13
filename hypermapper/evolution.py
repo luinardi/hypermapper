@@ -2,7 +2,6 @@
 # This script implements a simplification of the evolutionary process proposed by Real et al.: https://arxiv.org/abs/1802.01548v7#
 ###############################################################################################################################
 import copy
-import csv
 import datetime
 import os
 import sys
@@ -20,6 +19,8 @@ try:
         get_single_configuration,
         concatenate_list_of_dictionaries,
         deal_with_relative_and_absolute_path,
+        get_output_data_file,
+        create_output_data_file,
     )
 except ImportError:
     if os.getenv("HYPERMAPPER_HOME"):  # noqa
@@ -58,6 +59,8 @@ except ImportError:
         get_single_configuration,
         concatenate_list_of_dictionaries,
         deal_with_relative_and_absolute_path,
+        get_output_data_file,
+        create_output_data_file,
     )
 
 
@@ -115,6 +118,7 @@ def run_objective_function(
     hypermapper_mode,
     param_space,
     beginning_of_time,
+    output_data_file,
     run_directory,
     evolution_data_array,
     fast_addressing_of_data_array,
@@ -172,6 +176,7 @@ def run_objective_function(
             hypermapper_mode,
             new_configurations,
             beginning_of_time,
+            output_data_file,
             black_box_function,
             run_directory=run_directory,
         )
@@ -385,6 +390,9 @@ def main(config, black_box_function=None, output_file="", profiling=None):
             print("Error: the black box function parameter is not callable")
             raise SystemExit
 
+    output_data_file = get_output_data_file(
+        config["output_data_file"], run_directory, application_name
+    )
     optimization_metrics = config["optimization_objectives"]
     number_of_objectives = len(optimization_metrics)
     if number_of_objectives != 1:
@@ -421,13 +429,6 @@ def main(config, black_box_function=None, output_file="", profiling=None):
     if hypermapper_mode == "client-server":
         sys.stdout.switch_log_only_on_file(True)
 
-    if output_file == "":
-        output_data_file = config["output_data_file"]
-        if output_data_file == "output_samples.csv":
-            output_data_file = application_name + "_" + output_data_file
-    else:
-        output_data_file = output_file
-
     absolute_configuration_index = 0
     fast_addressing_of_data_array = {}
     evolution_fast_addressing_of_data_array = {}
@@ -440,11 +441,16 @@ def main(config, black_box_function=None, output_file="", profiling=None):
     optimization_function_parameters["param_space"] = param_space
     optimization_function_parameters["beginning_of_time"] = beginning_of_time
     optimization_function_parameters["run_directory"] = run_directory
+    optimization_function_parameters["output_data_file"] = output_data_file
     optimization_function_parameters["black_box_function"] = black_box_function
     optimization_function_parameters["evolution_data_array"] = evolution_data_array
     optimization_function_parameters[
         "fast_addressing_of_data_array"
     ] = evolution_fast_addressing_of_data_array
+
+    create_output_data_file(
+        output_data_file, param_space.get_input_output_and_timestamp_parameters()
+    )
 
     print("Starting evolution...")
     evolution_t0 = datetime.datetime.now()
@@ -473,19 +479,6 @@ def main(config, black_box_function=None, output_file="", profiling=None):
             % ((datetime.datetime.now() - evolution_t0).total_seconds())
         )
     )
-
-    with open(
-        deal_with_relative_and_absolute_path(run_directory, output_data_file), "w"
-    ) as f:
-        w = csv.writer(f)
-        w.writerow(list(evolution_data_array.keys()))
-        tmp_list = [
-            param_space.convert_types_to_string(j, evolution_data_array)
-            for j in list(evolution_data_array.keys())
-        ]
-        tmp_list = list(zip(*tmp_list))
-        for i in range(len(evolution_data_array[optimization_metrics[0]])):
-            w.writerow(tmp_list[i])
 
     print("### End of the evolutionary search")
     return evolution_data_array

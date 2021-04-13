@@ -1,5 +1,4 @@
 import copy
-import csv
 import datetime
 import os
 import sys
@@ -28,6 +27,8 @@ try:
         dict_of_lists_to_numpy,
         get_min_configurations,
         get_min_feasible_configurations,
+        get_output_data_file,
+        create_output_data_file,
     )
 except ImportError:
     if os.getenv("HYPERMAPPER_HOME"):  # noqa
@@ -74,6 +75,8 @@ except ImportError:
         dict_of_lists_to_numpy,
         get_min_configurations,
         get_min_feasible_configurations,
+        get_output_data_file,
+        create_output_data_file,
     )
 
 
@@ -163,6 +166,7 @@ def run_objective_function(
     hypermapper_mode,
     param_space,
     beginning_of_time,
+    output_data_file,
     run_directory,
     local_search_data_array,
     fast_addressing_of_data_array,
@@ -227,6 +231,7 @@ def run_objective_function(
             hypermapper_mode,
             new_configurations,
             beginning_of_time,
+            output_data_file,
             black_box_function,
             exhaustive_search_data_array,
             exhaustive_search_fast_addressing_of_data_array,
@@ -807,7 +812,7 @@ def local_search(
     return data_array, best_configuration
 
 
-def main(config, black_box_function=None, output_file="", profiling=None):
+def main(config, black_box_function=None, profiling=None):
     """
     Run design-space exploration using random scalarizations.
     :param config: dictionary containing all the configuration parameters of this design-space exploration.
@@ -819,8 +824,6 @@ def main(config, black_box_function=None, output_file="", profiling=None):
     run_directory = config["run_directory"]
     application_name = config["application_name"]
     hypermapper_mode = config["hypermapper_mode"]["mode"]
-    noise = config["noise"]
-
     if hypermapper_mode == "default":
         if black_box_function == None:
             print("Error: the black box function must be provided")
@@ -829,6 +832,10 @@ def main(config, black_box_function=None, output_file="", profiling=None):
             print("Error: the black box function parameter is not callable")
             raise SystemExit
 
+    noise = config["noise"]
+    output_data_file = get_output_data_file(
+        config["output_data_file"], run_directory, application_name
+    )
     optimization_metrics = config["optimization_objectives"]
     number_of_objectives = len(optimization_metrics)
     # local search will not produce reasonable output if run in parallel - it is therefore disabled
@@ -895,13 +902,6 @@ def main(config, black_box_function=None, output_file="", profiling=None):
     if hypermapper_mode == "client-server":
         sys.stdout.switch_log_only_on_file(True)
 
-    if output_file == "":
-        output_data_file = config["output_data_file"]
-        if output_data_file == "output_samples.csv":
-            output_data_file = application_name + "_" + output_data_file
-    else:
-        output_data_file = output_file
-
     absolute_configuration_index = 0
     fast_addressing_of_data_array = {}
     local_search_fast_addressing_of_data_array = {}
@@ -914,6 +914,7 @@ def main(config, black_box_function=None, output_file="", profiling=None):
     optimization_function_parameters["param_space"] = param_space
     optimization_function_parameters["beginning_of_time"] = beginning_of_time
     optimization_function_parameters["run_directory"] = run_directory
+    optimization_function_parameters["output_data_file"] = output_data_file
     optimization_function_parameters[
         "exhaustive_search_data_array"
     ] = exhaustive_search_data_array
@@ -936,6 +937,10 @@ def main(config, black_box_function=None, output_file="", profiling=None):
         "enable_feasible_predictor"
     ] = enable_feasible_predictor
 
+    create_output_data_file(
+        output_data_file, param_space.get_input_output_and_timestamp_parameters()
+    )
+
     print("Starting local search...")
     local_search_t0 = datetime.datetime.now()
     all_samples, best_configuration = local_search(
@@ -956,19 +961,6 @@ def main(config, black_box_function=None, output_file="", profiling=None):
         "Local search finished after %d function evaluations"
         % (len(local_search_data_array[optimization_metrics[0]]))
     )
-
-    with open(
-        deal_with_relative_and_absolute_path(run_directory, output_data_file), "w"
-    ) as f:
-        w = csv.writer(f)
-        w.writerow(list(local_search_data_array.keys()))
-        tmp_list = [
-            param_space.convert_types_to_string(j, local_search_data_array)
-            for j in list(local_search_data_array.keys())
-        ]
-        tmp_list = list(zip(*tmp_list))
-        for i in range(len(local_search_data_array[optimization_metrics[0]])):
-            w.writerow(tmp_list[i])
 
     print("### End of the local search.")
     return local_search_data_array
