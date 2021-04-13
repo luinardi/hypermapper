@@ -1,5 +1,4 @@
 import copy
-import csv
 import datetime
 import os
 import random
@@ -23,6 +22,9 @@ try:
         compute_data_array_scalarization,
         get_single_configuration,
         sample_weight_flat,
+        get_output_data_file,
+        create_output_data_file,
+        write_data_array,
     )
 
 except ImportError:
@@ -68,10 +70,13 @@ except ImportError:
         compute_data_array_scalarization,
         get_single_configuration,
         sample_weight_flat,
+        get_output_data_file,
+        create_output_data_file,
+        write_data_array,
     )
 
 
-def main(config, black_box_function=None, output_file="", profiling=None):
+def main(config, black_box_function=None, profiling=None):
     """
     Run design-space exploration using bayesian optimization.
     :param config: dictionary containing all the configuration parameters of this optimization.
@@ -98,6 +103,9 @@ def main(config, black_box_function=None, output_file="", profiling=None):
     evaluations_per_optimization_iteration = config[
         "evaluations_per_optimization_iteration"
     ]
+    output_data_file = get_output_data_file(
+        config["output_data_file"], run_directory, application_name
+    )
     batch_mode = evaluations_per_optimization_iteration > 1
     number_of_cpus = config["number_of_cpus"]
     print_importances = config["print_parameter_importance"]
@@ -165,13 +173,6 @@ def main(config, black_box_function=None, output_file="", profiling=None):
     else:
         for objective in optimization_metrics:
             objective_limits[objective] = [float("inf"), float("-inf")]
-
-    if output_file == "":
-        output_data_file = config["output_data_file"]
-        if output_data_file == "output_samples.csv":
-            output_data_file = application_name + "_" + output_data_file
-    else:
-        output_data_file = output_file
 
     exhaustive_search_data_array = None
     exhaustive_search_fast_addressing_of_data_array = None
@@ -251,6 +252,11 @@ def main(config, black_box_function=None, output_file="", profiling=None):
             % absolute_configuration_index
         )
 
+    create_output_data_file(
+        output_data_file, param_space.get_input_output_and_timestamp_parameters()
+    )
+    if data_array:  # if it is not empty
+        write_data_array(param_space, data_array, output_data_file)
     ### DoE phase
     if absolute_configuration_index < number_of_doe_samples:
         configurations = []
@@ -278,6 +284,7 @@ def main(config, black_box_function=None, output_file="", profiling=None):
             hypermapper_mode,
             configurations,
             beginning_of_time,
+            output_data_file,
             black_box_function,
             exhaustive_search_data_array,
             exhaustive_search_fast_addressing_of_data_array,
@@ -312,6 +319,7 @@ def main(config, black_box_function=None, output_file="", profiling=None):
                 hypermapper_mode,
                 configurations,
                 beginning_of_time,
+                output_data_file,
                 black_box_function,
                 exhaustive_search_data_array,
                 exhaustive_search_fast_addressing_of_data_array,
@@ -325,20 +333,6 @@ def main(config, black_box_function=None, output_file="", profiling=None):
             )
             absolute_configuration_index += 1
             optimization_iterations -= 1
-
-    # Create output file with explored configurations from resumed run and DoE
-    with open(
-        deal_with_relative_and_absolute_path(run_directory, output_data_file), "w"
-    ) as f:
-        w = csv.writer(f)
-        w.writerow(param_space.get_input_output_and_timestamp_parameters())
-        tmp_list = [
-            param_space.convert_types_to_string(j, data_array)
-            for j in param_space.get_input_output_and_timestamp_parameters()
-        ]
-        tmp_list = list(zip(*tmp_list))
-        for i in range(len(data_array[optimization_metrics[0]])):
-            w.writerow(tmp_list[i])
 
     for objective in optimization_metrics:
         lower_bound = min(objective_limits[objective][0], min(data_array[objective]))
@@ -486,6 +480,7 @@ def main(config, black_box_function=None, output_file="", profiling=None):
                 hypermapper_mode,
                 configurations,
                 beginning_of_time,
+                output_data_file,
                 black_box_function,
                 exhaustive_search_data_array,
                 exhaustive_search_fast_addressing_of_data_array,
@@ -520,21 +515,6 @@ def main(config, black_box_function=None, output_file="", profiling=None):
                     for header in configuration:
                         data_array[header].append(configuration[header])
 
-            # and save results
-            with open(
-                deal_with_relative_and_absolute_path(run_directory, output_data_file),
-                "a",
-            ) as f:
-                w = csv.writer(f)
-                tmp_list = [
-                    param_space.convert_types_to_string(j, new_data_array)
-                    for j in list(
-                        param_space.get_input_output_and_timestamp_parameters()
-                    )
-                ]
-                tmp_list = list(zip(*tmp_list))
-                for i in range(len(new_data_array[optimization_metrics[0]])):
-                    w.writerow(tmp_list[i])
             configurations = []
         else:
             # If we have not selected all points in the batch yet, add the model prediction as a 'liar'

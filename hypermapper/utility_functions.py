@@ -5,6 +5,7 @@ import os
 import sys
 import warnings
 from collections import defaultdict, OrderedDict
+import csv
 
 import numpy as np
 from jsonschema import Draft4Validator, validators
@@ -91,6 +92,24 @@ def deal_with_relative_and_absolute_path(run_directory, file_name):
             return os.path.join(run_directory, file_name)
 
 
+def get_output_data_file(given_filename, run_directory, application_name):
+    """
+    Get the csv file where results will be written. This method checks
+    if the user defined a custom filename. If not, it returns the default.
+    Important: if the file exists, it will be overwritten.
+    :param given_filename: the filename given in the configuration file.
+    :param run_directory: the directory where results will be stored.
+    :param application_name: the name given to the application in the configuration file.
+    """
+    output_data_file = given_filename
+    if output_data_file == "output_samples.csv":
+        output_data_file = application_name + "_" + output_data_file
+    output_data_file = deal_with_relative_and_absolute_path(
+        run_directory, output_data_file
+    )
+    return output_data_file
+
+
 ####################################################
 # Logging
 ####################################################
@@ -154,6 +173,48 @@ class Logger:
             self.log.close()
         except:
             print("Warning: exception raised closing the log file: ", self.filename)
+
+
+####################################################
+# Output writers
+####################################################
+
+
+def create_output_data_file(filename, headers):
+    """
+    Create a csv file and write the optimization headers to it.
+    If a filename is not given, the output_data_file given in the json will be used.
+    Important: if the file exists, it will be overwritten.
+    :param data_array: the data array to write
+    :param filename: the file where data will be written
+    """
+    with open(filename, "w") as f:
+        w = csv.writer(f)
+        w.writerow(headers)
+
+
+def write_data_array(param_space, data_array, filename):
+    """
+    Write a data array to a csv file.
+    If a filename is not given, the output_data_file given in the json will be used.
+    If the file does not exist, it will be created.
+    :param data_array: the data array to write
+    :param filename: the file where data will be written
+    """
+    if not os.path.isfile(filename):
+        create_output_data_file(
+            filename, param_space.get_input_output_and_timestamp_parameters()
+        )
+
+    with open(filename, "a") as f:
+        w = csv.writer(f)
+        tmp_list = [
+            param_space.convert_types_to_string(j, data_array)
+            for j in list(param_space.get_input_output_and_timestamp_parameters())
+        ]
+        tmp_list = list(zip(*tmp_list))
+        for i in range(len(data_array[list(data_array.keys())[0]])):
+            w.writerow(tmp_list[i])
 
 
 ####################################################
