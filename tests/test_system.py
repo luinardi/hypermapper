@@ -65,6 +65,6 @@ def test_ordinal_branin():
 
 
 if __name__ == "__main__":
-    #test_black_scholes()
+    test_black_scholes()
     test_quick_start()
     test_ordinal_branin()
