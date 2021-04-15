@@ -8,9 +8,6 @@ from collections import OrderedDict
 from multiprocessing import Queue
 from jsonschema import exceptions
 
-class Queue:
-    def __init__(self):
-        raise SystemError
 # ensure backward compatibility
 try:
     from hypermapper import models
