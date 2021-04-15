@@ -5,10 +5,10 @@ import sys
 import warnings
 from collections import OrderedDict, defaultdict
 from multiprocessing import Queue, cpu_count, Process, JoinableQueue
-
+from multiprocessing import cpu_count
+from utility_functions import SequentialQueue
 from scipy import stats
 from threadpoolctl import threadpool_limits
-
 import numpy as np
 
 # ensure backward compatibility
@@ -313,6 +313,7 @@ def local_search(
     """
     if number_of_cpus == 0:
         number_of_cpus = cpu_count()
+    
     t0 = datetime.datetime.now()
     tmp_fast_addressing_of_data_array = copy.deepcopy(fast_addressing_of_data_array)
     input_params = param_space.get_input_parameters()
@@ -621,12 +622,13 @@ def local_search(
         for key, column in col_of_keys.items()
     }
 
+    # need to move this into the if - sequential part
     def parallel_multistart_local_search(
         input_queue,
         output_queue,
         input_params,
         param_space,
-        optimization_function_parameters,
+        optimization_functioutput_queueon_parameters,
         proc,
     ):
         while True:
@@ -697,8 +699,15 @@ def local_search(
         + str(number_of_configurations)
         + "\n"
     )
-    input_queue = JoinableQueue()
-    output_queue = Queue()
+
+    # TODO here, the queues are defined. This needs to be conditional.
+    if number_of_cpus == 1:
+        input_queue = SequentialQueue()
+        output_queue = SequentialQueue()
+
+    else:
+        input_queue = JoinableQueue()
+        output_queue = Queue()
     # puts each configuration in a queue to be evaluated in parallel
     for idx in range(number_of_configurations):
         input_queue.put(

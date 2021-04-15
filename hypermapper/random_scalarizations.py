@@ -488,6 +488,7 @@ def random_scalarizations(
     iteration_number,
     objective_weights,
     objective_limits,
+    number_of_cpus,
     classification_model=None,
     profiling=None,
 ):
@@ -508,8 +509,7 @@ def random_scalarizations(
     local_search_starting_points = config["local_search_starting_points"]
     local_search_random_points = config["local_search_random_points"]
     scalarization_key = config["scalarization_key"]
-    number_of_cpus = config["number_of_cpus"]
-
+    
     optimization_function_parameters = {}
     optimization_function_parameters["regression_models"] = regression_models
     optimization_function_parameters["iteration_number"] = iteration_number
@@ -526,7 +526,7 @@ def random_scalarizations(
         "scalarization_method"
     ]
     optimization_function_parameters["number_of_cpus"] = config["number_of_cpus"]
-
+    
     _, best_configuration = local_search(
         local_search_starting_points,
         local_search_random_points,

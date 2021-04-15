@@ -5,9 +5,12 @@ import random
 import sys
 import warnings
 from collections import OrderedDict
-
+from multiprocessing import Queue
 from jsonschema import exceptions
 
+class Queue:
+    def __init__(self):
+        raise SystemError
 # ensure backward compatibility
 try:
     from hypermapper import models
@@ -129,6 +132,14 @@ def main(config, black_box_function=None, profiling=None):
     normalize_objectives = False
     debug = False
 
+    # potentially add try/except to see if MP can be used 
+    try:
+        test_queue = Queue()
+        
+    except:
+        warnings.warn('Multiprocessing not available, forcing sequential Hypermapper run.')
+        number_of_cpus = 1
+
     if "feasible_output" in config:
         feasible_output = config["feasible_output"]
         feasible_output_name = feasible_output["name"]
@@ -201,11 +212,6 @@ def main(config, black_box_function=None, profiling=None):
         print("Using EI acquisition function instead")
         config["acquisition_function"] = "EI"
 
-    if number_of_cpus > 1:
-        print(
-            "Warning: HyperMapper supports only sequential execution for now. Running on a single cpu."
-        )
-        number_of_cpus = 1
 
     # If priors are present, use prior-guided optimization
     user_priors = False
@@ -375,7 +381,7 @@ def main(config, black_box_function=None, profiling=None):
             iteration_number += 1
             print("Starting optimization iteration", iteration_number)
             iteration_t0 = datetime.datetime.now()
-
+        
         model_t0 = datetime.datetime.now()
         regression_models, _, _ = models.generate_mono_output_regression_models(
             data_array,
@@ -442,6 +448,7 @@ def main(config, black_box_function=None, profiling=None):
                 iteration_number,
                 objective_weights,
                 objective_limits,
+                number_of_cpus,
                 classification_model,
                 profiling,
             )

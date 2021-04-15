@@ -817,3 +817,27 @@ def sample_weight_flat(optimization_metrics, evaluations_per_optimization_iterat
         weight_list.append(objective_weights)
 
     return weight_list
+
+
+# queue object when a sequential local search is used
+class SequentialQueue:
+
+    def __init__(self):
+        self.queue = []
+
+
+    def get(self):
+        return self.queue.pop(0)
+
+    def put(self, obj):
+        self.queue.append(obj)
+
+    def task_done(self):
+        pass
+    
+    def join(self):
+        pass
+
+    def close(self):
+        pass
+

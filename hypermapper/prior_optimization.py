@@ -364,6 +364,7 @@ def prior_guided_optimization(
     iteration_number,
     objective_weights,
     objective_limits,
+    number_of_cpus,
     classification_model=None,
     profiling=None,
 ):
@@ -382,8 +383,7 @@ def prior_guided_optimization(
     local_search_starting_points = config["local_search_starting_points"]
     local_search_random_points = config["local_search_random_points"]
     scalarization_key = config["scalarization_key"]
-    number_of_cpus = config["number_of_cpus"]
-
+    
     function_parameters = {}
     function_parameters["param_space"] = param_space
     function_parameters["iteration_number"] = iteration_number
