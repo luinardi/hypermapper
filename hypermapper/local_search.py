@@ -628,7 +628,7 @@ def local_search(
         output_queue,
         input_params,
         param_space,
-        optimization_functioutput_queueon_parameters,
+        optimization_function_parameters,
         proc,
     ):
         while True:
