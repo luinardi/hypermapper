@@ -747,7 +747,7 @@ def local_search(
     result_array = {}
     for i in range(number_of_configurations):
         result = output_queue.get()
-        sys.stdout.write_to_logfile(result["logstring"])
+        sys.stdout.write_to_logfile(result["logstring"], msg_is_verbose=True)
         result_array = concatenate_data_dictionaries(result_array, result["data_array"])
     data_array = concatenate_data_dictionaries(result_array, data_array)
 
@@ -899,6 +899,7 @@ def main(config, black_box_function=None, profiling=None):
 
     log_file = deal_with_relative_and_absolute_path(run_directory, config["log_file"])
     sys.stdout.change_log_file(log_file)
+    sys.stdout.set_verbose_mode(config["verbose_logging"])
     if hypermapper_mode == "client-server":
         sys.stdout.switch_log_only_on_file(True)
 

@@ -129,6 +129,7 @@ class Logger:
             print("Unexpected error opening the log file: ", self.filename)
             raise
         self.log_only_on_file = False
+        self.is_verbose = False
 
     def write(self, message):
         if not self.log_only_on_file:
@@ -162,8 +163,12 @@ class Logger:
                 print("Unexpected error opening the log file: ", self.filename)
                 raise
 
-    def write_to_logfile(self, message):
-        self.log.write(message)
+    def set_verbose_mode(self, is_verbose):
+        self.is_verbose = is_verbose
+
+    def write_to_logfile(self, message, msg_is_verbose=False):
+        if not msg_is_verbose or self.is_verbose:
+            self.log.write(message)
 
     def close_log_file(self):
         self.log.close()
