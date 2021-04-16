@@ -313,7 +313,7 @@ def local_search(
     """
     if number_of_cpus == 0:
         number_of_cpus = cpu_count()
-    
+
     t0 = datetime.datetime.now()
     tmp_fast_addressing_of_data_array = copy.deepcopy(fast_addressing_of_data_array)
     input_params = param_space.get_input_parameters()

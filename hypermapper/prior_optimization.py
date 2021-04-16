@@ -383,7 +383,7 @@ def prior_guided_optimization(
     local_search_starting_points = config["local_search_starting_points"]
     local_search_random_points = config["local_search_random_points"]
     scalarization_key = config["scalarization_key"]
-    
+
     function_parameters = {}
     function_parameters["param_space"] = param_space
     function_parameters["iteration_number"] = iteration_number

@@ -1,6 +1,4 @@
 .idea
 *.log
-hypermapper/__pycache__/
-__pycache__/
 tags
 outdata
