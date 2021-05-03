@@ -89,6 +89,7 @@ def main(config, black_box_function=None, profiling=None):
     # Start logging
     log_file = deal_with_relative_and_absolute_path(run_directory, config["log_file"])
     sys.stdout.change_log_file(log_file)
+    sys.stdout.set_verbose_mode(config["verbose_logging"])
     if hypermapper_mode == "client-server":
         sys.stdout.switch_log_only_on_file(True)
 

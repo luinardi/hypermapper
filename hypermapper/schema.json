@@ -13,6 +13,11 @@
         "type": "string",
         "default": "hypermapper_logfile.log"
       },
+      "verbose_logging": {
+          "description": "Enables verbose logging. Verbose logging makes the logfile significantly larger, but includes information that is helpful for debugging.",
+          "type": "boolean",
+          "default": false
+      },
       "profiling": {
         "description": "Run a profiling run of hypermapper, displaying the time allocation between different parts of the application.",
         "type": "boolean",
