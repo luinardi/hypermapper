@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, Extension
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -45,4 +45,5 @@ setup(
             "hm-plot-optimization-results=hypermapper._cli:_plot_optimization_results_cli",
         ],
     },
+    ext_modules=[Extension('hypermapper_c_bayesian', ['c_src/bayesian.c'])],
 )

@@ -26,6 +26,7 @@ try:
         create_output_data_file,
         write_data_array,
     )
+    from hypermapper import bayesian_c
 
 except ImportError:
     if os.getenv("HYPERMAPPER_HOME"):  # noqa
@@ -74,6 +75,7 @@ except ImportError:
         create_output_data_file,
         write_data_array,
     )
+    from hypermapper import bayesian_c
 
 
 def main(config, black_box_function=None, profiling=None):
@@ -129,6 +131,10 @@ def main(config, black_box_function=None, profiling=None):
     exhaustive_search_data_array = None
     normalize_objectives = False
     debug = False
+
+    if optimization_method == "bayesian_optimization_c_backend":
+        c_wrapper = bayesian_c.BayesianCWrapper(black_box_function, config)
+        return c_wrapper.run()
 
     if "feasible_output" in config:
         feasible_output = config["feasible_output"]
