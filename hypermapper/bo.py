@@ -132,7 +132,7 @@ def main(config, black_box_function=None, profiling=None):
     normalize_objectives = False
     debug = False
 
-    if optimization_method == "bayesian_optimization_c_backend":
+    if config["use_c_backend"]:
         c_wrapper = bayesian_c.BayesianCWrapper(black_box_function, config)
         return c_wrapper.run()
 

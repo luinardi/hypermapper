@@ -21,7 +21,7 @@ class BayesianCWrapper:
     def __init__(self, blackbox, config):
         self.f = blackbox
         self.n_doe = config['design_of_experiment']['number_of_samples']
-        self.max_iter = config['optimization_iterations'] + self.n_doe
+        self.iter = config['optimization_iterations']
         self.y = config['optimization_objectives'][0]
         self.vars = []
         self.lower = []
@@ -43,7 +43,7 @@ class BayesianCWrapper:
                                            (self.dims * c_double)(*self.lower),
                                            (self.dims * c_double)(*self.upper),
                                            x,
-                                           self.dims, self.n_doe, self.max_iter)
+                                           self.dims, self.n_doe, self.iter)
         out = {self.vars[i]: [x[i]] for i in range(self.dims)}
         out[self.y] = [y]
         return out

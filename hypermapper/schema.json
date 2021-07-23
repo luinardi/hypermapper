@@ -237,8 +237,13 @@
       "optimization_method":{
         "type": "string",
         "description": "Method to use for the multi-objective optimization in Hypermapper.",
-        "enum": ["bayesian_optimization", "bayesian_optimization_c_backend", "random_scalarizations", "local_search", "prior_guided_optimization", "evolutionary_optimization"],
+        "enum": ["bayesian_optimization", "random_scalarizations", "local_search", "prior_guided_optimization", "evolutionary_optimization"],
         "default": "bayesian_optimization"
+      },
+      "use_c_backend":{
+          "type": "boolean",
+          "description": "Use C backend. The C backend is optimized for speed, but more restrictive in terms of functionality. Currently only available for bayesian_optimization",
+          "default": false
       },
       "local_search_starting_points":{
         "type": "integer",

@@ -36,7 +36,7 @@ static inline double ei(const double y, const double sdev, const double fmin) {
     return delta + sdev * pdf(z) + delta * cdf(z);
 }
 
-void optimize_forest(RandomForest* forest, const double* lower, const double* upper,
+void optimize_acquisition_function(RandomForest* forest, const double* lower, const double* upper,
                      double* out, const size_t dims, const double fmin, DataPoint** points) {
 
     // This will be our workhorse x
@@ -170,7 +170,7 @@ double bayesian_optimization(OptFunc f, const double* lower, const double* upper
 
     double mean_iter = 0.0;
 
-    for (size_t i=doe; i<iter; ++i) {
+    for (size_t i=0; i<iter; ++i) {
 
         if (random_f64() < RANDOM_SAMPLE_PROBABILITY) {
 
@@ -183,7 +183,7 @@ double bayesian_optimization(OptFunc f, const double* lower, const double* upper
             RandomForest forest;
             randomforest_fit(&forest, NUMBER_OF_TREES, points, dims, i);
 
-            optimize_forest(&forest, lower, upper, points[i]->x, dims, best_val, workspace_points);
+            optimize_acquisition_function(&forest, lower, upper, points[i]->x, dims, best_val, workspace_points);
 
             randomforest_free(&forest);
         }
