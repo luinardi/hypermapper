@@ -125,15 +125,17 @@ double bayesian_optimization(OptFunc f, const double* lower, const double* upper
 
     const size_t dp_size = sizeof(DataPoint) + dims * sizeof(double);
 
+    const size_t total_iter = doe + iter;
+
     // Alloc backing data for all points (1 per iteration)
-    DataPoint* data = calloc(iter, dp_size);
+    DataPoint* data = calloc(total_iter, dp_size);
     
     // Alloc pointers that can point into backing data points
-    DataPoint** points = calloc(iter, sizeof(DataPoint*));
+    DataPoint** points = calloc(total_iter, sizeof(DataPoint*));
 
     // Assign each pointer to an allocated data point
     points[0] = data;
-    for (size_t i=1; i<iter; ++i) { points[i] = (void*)points[i-1] + dp_size; }
+    for (size_t i=1; i<total_iter; ++i) { points[i] = (void*)points[i-1] + dp_size; }
 
     // Alloc work space for local search algorithm
     DataPoint* workspace = calloc(EVO_POPULATION + 1, dp_size);
@@ -170,7 +172,7 @@ double bayesian_optimization(OptFunc f, const double* lower, const double* upper
 
     double mean_iter = 0.0;
 
-    for (size_t i=0; i<iter; ++i) {
+    for (size_t i=doe; i<total_iter; ++i) {
 
         if (random_f64() < RANDOM_SAMPLE_PROBABILITY) {
 
