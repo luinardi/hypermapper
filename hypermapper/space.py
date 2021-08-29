@@ -422,7 +422,7 @@ class IntegerParameter(Parameter):
         else:
             X_copy = X.copy()
 
-        samples = np.round(X_copy * self.get_size() - 0.5).astype(int)
+        samples = np.round(X_copy * self.get_size() - 0.5 + self.get_min()).astype(int)
 
         if len(samples) == 1:
             return samples[0]
