@@ -355,12 +355,10 @@ def local_search(
     min_number_of_configs = min(len(uniform_configurations), len(prior_configurations))
     if min_number_of_configs < number_of_cpus:
         number_of_cpus = min_number_of_configs
-    
+
     # to avoid having partitions with no samples, it's necessary to compute a floor for the number of partitions for small sample spaces
     # alternatively, an arbitraty number of samples could be set for the number of points where we do not have to partition (since it will be quick anyway)
-    min_number_per_partition = (
-        min_number_of_configs / number_of_cpus
-    )
+    min_number_per_partition = min_number_of_configs / number_of_cpus
     partitions_per_cpu = min(10, int(min_number_per_partition))
     if number_of_cpus == 1:
         function_values_uniform, feasibility_indicators_uniform = optimization_function(
