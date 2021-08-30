@@ -351,11 +351,14 @@ def local_search(
         ("Total RS time %10.4f sec\n" % ((sampling_time - t0).total_seconds()))
     )
 
+    # check that the number of configurations are not less than the number of CPUs
+    min_number_of_configs = min(len(uniform_configurations), len(prior_configurations))
+    if min_number_of_configs < number_of_cpus:
+        number_of_cpus = min_number_of_configs
+
     # to avoid having partitions with no samples, it's necessary to compute a floor for the number of partitions for small sample spaces
     # alternatively, an arbitraty number of samples could be set for the number of points where we do not have to partition (since it will be quick anyway)
-    min_number_per_partition = (
-        min(len(uniform_configurations), len(prior_configurations)) / number_of_cpus
-    )
+    min_number_per_partition = min_number_of_configs / number_of_cpus
     partitions_per_cpu = min(10, int(min_number_per_partition))
     if number_of_cpus == 1:
         function_values_uniform, feasibility_indicators_uniform = optimization_function(
@@ -397,6 +400,7 @@ def local_search(
                 input_queue.task_done()
 
         # the number of splits of the list of input points that each process is expected to handle
+
         uniform_partition_fraction = len(uniform_configurations) / (
             partitions_per_cpu * number_of_cpus
         )
