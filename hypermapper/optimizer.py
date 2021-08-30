@@ -176,7 +176,7 @@ def optimize(parameters_file, black_box_function=None):
                 f"Warning: unrecognized option for print_best: {print_best}. Should be either 'auto' or a boolean."
             )
             print("Using default.")
-        hypermapper_mode = config["hypermapper_mode"]
+        hypermapper_mode = config["hypermapper_mode"]["mode"]
         print_best = False if hypermapper_mode == "client-server" else True
 
     if print_best:
