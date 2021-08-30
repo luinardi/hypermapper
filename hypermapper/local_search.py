@@ -281,35 +281,41 @@ def run_objective_function(
 
     return list(scalarized_values), feasibility_indicators
 
+
 def parallel_optimization_function(
-        optimization_function_parameters, input_queue, output_queue, proc, optimization_function
-    ):
-        temporary_parameters = optimization_function_parameters.copy()
+    optimization_function_parameters,
+    input_queue,
+    output_queue,
+    proc,
+    optimization_function,
+):
+    temporary_parameters = optimization_function_parameters.copy()
 
-        while True:
-            input_parameters = input_queue.get()
-            if input_parameters is None:
-                input_queue.task_done()
-                break
-
-            configurations, split_index, conf_index = (
-                input_parameters["partition"],
-                input_parameters["split_index"],
-                input_parameters["conf_index"],
-            )
-            temporary_parameters["configurations"] = configurations
-            scalarized_values, feasibility_indicators = optimization_function(
-                **temporary_parameters
-            )
-            output_queue.put(
-                {
-                    "scalarized_values": scalarized_values,
-                    "feasibility_indicators": feasibility_indicators,
-                    "split_index": split_index,
-                    "conf_index": conf_index,
-                }
-            )
+    while True:
+        input_parameters = input_queue.get()
+        if input_parameters is None:
             input_queue.task_done()
+            break
+
+        configurations, split_index, conf_index = (
+            input_parameters["partition"],
+            input_parameters["split_index"],
+            input_parameters["conf_index"],
+        )
+        temporary_parameters["configurations"] = configurations
+        scalarized_values, feasibility_indicators = optimization_function(
+            **temporary_parameters
+        )
+        output_queue.put(
+            {
+                "scalarized_values": scalarized_values,
+                "feasibility_indicators": feasibility_indicators,
+                "split_index": split_index,
+                "conf_index": conf_index,
+            }
+        )
+        input_queue.task_done()
+
 
 def local_search(
     local_search_starting_points,
@@ -439,7 +445,13 @@ def local_search(
         processes = [
             Process(
                 target=parallel_optimization_function,
-                args=(optimization_function_parameters, input_queue, output_queue, i, optimization_function),
+                args=(
+                    optimization_function_parameters,
+                    input_queue,
+                    output_queue,
+                    i,
+                    optimization_function,
+                ),
             )
             for i in range(number_of_cpus)
         ]
