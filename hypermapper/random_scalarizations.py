@@ -414,7 +414,7 @@ def EI(
         scalarized_value = 0
         for objective in regression_models:
             if tmp_objective_limits[objective][1] - tmp_objective_limits[objective][0] == 0:
-               difference_obj = 10 ** -20
+               difference_obj = 1
             else:
                difference_obj = tmp_objective_limits[objective][1] - tmp_objective_limits[objective][0]
             f_min = 1 - (
@@ -437,7 +437,7 @@ def EI(
         total_value = np.zeros(number_of_predictions)
         for objective in regression_models:
             if tmp_objective_limits[objective][1] - tmp_objective_limits[objective][0] == 0:
-               difference_obj = 10 ** -20
+               difference_obj = 1
             else:
                difference_obj = tmp_objective_limits[objective][1] - tmp_objective_limits[objective][0]
             f_min = 1 - (
@@ -466,7 +466,7 @@ def EI(
         reciprocated_weights = reciprocate_weights(objective_weights)
         for objective in regression_models:
             if tmp_objective_limits[objective][1] - tmp_objective_limits[objective][0] == 0:
-               difference_obj = 10 ** -20
+               difference_obj = 1
             else:
                difference_obj = tmp_objective_limits[objective][1] - tmp_objective_limits[objective][0]
             f_min = 1 - (
