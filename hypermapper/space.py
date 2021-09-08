@@ -192,6 +192,9 @@ class RealParameter(Parameter):
         samples = self.from_range_0_1_to_parameter_value(samples)
         return samples
 
+    def bw_selector(kde):
+        return np.power(kde.n * self.bw_n_factor, -1.0 / (kde.d + self.bw_param))
+
     def estimate_pdf(self, values, bw_method=None):
         """
         Estimate a kde prior for this parameter.
