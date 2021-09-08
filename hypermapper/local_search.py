@@ -316,6 +316,7 @@ def parallel_optimization_function(
         )
         input_queue.task_done()
 
+
 def parallel_multistart_local_search(
     input_queue,
     output_queue,
@@ -382,9 +383,7 @@ def parallel_multistart_local_search(
                     + str(best_neighbor)
                     + "\n"
                 )
-                configuration = {
-                    key: value[0] for key, value in best_neighbor.items()
-                }
+                configuration = {key: value[0] for key, value in best_neighbor.items()}
 
 
 def local_search(
