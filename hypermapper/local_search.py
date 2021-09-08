@@ -316,6 +316,76 @@ def parallel_optimization_function(
         )
         input_queue.task_done()
 
+def parallel_multistart_local_search(
+    input_queue,
+    output_queue,
+    input_params,
+    param_space,
+    optimization_function_parameters,
+    optimization_function,
+    enable_feasible_predictor,
+    scalarization_key,
+    proc,
+):
+    feasible_parameter = param_space.get_feasible_parameter()[0]
+    while True:
+        config = input_queue.get()
+        if config is None:
+            input_queue.task_done()
+            break
+        iteration_data_array = {}
+        configuration = config["config"]
+        idx = config["idx"]
+        logstring = (
+            "Starting local search on configuration: " + str(configuration) + "\n"
+        )
+        while configuration is not None:
+            neighbors = get_neighbors(configuration, param_space)
+            neighbors = data_tuples_to_dict_list(neighbors, input_params)
+            function_values, feasibility_indicators = optimization_function(
+                configurations=neighbors, **optimization_function_parameters
+            )
+            function_values_size = len(function_values)
+            new_data_array = concatenate_list_of_dictionaries(
+                neighbors[:function_values_size]
+            )
+            new_data_array[scalarization_key] = function_values
+            if enable_feasible_predictor:
+                new_data_array[feasible_parameter] = feasibility_indicators
+            iteration_data_array = concatenate_data_dictionaries(
+                iteration_data_array, new_data_array
+            )
+            """
+            The out of budget stopping criterion is removed for now, since it's not deemed relevant for this algorithm!
+            """
+            if enable_feasible_predictor:
+                best_neighbor = get_min_feasible_configurations(
+                    new_data_array, 1, scalarization_key, feasible_parameter
+                )
+            else:
+                best_neighbor = get_min_configurations(
+                    new_data_array, 1, scalarization_key
+                )
+
+            for key in configuration:
+                configuration[key] = [configuration[key]]
+            if are_configurations_equal(best_neighbor, configuration, input_params):
+                logstring += "Local minimum found: " + str(best_neighbor) + "\n"
+                output_queue.put(
+                    {"data_array": iteration_data_array, "logstring": logstring}
+                )
+                configuration = None
+                input_queue.task_done()
+            else:
+                logstring += (
+                    "Replacing configuration by best neighbor: "
+                    + str(best_neighbor)
+                    + "\n"
+                )
+                configuration = {
+                    key: value[0] for key, value in best_neighbor.items()
+                }
+
 
 def local_search(
     local_search_starting_points,
@@ -635,72 +705,6 @@ def local_search(
         for key, column in col_of_keys.items()
     }
 
-    def parallel_multistart_local_search(
-        input_queue,
-        output_queue,
-        input_params,
-        param_space,
-        optimization_function_parameters,
-        proc,
-    ):
-        while True:
-            config = input_queue.get()
-            if config is None:
-                input_queue.task_done()
-                break
-            iteration_data_array = {}
-            configuration = config["config"]
-            idx = config["idx"]
-            logstring = (
-                "Starting local search on configuration: " + str(configuration) + "\n"
-            )
-            while configuration is not None:
-                neighbors = get_neighbors(configuration, param_space)
-                neighbors = data_tuples_to_dict_list(neighbors, input_params)
-                function_values, feasibility_indicators = optimization_function(
-                    configurations=neighbors, **optimization_function_parameters
-                )
-                function_values_size = len(function_values)
-                new_data_array = concatenate_list_of_dictionaries(
-                    neighbors[:function_values_size]
-                )
-                new_data_array[scalarization_key] = function_values
-                if enable_feasible_predictor:
-                    new_data_array[feasible_parameter] = feasibility_indicators
-                iteration_data_array = concatenate_data_dictionaries(
-                    iteration_data_array, new_data_array
-                )
-                """
-                The out of budget stopping criterion is removed for now, since it's not deemed relevant for this algorithm!
-                """
-                if enable_feasible_predictor:
-                    best_neighbor = get_min_feasible_configurations(
-                        new_data_array, 1, scalarization_key, feasible_parameter
-                    )
-                else:
-                    best_neighbor = get_min_configurations(
-                        new_data_array, 1, scalarization_key
-                    )
-
-                for key in configuration:
-                    configuration[key] = [configuration[key]]
-                if are_configurations_equal(best_neighbor, configuration, input_params):
-                    logstring += "Local minimum found: " + str(best_neighbor) + "\n"
-                    output_queue.put(
-                        {"data_array": iteration_data_array, "logstring": logstring}
-                    )
-                    configuration = None
-                    input_queue.task_done()
-                else:
-                    logstring += (
-                        "Replacing configuration by best neighbor: "
-                        + str(best_neighbor)
-                        + "\n"
-                    )
-                    configuration = {
-                        key: value[0] for key, value in best_neighbor.items()
-                    }
-
     data_collection_time = datetime.datetime.now()
     number_of_configurations = len(
         local_search_configurations[list(local_search_configurations.keys())[0]]
@@ -733,6 +737,9 @@ def local_search(
             input_params,
             param_space,
             optimization_function_parameters,
+            optimization_function,
+            enable_feasible_predictor,
+            scalarization_key,
             0,
         )
         input_queue.join()
@@ -747,6 +754,9 @@ def local_search(
                     input_params,
                     param_space,
                     optimization_function_parameters,
+                    optimization_function,
+                    enable_feasible_predictor,
+                    scalarization_key,
                     i,
                 ),
             )
