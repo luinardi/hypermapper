@@ -17,6 +17,7 @@ try:
     from hypermapper import models
     from hypermapper.local_search import local_search
     from hypermapper.utility_functions import dict_list_to_matrix
+    from hypermapper.cma_es import cma_es
 except ImportError:
     if os.getenv("HYPERMAPPER_HOME"):  # noqa
         warnings.warn(
@@ -51,6 +52,7 @@ except ImportError:
     from hypermapper import models
     from hypermapper.local_search import local_search
     from hypermapper.utility_functions import dict_list_to_matrix
+    from hypermapper.cma_es import cma_es
 
 
 def compute_probability_from_prior(configurations, param_space, objective_weights):
@@ -178,6 +180,15 @@ def compute_EI_from_posteriors(
     :param posterior_normalization_limits:
     :param debug: whether to run in debug mode.
     """
+    param_objects = param_space.get_input_parameters_objects()
+    for parameter in param_space.get_input_parameters():
+        param_min, param_max = (
+            param_objects[parameter].get_min(),
+            param_objects[parameter].get_max(),
+        )
+        for configuration in configurations:
+            configuration[parameter] = min(configuration[parameter], param_max)
+            configuration[parameter] = max(configuration[parameter], param_min)
     user_prior_t0 = datetime.datetime.now()
     prior_good = compute_probability_from_prior(
         configurations, param_space, objective_weights
@@ -336,6 +347,8 @@ def compute_EI_from_posteriors(
 
     good_bad_ratios = good_bad_ratios + feasibility_indicator
     good_bad_ratios = -1 * good_bad_ratios
+    good_bad_ratios[good_bad_ratios == float("inf")] = sys.maxsize
+    good_bad_ratios[good_bad_ratios == float("-inf")] = -1 * sys.maxsize
     good_bad_ratios = list(good_bad_ratios)
 
     sys.stdout.write_to_logfile(
@@ -366,6 +379,7 @@ def prior_guided_optimization(
     objective_limits,
     classification_model=None,
     profiling=None,
+    acquisition_function_optimizer="local_search",
 ):
     """
     Run a prior-guided bayesian optimization iteration.
@@ -379,8 +393,6 @@ def prior_guided_optimization(
     :param objective_limits: estimated minimum and maximum limits for each objective.
     :param classification_model: feasibility classifier for constrained optimization.
     """
-    local_search_starting_points = config["local_search_starting_points"]
-    local_search_random_points = config["local_search_random_points"]
     scalarization_key = config["scalarization_key"]
     number_of_cpus = config["number_of_cpus"]
 
@@ -419,17 +431,46 @@ def prior_guided_optimization(
             float("-inf"),
         ]
 
-    _, best_configuration = local_search(
-        local_search_starting_points,
-        local_search_random_points,
-        param_space,
-        fast_addressing_of_data_array,
-        False,  # set feasibility to false, we handle it inside the acquisition function
-        compute_EI_from_posteriors,
-        function_parameters,
-        scalarization_key,
-        number_of_cpus,
-        previous_points=data_array,
-        profiling=profiling,
-    )
+    if acquisition_function_optimizer == "local_search":
+        local_search_starting_points = config["local_search_starting_points"]
+        local_search_random_points = config["local_search_random_points"]
+        _, best_configuration = local_search(
+            local_search_starting_points,
+            local_search_random_points,
+            param_space,
+            fast_addressing_of_data_array,
+            False,  # set feasibility to false, we handle it inside the acquisition function
+            compute_EI_from_posteriors,
+            function_parameters,
+            scalarization_key,
+            number_of_cpus,
+            previous_points=data_array,
+            profiling=profiling,
+        )
+    elif acquisition_function_optimizer == "cma_es":
+        logfile = deal_with_relative_and_absolute_path(
+            config["run_directory"], config["log_file"]
+        )
+        sigma = config["cma_es_sigma"]
+        cma_es_starting_points = config["cma_es_starting_points"]
+        cma_es_random_points = config["cma_es_random_points"]
+        best_configuration = cma_es(
+            param_space,
+            data_array,
+            fast_addressing_of_data_array,
+            scalarization_key,
+            logfile,
+            compute_EI_from_posteriors,
+            function_parameters,
+            cma_es_random_points=cma_es_random_points,
+            cma_es_starting_points=cma_es_starting_points,
+            sigma=sigma,
+        )
+    else:
+        print(
+            "Unrecognized acquisition function optimizer:",
+            acquisition_function_optimizer,
+        )
+        raise SystemExit
+
     return best_configuration

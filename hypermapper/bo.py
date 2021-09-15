@@ -120,6 +120,17 @@ def main(config, black_box_function=None, profiling=None):
     model_type = config["models"]["model"]
     optimization_method = config["optimization_method"]
     time_budget = config["time_budget"]
+    acquisition_function_optimizer = config["acquisition_function_optimizer"]
+    if (
+        acquisition_function_optimizer == "cma_es"
+        and not param_space.is_space_continuous()
+    ):
+        print(
+            "Warning: CMA_ES can only be used with continuous search spaces (i.e. all parameters must be of type 'real')"
+        )
+        print("Switching acquisition function optimizer to local search")
+    acquisition_function_optimizer = "local_search"
+
     input_params = param_space.get_input_parameters()
     number_of_objectives = len(optimization_metrics)
     objective_limits = {}
@@ -445,6 +456,7 @@ def main(config, black_box_function=None, profiling=None):
                 objective_limits,
                 classification_model,
                 profiling,
+                acquisition_function_optimizer,
             )
 
         else:
@@ -459,7 +471,7 @@ def main(config, black_box_function=None, profiling=None):
             )
             best_configuration = (
                 param_space.random_sample_configurations_without_repetitions(
-                    tmp_fast_addressing_of_data_array, 1
+                    tmp_fast_addressing_of_data_array, 1, use_priors=False
                 )[0]
             )
         local_search_t1 = datetime.datetime.now()

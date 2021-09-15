@@ -177,6 +177,24 @@ class RealParameter(Parameter):
 
             # remove excess samples to get the proper amount
             samples = samples[0:size]
+        elif self.prior == "gaussian_mixture":
+            sample_idx = random.randint(0, len(self.custom_gaussian_prior_mean) - 1)
+            sample = norm.rvs(
+                loc=self.custom_gaussian_prior_mean[sample_idx],
+                scale=self.custom_gaussian_prior_std[sample_idx],
+            )
+            sample_count = 1
+            while sample > self.max_value or sample < self.min_value:
+                sample_count += 1
+                if sample_count > 10000:
+                    print(
+                        "\n ####\n Warning: reached maximum number of invalid samples from the custom gaussian prior. \nThe prior sampling will stop now. Is the prior defined outside or too close to the interval edges?\n"
+                    )
+                    raise SystemExit  # too many random samples failed, the prior is probably too close to the edge
+                sample = norm.rvs(
+                    loc=self.custom_gaussian_prior_mean[sample_idx],
+                    scale=self.custom_gaussian_prior_std[sample_idx],
+                )
         else:
             samples = beta(self.alpha, self.beta, size)
             samples = self.from_range_0_1_to_parameter_value(samples)
@@ -260,6 +278,16 @@ class RealParameter(Parameter):
                 loc=self.custom_gaussian_prior_mean,
                 scale=self.custom_gaussian_prior_std,
             )
+        elif self.prior == "gaussian_mixture":
+            prob = 0
+            mixture_weights = 1 / len(self.custom_gaussian_prior_mean)
+            for idx in range(len(self.custom_gaussian_prior_mean)):
+                prob += mixture_weights * norm.pdf(
+                    x,
+                    loc=self.custom_gaussian_prior_mean[idx],
+                    scale=self.custom_gaussian_prior_std[idx],
+                )
+            return prob
         else:
             rescaled_x = self.from_parameter_value_to_0_1_range(x)
             pdf = stats.beta.pdf(rescaled_x, self.alpha, self.beta)
@@ -290,6 +318,10 @@ class RealParameter(Parameter):
     def set_custom_gaussian_prior_params(self, mean, std):
         if std == -1:
             std = (self.max_value - self.min_value) / 2
+        if type(std) is list:
+            for idx in range(len(std)):
+                if std[idx] == -1:
+                    std[idx] = (self.max_value - self.min_value) / 2
         self.custom_gaussian_prior_mean = mean
         self.custom_gaussian_prior_std = std
 
@@ -710,6 +742,7 @@ class Space:
         self.all_input_parameters = OrderedDict()
         self.input_non_categorical_parameters = OrderedDict()
         self.input_categorical_parameters = OrderedDict()
+        self.is_continuous = True
         self.parse_input_parameters(config["input_parameters"])
 
         if self.get_discrete_space_size() > max_number_of_predictions:
@@ -777,7 +810,7 @@ class Space:
                 prior_estimation_data[self.optimization_metrics[0]], point_quantile
             )
             indices = np.nonzero(
-                prior_estimation_data[self.optimization_metrics[0]] < threshold
+                prior_estimation_data[self.optimization_metrics[0]] <= threshold
             )[0]
             good_points = all_input_data[:, indices]
             self.pdf = gaussian_kde(good_points, bw_method=self.bw_selector)
@@ -798,7 +831,7 @@ class Space:
                         point_quantile,
                     )
                     indices_good = np.nonzero(
-                        prior_estimation_data[self.optimization_metrics[0]] < threshold
+                        prior_estimation_data[self.optimization_metrics[0]] <= threshold
                     )[0]
                 for input_param in self.get_input_parameters():
                     if self.parameters_type[input_param] == "real":
@@ -810,34 +843,66 @@ class Space:
                         )
             elif config["input_parameters"][param]["prior"] == "custom_gaussian":
                 self.normalize_priors = True
-                if len(config["custom_gaussian_prior_means"]) == 1:
-                    mean = config["custom_gaussian_prior_means"][0]
-                elif len(config["custom_gaussian_prior_means"]) == len(
-                    config["input_parameters"]
+                if (
+                    config["input_parameters"][param]["custom_gaussian_prior_means"]
+                    is False
+                ) or (
+                    config["input_parameters"][param]["custom_gaussian_prior_stds"]
+                    is False
                 ):
-                    mean = config["custom_gaussian_prior_means"][param_idx]
-                else:
-                    print(
-                        "Error: the custom_gaussian prior means array must be either 1 or",
-                        len(config["input_parameters"]),
-                        "received",
-                        len(config["custom_gaussian_prior_means"]),
+                    if len(config["custom_gaussian_prior_means"]) == 1:
+                        mean = config["input_parameters"][param][
+                            "custom_gaussian_prior_means"
+                        ][0]
+                    else:
+                        mean = config["input_parameters"][param][
+                            "custom_gaussian_prior_means"
+                        ]
+                    if len(config["custom_gaussian_prior_stds"]) == 1:
+                        std = config["input_parameters"][param][
+                            "custom_gaussian_prior_stds"
+                        ][0]
+                    else:
+                        std = config["input_parameters"][param][
+                            "custom_gaussian_prior_stds"
+                        ]
+                    if len(std) != len(mean):
+                        print(
+                            "Invalid custom gaussian parameters. The number of means and standard deviations must be equal, but got:"
+                        )
+                        print(f"{len(mean)} means and {len(std)} standard deviations")
+                    self.all_input_parameters[param].set_custom_gaussian_prior_params(
+                        mean, std
                     )
-                    raise SystemExit
-                if len(config["custom_gaussian_prior_stds"]) == 1:
-                    std = config["custom_gaussian_prior_stds"][0]
-                elif len(config["custom_gaussian_prior_stds"]) == len(
-                    config["input_parameters"]
-                ):
-                    std = config["custom_gaussian_prior_stds"][param_idx]
                 else:
-                    print(
-                        "Error: the custom_gaussian prior stds array must be either 1 or",
-                        len(config["input_parameters"]),
-                        "received",
-                        len(config["custom_gaussian_prior_stds"]),
-                    )
-                    raise SystemExit
+                    if len(config["custom_gaussian_prior_means"]) == 1:
+                        mean = config["custom_gaussian_prior_means"][0]
+                    elif len(config["custom_gaussian_prior_means"]) == len(
+                        config["input_parameters"]
+                    ):
+                        mean = config["custom_gaussian_prior_means"][param_idx]
+                    else:
+                        print(
+                            "Error: the custom_gaussian prior means array must be either 1 or",
+                            len(config["input_parameters"]),
+                            "received",
+                            len(config["custom_gaussian_prior_means"]),
+                        )
+                        raise SystemExit
+                    if len(config["custom_gaussian_prior_stds"]) == 1:
+                        std = config["custom_gaussian_prior_stds"][0]
+                    elif len(config["custom_gaussian_prior_stds"]) == len(
+                        config["input_parameters"]
+                    ):
+                        std = config["custom_gaussian_prior_stds"][param_idx]
+                    else:
+                        print(
+                            "Error: the custom_gaussian prior stds array must be either 1 or",
+                            len(config["input_parameters"]),
+                            "received",
+                            len(config["custom_gaussian_prior_stds"]),
+                        )
+                        raise SystemExit
                 self.all_input_parameters[param].set_custom_gaussian_prior_params(
                     mean, std
                 )
@@ -863,6 +928,7 @@ class Space:
             else:
                 param_distribution = param["prior"]
             if param_type == "ordinal":
+                self.is_continuous = False
                 param_values = param["values"]
                 self.all_input_parameters[param_name] = OrdinalParameter(
                     values=param_values,
@@ -882,6 +948,7 @@ class Space:
                 else:
                     self.parameters_python_type[param_name] = "float"
             elif param_type == "categorical":
+                self.is_continuous = False
                 param_values = param["values"]
                 if isinstance(param_distribution, str):
                     if param_distribution != "uniform":
@@ -932,6 +999,7 @@ class Space:
                 self.parameters_type[param_name] = "real"
                 self.parameters_python_type[param_name] = "float"
             elif param_type == "integer":
+                self.is_continuous = False
                 param_min, param_max = param["values"]
                 if param_min > param_max:
                     param_min, param_max = (
@@ -1107,6 +1175,12 @@ class Space:
         :return: true if at least one parameter has estimated priors.
         """
         return [self.estimate_prior_flag]
+
+    def is_space_continuous(self):
+        """
+        :return: true if all parameters are real, otherwise returns false
+        """
+        return self.is_continuous
 
     def get_space_size(self):
         """
