@@ -19,6 +19,7 @@ setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[
+        "cma",
         "numpy",
         "matplotlib",
         "ply",

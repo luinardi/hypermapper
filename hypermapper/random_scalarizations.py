@@ -27,6 +27,7 @@ try:
         reciprocate_weights,
         compute_data_array_scalarization,
     )
+    from hypermapper.cma_es import cma_es
 except ImportError:
     if os.getenv("HYPERMAPPER_HOME"):  # noqa
         warnings.warn(
@@ -66,6 +67,7 @@ except ImportError:
         reciprocate_weights,
         compute_data_array_scalarization,
     )
+    from hypermapper.cma_es import cma_es
 
 
 def run_acquisition_function(
@@ -514,6 +516,7 @@ def random_scalarizations(
     objective_limits,
     classification_model=None,
     profiling=None,
+    acquisition_function_optimizer="local_search",
 ):
     """
     Run one iteration of bayesian optimization with random scalarizations.
@@ -551,17 +554,44 @@ def random_scalarizations(
     ]
     optimization_function_parameters["number_of_cpus"] = config["number_of_cpus"]
 
-    _, best_configuration = local_search(
-        local_search_starting_points,
-        local_search_random_points,
-        param_space,
-        fast_addressing_of_data_array,
-        False,  # we do not want the local search to consider feasibility constraints, only the acquisition functions
-        run_acquisition_function,
-        optimization_function_parameters,
-        scalarization_key,
-        number_of_cpus,
-        previous_points=data_array,
-        profiling=profiling,
-    )
+    if acquisition_function_optimizer == "local_search":
+        _, best_configuration = local_search(
+            local_search_starting_points,
+            local_search_random_points,
+            param_space,
+            fast_addressing_of_data_array,
+            False,  # we do not want the local search to consider feasibility constraints, only the acquisition functions
+            run_acquisition_function,
+            optimization_function_parameters,
+            scalarization_key,
+            number_of_cpus,
+            previous_points=data_array,
+            profiling=profiling,
+        )
+    elif acquisition_function_optimizer == "cma_es":
+        logfile = deal_with_relative_and_absolute_path(
+            config["run_directory"], config["log_file"]
+        )
+        sigma = config["cma_es_sigma"]
+        cma_es_starting_points = config["cma_es_starting_points"]
+        cma_es_random_points = config["cma_es_random_points"]
+        best_configuration = cma_es(
+            param_space,
+            data_array,
+            fast_addressing_of_data_array,
+            scalarization_key,
+            logfile,
+            compute_EI_from_posteriors,
+            function_parameters,
+            cma_es_random_points=cma_es_random_points,
+            cma_es_starting_points=cma_es_starting_points,
+            sigma=sigma,
+        )
+    else:
+        print(
+            "Unrecognized acquisition function optimizer:",
+            acquisition_function_optimizer,
+        )
+        raise SystemExit
+
     return best_configuration

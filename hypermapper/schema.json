@@ -178,6 +178,16 @@
                         ],
                       "default" : "uniform"
                     },
+                    "custom_gaussian_prior_means":{
+                      "type": ["array", "boolean"],
+                      "description": "means for the custom gaussian prior for this parameter. Can only be used with real parameters for now.",
+                      "default": false
+                    },
+                    "custom_gaussian_prior_stds":{
+                      "type": ["array", "boolean"],
+                      "description": "standard deviations for the custom gaussian prior for this parameter. Can only be used with real parameters for now.",
+                      "default": false
+                    },
                     "parameter_type": {
                         "description": "The type of the parameter that is being defined.",
                         "type": "string",
@@ -354,8 +364,8 @@
       },
       "acquisition_function_optimizer":{
         "type": "string",
-        "description": "which method to use to optimize the acquisition function.",
-        "enum":["local_search"],
+        "description": "which method to use to optimize the acquisition function. CMA_ES only works on continuous spaces (i.e. only parameters of type 'real').",
+        "enum":["local_search", "cma_es"],
         "default": "local_search"
       },
       "evolution_population_size":{
