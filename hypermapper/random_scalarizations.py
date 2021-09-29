@@ -26,6 +26,7 @@ try:
         data_dictionary_to_tuple,
         reciprocate_weights,
         compute_data_array_scalarization,
+        deal_with_relative_and_absolute_path,
     )
     from hypermapper.cma_es import cma_es
 except ImportError:
@@ -66,6 +67,7 @@ except ImportError:
         data_dictionary_to_tuple,
         reciprocate_weights,
         compute_data_array_scalarization,
+        deal_with_relative_and_absolute_path,
     )
     from hypermapper.cma_es import cma_es
 
@@ -581,8 +583,8 @@ def random_scalarizations(
             fast_addressing_of_data_array,
             scalarization_key,
             logfile,
-            compute_EI_from_posteriors,
-            function_parameters,
+            run_acquisition_function,
+            optimization_function_parameters,
             cma_es_random_points=cma_es_random_points,
             cma_es_starting_points=cma_es_starting_points,
             sigma=sigma,

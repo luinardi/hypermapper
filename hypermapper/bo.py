@@ -129,7 +129,7 @@ def main(config, black_box_function=None, profiling=None):
             "Warning: CMA_ES can only be used with continuous search spaces (i.e. all parameters must be of type 'real')"
         )
         print("Switching acquisition function optimizer to local search")
-    acquisition_function_optimizer = "local_search"
+        acquisition_function_optimizer = "local_search"
 
     input_params = param_space.get_input_parameters()
     number_of_objectives = len(optimization_metrics)

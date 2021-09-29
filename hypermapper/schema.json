@@ -407,6 +407,21 @@
         "type": "boolean",
         "description": "Whether to print out the best point according to HyperMapper's posterior model's mean after optimization. The best point is computed using HyperMapper's local search.",
         "default": false
+      },
+      "cma_es_sigma": {
+        "type": "number",
+        "description": "Sigma hyperparameter for the CMA-ES algorithm.",
+        "default": 0.2
+      },
+      "cma_es_starting_points":{
+        "type": "integer",
+        "description": "number of starting points for the cma-es search used to optimize the acquisition functions. Deprecated.",
+        "default": 1
+      },
+      "cma_es_random_points":{
+        "type": "integer",
+        "description": "number of random points for the cma-es search used to optimize the acquisition functions. Deprecated.",
+        "default": 10000
       }
     },
     "additionalProperties": false,
