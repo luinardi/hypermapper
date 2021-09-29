@@ -778,10 +778,6 @@ class Space:
         self.pdf = None
         self.bw_param = config["bandwidth_parameter"]
         self.bw_n_factor = config["bandwidth_n_factor"]
-        # If we use weights, we have to adapt this to use "neff"
-        self.bw_selector = lambda kde: np.power(
-            kde.n * self.bw_n_factor, -1.0 / (kde.d + self.bw_param)
-        )
 
         hypermapper_mode = config["hypermapper_mode"]["mode"]
         if hypermapper_mode == "exhaustive":
