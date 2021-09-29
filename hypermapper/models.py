@@ -759,6 +759,8 @@ def compute_model_mean_and_uncertainty(
         mean, uncertainty = compute_gp_prediction_mean_and_uncertainty(
             bufferx, model, param_space, var=var
         )
+    for objective in mean:
+        mean[objective][np.isnan(mean[objective])] = sys.maxsize
     return mean, uncertainty
 
 

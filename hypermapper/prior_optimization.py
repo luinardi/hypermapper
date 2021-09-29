@@ -16,7 +16,10 @@ from scipy import stats
 try:
     from hypermapper import models
     from hypermapper.local_search import local_search
-    from hypermapper.utility_functions import dict_list_to_matrix
+    from hypermapper.utility_functions import (
+        dict_list_to_matrix,
+        deal_with_relative_and_absolute_path,
+    )
     from hypermapper.cma_es import cma_es
 except ImportError:
     if os.getenv("HYPERMAPPER_HOME"):  # noqa
@@ -51,7 +54,10 @@ except ImportError:
 
     from hypermapper import models
     from hypermapper.local_search import local_search
-    from hypermapper.utility_functions import dict_list_to_matrix
+    from hypermapper.utility_functions import (
+        dict_list_to_matrix,
+        deal_with_relative_and_absolute_path,
+    )
     from hypermapper.cma_es import cma_es
 
 

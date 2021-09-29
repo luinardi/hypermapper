@@ -106,11 +106,6 @@ def cma_es(
     cma_es_configurations = concatenate_data_dictionaries(
         cma_es_configurations, best_previous, concatenation_keys
     )
-    # Get mode or random
-    param_mode = param_space.get_prior_mode()
-    cma_es_configurations = concatenate_data_dictionaries(
-        cma_es_configurations, param_mode, concatenation_keys
-    )
 
     # Passing the dictionary with ** expands the key-value pairs into function parameters
     # The acquisition functions return a tuple with two lists, cma wants only the first element of the first list
