@@ -129,6 +129,12 @@ class RealParameter(Parameter):
             self.cdf_distribution = np.cumsum(self.pdf_distribution)
             self.cdf_distribution = self.cdf_distribution / self.cdf_distribution[-1]
 
+    def _gaussian_mixture_helper(self, idx):
+        return norm.rvs(
+            loc=self.custom_gaussian_prior_mean[idx],
+            scale=self.custom_gaussian_prior_std[idx],
+        )
+
     def randomly_select(self, size=1):
         """
         Sample from the prior distribution for this parameter. Prior sampling is performed by either estimating the distribution
@@ -163,13 +169,23 @@ class RealParameter(Parameter):
                     raise SystemExit(
                         "Unable to sample points within range for the custom Gaussian - ensure the imput parameters are reasonable. Exiting."
                     )
-                new_samples = np.array(
-                    norm.rvs(
-                        loc=self.custom_gaussian_prior_mean,
-                        scale=self.custom_gaussian_prior_std,
-                        size=size * oversampling_factor,
+                if type(self.custom_gaussian_prior_mean) == list:
+                    samples_idx = np.random.randint(
+                        0,
+                        len(self.custom_gaussian_prior_mean),
+                        size * oversampling_factor,
                     )
-                )
+                    new_samples = np.array(
+                        list(map(self._gaussian_mixture_helper, samples_idx))
+                    )
+                else:
+                    new_samples = np.array(
+                        norm.rvs(
+                            loc=self.custom_gaussian_prior_mean,
+                            scale=self.custom_gaussian_prior_std,
+                            size=size * oversampling_factor,
+                        )
+                    )
                 inside_range = [
                     (new_samples <= self.max_value) & (new_samples >= self.min_value)
                 ]
@@ -177,24 +193,6 @@ class RealParameter(Parameter):
 
             # remove excess samples to get the proper amount
             samples = samples[0:size]
-        elif self.prior == "gaussian_mixture":
-            sample_idx = random.randint(0, len(self.custom_gaussian_prior_mean) - 1)
-            sample = norm.rvs(
-                loc=self.custom_gaussian_prior_mean[sample_idx],
-                scale=self.custom_gaussian_prior_std[sample_idx],
-            )
-            sample_count = 1
-            while sample > self.max_value or sample < self.min_value:
-                sample_count += 1
-                if sample_count > 10000:
-                    print(
-                        "\n ####\n Warning: reached maximum number of invalid samples from the custom gaussian prior. \nThe prior sampling will stop now. Is the prior defined outside or too close to the interval edges?\n"
-                    )
-                    raise SystemExit  # too many random samples failed, the prior is probably too close to the edge
-                sample = norm.rvs(
-                    loc=self.custom_gaussian_prior_mean[sample_idx],
-                    scale=self.custom_gaussian_prior_std[sample_idx],
-                )
         else:
             samples = beta(self.alpha, self.beta, size)
             samples = self.from_range_0_1_to_parameter_value(samples)
@@ -278,16 +276,6 @@ class RealParameter(Parameter):
                 loc=self.custom_gaussian_prior_mean,
                 scale=self.custom_gaussian_prior_std,
             )
-        elif self.prior == "gaussian_mixture":
-            prob = 0
-            mixture_weights = 1 / len(self.custom_gaussian_prior_mean)
-            for idx in range(len(self.custom_gaussian_prior_mean)):
-                prob += mixture_weights * norm.pdf(
-                    x,
-                    loc=self.custom_gaussian_prior_mean[idx],
-                    scale=self.custom_gaussian_prior_std[idx],
-                )
-            return prob
         else:
             rescaled_x = self.from_parameter_value_to_0_1_range(x)
             pdf = stats.beta.pdf(rescaled_x, self.alpha, self.beta)
@@ -778,6 +766,10 @@ class Space:
         self.pdf = None
         self.bw_param = config["bandwidth_parameter"]
         self.bw_n_factor = config["bandwidth_n_factor"]
+        # If we use weights, we have to adapt this to use "neff"
+        self.bw_selector = lambda kde: np.power(
+            kde.n * self.bw_n_factor, -1.0 / (kde.d + self.bw_param)
+        )
 
         hypermapper_mode = config["hypermapper_mode"]["mode"]
         if hypermapper_mode == "exhaustive":
@@ -841,32 +833,46 @@ class Space:
                 self.normalize_priors = True
                 if (
                     config["input_parameters"][param]["custom_gaussian_prior_means"]
-                    is False
+                    is not False
                 ) or (
                     config["input_parameters"][param]["custom_gaussian_prior_stds"]
-                    is False
+                    is not False
                 ):
-                    if len(config["custom_gaussian_prior_means"]) == 1:
-                        mean = config["input_parameters"][param][
-                            "custom_gaussian_prior_means"
-                        ][0]
+                    user_mean = config["input_parameters"][param][
+                        "custom_gaussian_prior_means"
+                    ]
+                    if user_mean is False:
+                        mean = 0
+                    elif len(user_mean) == 1:
+                        mean = user_mean[0]
                     else:
-                        mean = config["input_parameters"][param][
-                            "custom_gaussian_prior_means"
-                        ]
-                    if len(config["custom_gaussian_prior_stds"]) == 1:
-                        std = config["input_parameters"][param][
-                            "custom_gaussian_prior_stds"
-                        ][0]
+                        mean = user_mean
+
+                    user_std = config["input_parameters"][param][
+                        "custom_gaussian_prior_stds"
+                    ]
+                    if user_std is False:
+                        std = -1
+                    elif len(user_std) == 1:
+                        std = user_std[0]
+                        if len(user_mean) > 1:
+                            print(
+                                f"Invalid custom gaussian parameters for parameter {param}. The number of means and standard deviations must be equal, but got:"
+                            )
+                            print(
+                                f"{len(user_mean)} means and {len(user_std)} standard deviations"
+                            )
+                            raise SystemExit
                     else:
-                        std = config["input_parameters"][param][
-                            "custom_gaussian_prior_stds"
-                        ]
-                    if len(std) != len(mean):
-                        print(
-                            "Invalid custom gaussian parameters. The number of means and standard deviations must be equal, but got:"
-                        )
-                        print(f"{len(mean)} means and {len(std)} standard deviations")
+                        std = user_std
+                        if len(user_mean) == 1:
+                            print(
+                                f"Invalid custom gaussian parameters for parameter {param}. The number of means and standard deviations must be equal, but got:"
+                            )
+                            print(
+                                f"{len(user_mean)} means and {len(user_std)} standard deviations"
+                            )
+                            raise SystemExit
                     self.all_input_parameters[param].set_custom_gaussian_prior_params(
                         mean, std
                     )
