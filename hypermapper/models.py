@@ -1015,7 +1015,7 @@ def compute_gp_prediction_mean_and_uncertainty(bufferx, model, param_space, var=
 
         # Precision can sometimes lead GPy to predict extremely low deviation, which leads to numerical issues
         # We add a floor to std to avoid these numerical issues. The majority of std values observed are naturally above this floor.
-        stds[parameter][stds[parameter] < 10 ** -11] = 10 ** -11
+        stds[parameter][stds[parameter] < 10**-11] = 10**-11
         if var:
             uncertainty[parameter] = stds[parameter] ** 2
         else:

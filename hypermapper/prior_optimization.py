@@ -165,7 +165,7 @@ def compute_EI_from_posteriors(
     classification_model,
     model_type,
     good_prior_normalization_limits,
-    posterior_floor=10 ** -8,
+    posterior_floor=10**-8,
     posterior_normalization_limits=None,
     debug=False,
 ):
