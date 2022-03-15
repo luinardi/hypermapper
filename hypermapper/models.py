@@ -1009,17 +1009,17 @@ def compute_gp_prediction_mean_and_uncertainty(bufferx, model, param_space, var=
     stds = {}
     uncertainty = {}
     for parameter in model:
-        means[parameter], stds[parameter] = model[parameter].predict(normalized_bufferx)
+        means[parameter], vars[parameter] = model[parameter].predict(normalized_bufferx)
         means[parameter] = means[parameter].flatten()
-        stds[parameter] = stds[parameter].flatten()
+        vars[parameter] = vars[parameter].flatten()
 
         # Precision can sometimes lead GPy to predict extremely low deviation, which leads to numerical issues
         # We add a floor to std to avoid these numerical issues. The majority of std values observed are naturally above this floor.
-        stds[parameter][stds[parameter] < 10**-11] = 10**-11
+        vars[parameter][vars[parameter] < 10**-11] = 10**-11
         if var:
-            uncertainty[parameter] = stds[parameter] ** 2
+            uncertainty[parameter] = vars[parameter]
         else:
-            uncertainty[parameter] = stds[parameter]
+            uncertainty[parameter] = np.sqrt(vars[parameter])
 
     return means, uncertainty
 
