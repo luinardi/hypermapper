@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name="hypermapper",
-    version="2.2.8",
+    version="2.2.9",
     description="HyperMapper is a multi-objective black-box optimization tool based on Bayesian Optimization.",
     long_description=long_description,
     long_description_content_type="text/markdown",
