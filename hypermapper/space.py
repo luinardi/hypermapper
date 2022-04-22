@@ -600,7 +600,6 @@ class CategoricalParameter(Parameter):
     This class defines a categorical parameter, i.e. parameters like strings and booleans,
     where the elements cannot be ordered using lesser, equal, greater than
     (or at least it doesn't make sense ordering them like it doesn't make sense to order "true" and "false").
-
     Warning: Categorical parameters are treated as a sort of Ordinal parameters, this may not work in general.
     """
 
@@ -1345,14 +1344,14 @@ class Space:
 
         return configuration
 
-    def get_default_or_random_configuration(self):
+    def get_default_or_random_configuration(self, user_priors=False):
         """
         :return: the default configuration from the input parameters space.
         """
         configuration = self.get_default_configuration()
 
         if None in configuration.values():
-            random_configuration = self.get_random_configuration()
+            random_configuration = self.get_random_configuration(use_priors=user_priors)
             for param in configuration:
                 if configuration[param] is None:
                     configuration[param] = random_configuration[param]
@@ -2258,6 +2257,7 @@ class Space:
                 exit()
             elif doe_type == "grid_search":
                 configurations = self.grid_search(fast_addressing_of_data_array)
+
             else:
                 print("Error: design of experiment sampling method not found. Exit.")
                 exit()

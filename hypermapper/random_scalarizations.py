@@ -194,7 +194,6 @@ def ucb(
     prediction_means, prediction_variances = models.compute_model_mean_and_uncertainty(
         bufferx, regression_models, model_type, param_space, var=True
     )
-
     if classification_model != None:
         classification_prediction_results = models.model_probabilities(
             bufferx, classification_model, param_space
@@ -230,7 +229,7 @@ def ucb(
         scalarized_predictions = np.zeros(number_of_predictions)
         total_values = np.zeros(number_of_predictions)
         for objective in regression_models:
-            scalarized_values = objective_weights[objective] * np.absolute(
+            scalarized_values = objective_weights[objective] * (
                 prediction_means[objective]
                 - beta * np.sqrt(prediction_variances[objective])
             )
