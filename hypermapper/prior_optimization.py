@@ -1,6 +1,7 @@
-###############################################################################################################################
-# This script implements the Prior-guided Bayesian Optimization method, presented in: https://arxiv.org/abs/1805.12168.       #
-###############################################################################################################################
+#########################################################################################
+# This script implements the Bayesian Optimization with a Prior for the Optimum method, #
+# presented in: https://2021.ecmlpkdd.org/wp-content/uploads/2021/07/sub_701.pdf.       #
+#########################################################################################
 import copy
 import datetime
 
@@ -369,7 +370,6 @@ def compute_EI_from_posteriors(
             % ((datetime.datetime.now() - user_prior_t0).total_seconds())
         )
     )
-
     # local search expects the optimized function to return the values and a feasibility indicator
     return good_bad_ratios, feasibility_indicator
 
@@ -401,7 +401,6 @@ def prior_guided_optimization(
     """
     scalarization_key = config["scalarization_key"]
     number_of_cpus = config["number_of_cpus"]
-
     function_parameters = {}
     function_parameters["param_space"] = param_space
     function_parameters["iteration_number"] = iteration_number

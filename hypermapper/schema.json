@@ -297,6 +297,21 @@
         "minimum": 0,
         "maximum": 1
       },
+      "prior_method":{
+        "type": "string",
+        "description": "Method used by HyperMapper to incorporate user priors over the optimum in the BO procedure. (bopro/pibo)",
+        "default": "pibo"
+      },
+      "prior_beta":{
+        "type": "number",
+        "description": "Parameter for the confidence in the user prior in the PiBO - a large value slows the decay of the prior. Defaults to 0.1*number of iterations.",
+        "default": -1
+      },
+      "prior_floor":{
+        "type": "number",
+        "description": "Parameter for the lowest possible value the prior can take in the search space, to ensure strictly positive priors and rubustness.",
+        "default": 1e-6
+      },
       "model_posterior_weight":{
         "type": "number",
         "description": "weight given to the probabilistic model versus the prior in HyperMapper's posterior computation. Larger values give more emphasis to the prior.",

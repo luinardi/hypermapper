@@ -13,6 +13,7 @@ try:
     from hypermapper import models
     from hypermapper import space
     from hypermapper.prior_optimization import prior_guided_optimization
+    from hypermapper.pibo import run_pibo
     from hypermapper.random_scalarizations import random_scalarizations
     from hypermapper.utility_functions import (
         deal_with_relative_and_absolute_path,
@@ -61,6 +62,7 @@ except ImportError:
     from hypermapper import models
     from hypermapper import space
     from hypermapper.prior_optimization import prior_guided_optimization
+    from hypermapper.pibo import run_pibo
     from hypermapper.random_scalarizations import random_scalarizations
     from hypermapper.utility_functions import (
         deal_with_relative_and_absolute_path,
@@ -225,6 +227,7 @@ def main(config, black_box_function=None, profiling=None):
         if config["input_parameters"][input_param]["prior"] != "uniform":
             if number_of_objectives == 1:
                 user_priors = True
+
             else:
                 print(
                     "Warning: prior optimization does not work with multiple objectives yet, priors will be uniform"
@@ -232,7 +235,13 @@ def main(config, black_box_function=None, profiling=None):
                 config["input_parameters"][input_param]["prior"] = "uniform"
 
     if user_priors:
-        bo_method = prior_guided_optimization
+        if config["prior_method"] == "bopro":
+            # TODO - make something more intricate here - for now, just use run_pibo
+            bo_method = prior_guided_optimization
+        elif config["prior_method"] == "pibo":
+            bo_method = run_pibo
+            normalize_objectives = True
+
     else:
         bo_method = random_scalarizations
         normalize_objectives = True
@@ -272,7 +281,9 @@ def main(config, black_box_function=None, profiling=None):
     ### DoE phase
     if absolute_configuration_index < number_of_doe_samples:
         configurations = []
-        default_configuration = param_space.get_default_or_random_configuration()
+        default_configuration = param_space.get_default_or_random_configuration(
+            user_priors=user_priors
+        )
         str_data = param_space.get_unique_hash_string_from_values(default_configuration)
         if str_data not in fast_addressing_of_data_array:
             fast_addressing_of_data_array[str_data] = absolute_configuration_index
