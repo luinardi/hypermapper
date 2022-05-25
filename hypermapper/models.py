@@ -1006,7 +1006,7 @@ def compute_gp_prediction_mean_and_uncertainty(bufferx, model, param_space, var=
     normalized_bufferx = preprocess_data_buffer(bufferx, param_space)
     normalized_bufferx = np.array(normalized_bufferx)
     means = {}
-    stds = {}
+    vars = {}
     uncertainty = {}
     for parameter in model:
         means[parameter], vars[parameter] = model[parameter].predict(normalized_bufferx)
