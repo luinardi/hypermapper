@@ -54,7 +54,6 @@
         "description": "Usually a number between 1 and 10. Max number of optimization iterations that HyperMapper can internally perform. We set a max number to limit the execution time of HyperMapper. Usually a bigger number will give a better accuracy but slower results.",
         "type": "integer",
         "minimum": 0,
-        "maximum": 5000,
         "default": 50
       },
       "time_budget": {
