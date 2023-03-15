@@ -1811,7 +1811,7 @@ class Space:
         if len(arr) == 0:
             absolute_configuration_index = 0
         else:
-            absolute_configuration_index = np.asarray(arr, dtype=np.int).max() + 1
+            absolute_configuration_index = np.asarray(arr, dtype=np.int64).max() + 1
 
         # See if input space is big enough otherwise it doesn't make sense to draw number_of_RS samples.
         if (self.get_space_size() - len(fast_addressing_of_data_array)) <= number_of_RS:
@@ -2209,7 +2209,7 @@ class Space:
         if len(arr) == 0:
             absolute_configuration_index = 0
         else:
-            absolute_configuration_index = np.asarray(arr, dtype=np.int).max() + 1
+            absolute_configuration_index = np.asarray(arr, dtype=np.int64).max() + 1
 
         # See if input space is big enough otherwise it doesn't make sense to draw number_of_samples samples.
         if (

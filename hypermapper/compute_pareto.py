@@ -69,7 +69,7 @@ def sequential_is_pareto_efficient_dumb(costs):
     """
     isString = isinstance(costs[0][0], str)
     if isString:
-        costs = costs.astype(np.float)
+        costs = costs.astype(np.float64)
     is_efficient = np.ones(costs.shape[0], dtype=bool)
     for i, c in enumerate(costs):
         is_efficient[i] = np.all(np.any(costs >= c, axis=1))
@@ -95,7 +95,7 @@ def sequential_is_pareto_efficient(costs):
 
     isString = isinstance(costs[0][0], str)
     if isString:
-        costs = costs.astype(np.float)
+        costs = costs.astype(np.float64)
     is_efficient = np.ones(costs.shape[0], dtype=bool)
     for i, c in enumerate(costs):
         if is_efficient[i]:
