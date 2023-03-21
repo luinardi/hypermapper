@@ -534,7 +534,6 @@ def local_search(
 
         # starting the processes and ensuring there's nothing more to process - joining the input queue when it's empty
         with threadpool_limits(limits=1):
-
             for process in processes:
                 process.start()
                 input_queue.put(None)
@@ -542,7 +541,6 @@ def local_search(
 
         # the index on which to split the output
         for i in range(number_of_cpus * partitions_per_cpu):
-
             # would like this queue call to be non-blocking, but that does not work since the processes would need to be closed (?) for that to reliably work
             result = output_queue.get()
             scalarized_values, feasibility_indicators, split_index, conf_index = (

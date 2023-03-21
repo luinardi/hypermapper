@@ -65,7 +65,6 @@ except ImportError:
     )
 
 if __name__ == "__main__":
-
     # This handles the logger. The standard setting is that HyperMapper always logs both on screen and on the log file.
     # In cases like the interactive mode we only want to log on the file.
     sys.stdout = Logger()

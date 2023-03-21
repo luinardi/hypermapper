@@ -81,7 +81,6 @@ def prior_weighted_acquisition_function(
     scalarization_method,
     prior_floor=10**-6,
 ):
-
     objective = param_space.get_optimization_parameters()[0]
     # need to subtract by optimum to ensure scale-invariance when multiplying with prior
     acquisition_function_values, feasibility_indicators = acquisition_function_wrapper(

@@ -26,7 +26,6 @@ class Profiler:
         self.start_time = None
 
     def run(self):
-
         self.start_time = datetime.datetime.now()
 
     def stop(self):

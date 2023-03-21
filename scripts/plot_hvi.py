@@ -48,7 +48,6 @@ matplotlib.use("agg")
 
 
 if __name__ == "__main__":
-
     try:
         from pygmo import hypervolume
     except ImportError as e:

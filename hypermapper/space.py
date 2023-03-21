@@ -2733,7 +2733,6 @@ class Space:
             dictionary_to_be_filtered[self.get_input_parameters()[0]]
         )
         for conf_counter in range(len_dictionary_to_be_filtered):
-
             configuration = {}
             for header in self.get_input_parameters():
                 configuration[header] = dictionary_to_be_filtered[header][conf_counter]

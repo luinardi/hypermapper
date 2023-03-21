@@ -80,7 +80,6 @@ def plot_regret(
     show_doe=True,
     expert_configuration=None,
 ):
-
     # Read json configuration file
     if not configuration_file.endswith(".json"):
         _, file_extension = splitext(configuration_file)
