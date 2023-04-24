@@ -120,6 +120,7 @@ def optimize(parameters_file, black_box_function=None):
         (optimization_method == "random_scalarizations")
         or (optimization_method == "bayesian_optimization")
         or (optimization_method == "prior_guided_optimization")
+        or (optimization_method == "bayesian_optimization_c_backend")
     ):
         data_array = bo.main(
             config, black_box_function=black_box_function, profiling=profiling

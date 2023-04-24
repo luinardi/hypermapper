@@ -249,6 +249,11 @@
         "enum": ["bayesian_optimization", "random_scalarizations", "local_search", "prior_guided_optimization", "evolutionary_optimization"],
         "default": "bayesian_optimization"
       },
+      "use_c_backend":{
+          "type": "boolean",
+          "description": "Use C backend. The C backend is optimized for speed, but more restrictive in terms of functionality. Currently only available for bayesian_optimization",
+          "default": false
+      },
       "local_search_starting_points":{
         "type": "integer",
         "description": "number of starting points for the multi-start local search used to optimize the acquisition functions.",
