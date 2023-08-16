@@ -1,0 +1,43 @@
+{
+    "application_name": "hartmann6",
+    "optimization_objectives": ["Value"],
+    "optimization_iterations": 100,
+    "acquisition_function": "EI",
+    "models" : {
+      "model" : "gaussian_process"
+    },
+    "multistart_hyperparameter_optimization" : false,
+    "input_parameters" : {
+        "x1": {
+            "parameter_type" : "ordinal",
+            "values" : [0, 0.1, 0.2,  0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1],
+            "parameter_default" : 0
+        },
+        "x2": {
+            "parameter_type" : "ordinal",
+            "values" : [0, 0.1, 0.2,  0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1],
+            "parameter_default" : 0
+        },
+        "x3": {
+            "parameter_type" : "ordinal",
+            "values" : [0, 0.1, 0.2,  0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1],
+            "parameter_default" : 0
+        },
+        "x4": {
+            "parameter_type" : "ordinal",
+            "values" : [0, 0.1, 0.2,  0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1],
+            "parameter_default" : 0
+        },
+        "x5": {
+            "parameter_type" : "ordinal",
+            "values" : [0, 0.1, 0.2,  0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1],
+            "parameter_default" : 0
+        },
+        "x6": {
+            "parameter_type" : "ordinal",
+            "values" : [0, 0.1, 0.2,  0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1],
+            "parameter_default" : 0
+        }
+    },
+    "log_file": "base_hartmann6_gp_discrete.log"
+}

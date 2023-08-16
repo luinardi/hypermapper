@@ -1,0 +1,401 @@
+{
+    "application_name": "main.hpvm",
+    "design_of_experiment": {
+        "doe_type": "random sampling",
+        "number_of_samples": 401
+    },
+    "epsilon_greedy_threshold": 0.1,
+    "evaluations_per_optimization_iteration": 1,
+    "feasible_output": {
+        "enable_feasible_predictor": true,
+        "false_value": "0",
+        "true_value": "1"
+    },
+    "input_parameters": {
+        "CG_c_c_LF": {
+            "parameter_default": 0,
+            "parameter_type": "ordinal",
+            "values": [
+                0,
+                1
+            ]
+        },
+        "CG_c_c_Nd_F_CMG_c": {
+            "parameter_default": 0,
+            "parameter_type": "ordinal",
+            "values": [
+                0,
+                1
+            ]
+        },
+        "CG_c_c_Sx_BuffIn": {
+            "parameter_default": 0,
+            "parameter_type": "ordinal",
+            "values": [
+                0,
+                1
+            ]
+        },
+        "CG_c_c_Sy_BuffIn": {
+            "parameter_default": 0,
+            "parameter_type": "ordinal",
+            "values": [
+                0,
+                1
+            ]
+        },
+        "CG_c_c_UnrollL0": {
+            "parameter_default": 1,
+            "parameter_type": "ordinal",
+            "values": [
+                1,
+                2,
+                4,
+                5,
+                8,
+                10
+            ]
+        },
+        "CG_c_c_UnrollL1": {
+            "parameter_default": 1,
+            "parameter_type": "ordinal",
+            "values": [
+                1,
+                2,
+                4,
+                5,
+                8,
+                10
+            ]
+        },
+        "CG_c_c_UnrollL2": {
+            "parameter_default": 1,
+            "parameter_type": "ordinal",
+            "values": [
+                1,
+                3
+            ]
+        },
+        "CG_c_c_UnrollL3": {
+            "parameter_default": 1,
+            "parameter_type": "ordinal",
+            "values": [
+                1,
+                3
+            ]
+        },
+        "CMG_c_Nd_F_RZC_c_c": {
+            "parameter_default": 0,
+            "parameter_type": "ordinal",
+            "values": [
+                0,
+                1
+            ]
+        },
+        "CMG_c_UnrollL0": {
+            "parameter_default": 1,
+            "parameter_type": "ordinal",
+            "values": [
+                1,
+                2,
+                4,
+                5,
+                8,
+                10
+            ]
+        },
+        "CZC_c_c_B_BuffIn": {
+            "parameter_default": 0,
+            "parameter_type": "ordinal",
+            "values": [
+                0,
+                1
+            ]
+        },
+        "CZC_c_c_LF": {
+            "parameter_default": 0,
+            "parameter_type": "ordinal",
+            "values": [
+                0,
+                1
+            ]
+        },
+        "CZC_c_c_Nd_F_RZC_c_c": {
+            "parameter_default": 0,
+            "parameter_type": "ordinal",
+            "values": [
+                0,
+                1
+            ]
+        },
+        "CZC_c_c_UnrollL0": {
+            "parameter_default": 1,
+            "parameter_type": "ordinal",
+            "values": [
+                1,
+                2,
+                4,
+                5,
+                8,
+                10
+            ]
+        },
+        "CZC_c_c_UnrollL1": {
+            "parameter_default": 1,
+            "parameter_type": "ordinal",
+            "values": [
+                1,
+                2,
+                4,
+                5,
+                8,
+                10
+            ]
+        },
+        "CZC_c_c_UnrollL2": {
+            "parameter_default": 1,
+            "parameter_type": "ordinal",
+            "values": [
+                1,
+                3
+            ]
+        },
+        "CZC_c_c_UnrollL3": {
+            "parameter_default": 1,
+            "parameter_type": "ordinal",
+            "values": [
+                1,
+                3
+            ]
+        },
+        "CZC_c_c_UnrollL4": {
+            "parameter_default": 1,
+            "parameter_type": "ordinal",
+            "values": [
+                1,
+                3
+            ]
+        },
+        "CZC_c_c_UnrollL5": {
+            "parameter_default": 1,
+            "parameter_type": "ordinal",
+            "values": [
+                1,
+                3
+            ]
+        },
+        "GS_c_c_Gs_BuffIn": {
+            "parameter_default": 0,
+            "parameter_type": "ordinal",
+            "values": [
+                0,
+                1
+            ]
+        },
+        "GS_c_c_LF": {
+            "parameter_default": 0,
+            "parameter_type": "ordinal",
+            "values": [
+                0,
+                1
+            ]
+        },
+        "GS_c_c_Nd_F_CG_c_c": {
+            "parameter_default": 0,
+            "parameter_type": "ordinal",
+            "values": [
+                0,
+                1
+            ]
+        },
+        "GS_c_c_Nd_F_LE_c_c": {
+            "parameter_default": 0,
+            "parameter_type": "ordinal",
+            "values": [
+                0,
+                1
+            ]
+        },
+        "GS_c_c_UnrollL0": {
+            "parameter_default": 1,
+            "parameter_type": "ordinal",
+            "values": [
+                1,
+                2,
+                4,
+                5,
+                8,
+                10
+            ]
+        },
+        "GS_c_c_UnrollL1": {
+            "parameter_default": 1,
+            "parameter_type": "ordinal",
+            "values": [
+                1,
+                2,
+                4,
+                5,
+                8,
+                10
+            ]
+        },
+        "GS_c_c_UnrollL2": {
+            "parameter_default": 1,
+            "parameter_type": "ordinal",
+            "values": [
+                1,
+                7
+            ]
+        },
+        "GS_c_c_UnrollL3": {
+            "parameter_default": 1,
+            "parameter_type": "ordinal",
+            "values": [
+                1,
+                7
+            ]
+        },
+        "LE_c_c_B_BuffIn": {
+            "parameter_default": 0,
+            "parameter_type": "ordinal",
+            "values": [
+                0,
+                1
+            ]
+        },
+        "LE_c_c_LF": {
+            "parameter_default": 0,
+            "parameter_type": "ordinal",
+            "values": [
+                0,
+                1
+            ]
+        },
+        "LE_c_c_Nd_F_CZC_c_c": {
+            "parameter_default": 0,
+            "parameter_type": "ordinal",
+            "values": [
+                0,
+                1
+            ]
+        },
+        "LE_c_c_UnrollL0": {
+            "parameter_default": 1,
+            "parameter_type": "ordinal",
+            "values": [
+                1,
+                2,
+                4,
+                5,
+                8,
+                10
+            ]
+        },
+        "LE_c_c_UnrollL1": {
+            "parameter_default": 1,
+            "parameter_type": "ordinal",
+            "values": [
+                1,
+                2,
+                4,
+                5,
+                8,
+                10
+            ]
+        },
+        "LE_c_c_UnrollL2": {
+            "parameter_default": 1,
+            "parameter_type": "ordinal",
+            "values": [
+                1,
+                3
+            ]
+        },
+        "LE_c_c_UnrollL3": {
+            "parameter_default": 1,
+            "parameter_type": "ordinal",
+            "values": [
+                1,
+                3
+            ]
+        },
+        "LE_c_c_UnrollL4": {
+            "parameter_default": 1,
+            "parameter_type": "ordinal",
+            "values": [
+                1,
+                3
+            ]
+        },
+        "LE_c_c_UnrollL5": {
+            "parameter_default": 1,
+            "parameter_type": "ordinal",
+            "values": [
+                1,
+                3
+            ]
+        },
+        "RZC_c_c_LF": {
+            "parameter_default": 0,
+            "parameter_type": "ordinal",
+            "values": [
+                0,
+                1
+            ]
+        },
+        "RZC_c_c_UnrollL0": {
+            "parameter_default": 1,
+            "parameter_type": "ordinal",
+            "values": [
+                1,
+                2,
+                4,
+                5,
+                8,
+                10
+            ]
+        },
+        "RZC_c_c_UnrollL1": {
+            "parameter_default": 1,
+            "parameter_type": "ordinal",
+            "values": [
+                1,
+                2,
+                4,
+                5,
+                8,
+                10
+            ]
+        },
+        "TLP": {
+            "parameter_default": 0,
+            "parameter_type": "ordinal",
+            "values": [
+                0,
+                1
+            ]
+        }
+    },
+    "lengthscale_prior": {
+        "name": "gamma",
+        "parameters": [
+            1.3,
+            0.1
+        ]
+    },
+    "log_transform_output": true,
+    "models": {
+        "model": "gaussian_process"
+    },
+    "lengthscale_constraints": [0.4,0.6],
+    "number_of_cpus": 0,
+    "optimization_iterations": 820,
+    "optimization_objectives": [
+        "ExecTime"
+    ],
+    "output_image": {
+        "output_image_pdf_file": "outdata_dev/Rep.0//main.hpvm_output_image.pdf"
+    },
+    "print_best": true
+}

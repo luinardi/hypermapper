@@ -1,0 +1,131 @@
+{
+    "application_name": "cpp_taco_SDDMM",
+    "design_of_experiment": {
+        "doe_type": "random sampling",
+        "number_of_samples": 11
+    },
+    "feasible_output" : {
+      "enable_feasible_predictor" : true,
+      "name" : "Valid",
+      "true_value" : "True",
+      "false_value" : "False"
+    },
+    "epsilon_greedy_threshold": 0,
+    "input_parameters": {
+        "cs": {
+            "constraints": [
+                "cs % 2 == 0"
+            ],
+            "parameter_default": 16,
+            "parameter_type": "ordinal",
+            "transform": "log",
+            "values": [
+                2,
+                4,
+                8,
+                16,
+                32,
+                64,
+                128,
+                256,
+                512,
+                1024
+            ]
+        },
+        "ocs": {
+            "parameter_default": 1,
+            "parameter_type": "ordinal",
+            "transform": "log",
+            "values": [
+                1,
+                2,
+                4,
+                8,
+                16,
+                32,
+                64,
+                128,
+                256
+            ]
+        },
+        "ont": {
+            "parameter_default": 32,
+            "parameter_type": "ordinal",
+            "constraints": [
+                "ont != 4"
+            ],
+            "transform": "log",
+            "values": [
+                1,
+                2,
+                4,
+                8,
+                16,
+                32,
+                64
+            ]
+        },
+        "ost": {
+            "parameter_default": 0,
+            "parameter_type": "ordinal",
+            "values": [
+                0,
+                1
+            ]
+        },
+        "p": {
+            "constraints": [
+                "((p_1 != 1) & (p_i2 < p_i4) & (p_i0 < p_i2) & (p_i1 < p_i2)) | ((p_i4 < p_i2) & (p_i0 < p_i4) & (p_i1 < p_i4))"
+            ],
+            "parameter_default": [
+                0,
+                1,
+                2,
+                3,
+                4
+            ],
+            "parameter_type": "permutation",
+            "parametrization": "spearman",
+            "values": [
+                5
+            ]
+        },
+        "uf": {
+            "constraints": [
+                "uf < cs",
+                "uf % 2 == 0"
+            ],
+            "dependencies": [
+                "cs"
+            ],
+            "parameter_default": 8,
+            "parameter_type": "ordinal",
+            "transform": "log",
+            "values": [
+                2,
+                4,
+                8,
+                16,
+                32,
+                64,
+                128,
+                256,
+                512,
+                1024
+            ]
+        }
+    },
+    "log_transform_output": true,
+    "models": {
+        "model": "gaussian_process"
+    },
+    "optimization_iterations": 50,
+    "optimization_method": "bayesian_optimization",
+    "optimization_objectives": [
+        "compute_time"
+    ],
+    "reoptimise_hyperparameters_interval": 1,
+    "reuse_gp_hyperparameters" : true,
+    "hyperparameter_optimization_iterations": 5,
+    "log_file": "perm.log"
+}

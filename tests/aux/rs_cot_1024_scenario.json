@@ -1,0 +1,103 @@
+{
+  "application_name": "rs_cot_1024",
+  "optimization_objectives": ["runtime"],
+  "feasible_output" : {
+    "enable_feasible_predictor" : true,
+    "name" : "Valid",
+    "true_value" : "1",
+    "false_value" : "0"
+  },
+  "design_of_experiment": {
+    "doe_type": "random sampling",
+    "number_of_samples": 20
+  },
+  "models" : {
+    "model" : "gaussian_process"
+  },
+  "acquisition_function": "EI",
+  "optimization_method": "bayesian_optimization",
+  "normalize_inputs" : true,
+  "optimization_iterations": 15,
+  "input_parameters" : {
+    "tuned_v3": {
+      "parameter_type" : "ordinal",
+      "values" : [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024],
+      "constraints" : ["tuned_v3 % 4 == 0", "tuned_v7 % tuned_v3 == 0"],
+      "dependencies" : ["tuned_v7"],
+      "transform" : "log",
+      "parameter_default" : 4
+    },
+    "tuned_v4": {
+      "parameter_type" : "ordinal",
+      "values" : [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024],
+      "constraints" : ["tuned_v5 % tuned_v4 == 0"],
+      "dependencies" : ["tuned_v5"],
+      "transform" : "log",
+      "parameter_default" : 1
+    },
+    "tuned_v5": {
+      "parameter_type" : "ordinal",
+      "values" : [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024],
+      "constraints" : ["1024 % tuned_v5 == 0", "tuned_v5 % 4 == 0"],
+      "dependencies" : [],
+      "transform" : "log",
+      "parameter_default"  : 4
+    },
+    "tuned_v6": {
+      "parameter_type" : "ordinal",
+      "values" : [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024],
+      "constraints" : ["tuned_v6 % 4 == 0", "tuned_v5*tuned_v8 % tuned_v6 == 0"],
+      "dependencies" : ["tuned_v5", "tuned_v8"],
+      "transform" : "log",
+      "parameter_default" : 4
+    },
+    "tuned_v7": {
+      "parameter_type" : "ordinal",
+      "values" : [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024],
+      "constraints" : ["1024 % tuned_v7 == 0", "tuned_v7 % 4 == 0"],
+      "dependencies" : ["tuned_v5"],
+      "transform" : "log",
+      "parameter_default" : 4
+    },
+    "tuned_v8": {
+      "parameter_type" : "ordinal",
+      "values" : [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024],
+      "constraints" : ["1024 % tuned_v8 == 0", "49152 - tuned_v5 * tuned_v7 * 4 - tuned_v5 * tuned_v8 * 4 - 4 * tuned_v7 * tuned_v8 >= 0"],
+      "dependencies" : ["tuned_v5", "tuned_v7"],
+      "transform" : "log",
+      "parameter_default" : 4
+    },
+    "tuned_ls0": {
+      "parameter_type" : "ordinal",
+      "values" : [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024],
+      "constraints" : ["tuned_gs0 % tuned_ls0 == 0"],
+      "dependencies" : ["tuned_gs0"],
+      "transform" : "log",
+      "parameter_default" : 1
+    },
+    "tuned_ls1": {
+      "parameter_type" : "ordinal",
+      "values" : [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024],
+      "transform" : "log",
+      "parameter_default" : 1
+    },
+    "tuned_gs0": {
+      "parameter_type" : "ordinal",
+      "values" : [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024],
+      "constraints" : ["1024 % tuned_gs0 == 0"],
+      "dependencies" : [],
+      "transform" : "log",
+      "parameter_default" : 1
+    },
+    "tuned_gs1": {
+      "parameter_type" : "ordinal",
+      "values" : [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024],
+      "constraints" : ["1024 % tuned_gs1 == 0"],
+      "dependencies" : [],
+      "transform" : "log",
+      "parameter_default" : 1
+    }
+  },
+  "log_file": "rs_cot.log",
+  "hyperparameter_optimization_iterations": 5
+}

@@ -1,583 +1,670 @@
 {
-    "title": "Parameters",
-    "description": "HyperMapper parameters used to set up a HyperMapper before running",
-    "type": "object",
-    "properties": {
-      "application_name": {
-        "description": "Name of the application, this is for printing and file naming purposes.",
-        "type": "string",
-        "default": "application"
-      },
-      "log_file": {
-        "description": "Change the name of the log file to this name. Log files are very handy in client-server mode where the prints are not displayed.",
-        "type": "string",
-        "default": "hypermapper_logfile.log"
-      },
-      "verbose_logging": {
-          "description": "Enables verbose logging. Verbose logging makes the logfile significantly larger, but includes information that is helpful for debugging.",
-          "type": "boolean",
-          "default": false
-      },
-      "profiling": {
-        "description": "Run a profiling run of hypermapper, displaying the time allocation between different parts of the application.",
-        "type": "boolean",
-        "default": false
-      },
-      "noise": {
-        "description": "Whether the function is assumed to be noisy or not.",
-        "type": "boolean",
-        "default": true
-      },
-      "profiling_file": {
-        "description": "The name of the profiling output file",
-        "type": "string",
-        "default": "profiles/profile.csv"
-      },
-      "append_profiles": {
-        "description": "For profiling runs, whether to append output of the next profiling run to the same file as the previous one",
-        "type": "boolean",
-        "default": false
-      },
-      "number_of_cpus": {
-        "description": "This is the number of cpus to use. If 0 it means to let HyperMapper decide (querying the system), otherwise if forces the number of cpus to this number. ",
-        "type": "integer",
-        "default": 0
-      },
-      "max_number_of_predictions": {
-        "description": "A number greater than 10k. Max number of predictions that the HyperMapper internal model can perform. We set a max number to limit the execution time of HyperMapper. Usually a bigger number will give a better accuracy but slower results.",
-        "type": "integer",
-        "minimum": 10000,
-        "default": 1000000,
-        "comment": "Is 100K or 1M the right number for one node? Improvement specific to a machine capability: instead of a fixed number we should estimate the memory consumption and the computation time in order to take as much sample as possible."
-      },
-      "optimization_iterations": {
-        "description": "Usually a number between 1 and 10. Max number of optimization iterations that HyperMapper can internally perform. We set a max number to limit the execution time of HyperMapper. Usually a bigger number will give a better accuracy but slower results.",
-        "type": "integer",
-        "minimum": 0,
-        "default": 50
-      },
-      "time_budget": {
-        "description": "Max number of minutes that HyperMapper is allowed to run for. If -1, the runtime will not be limited.",
-        "type": "number",
-        "minimum": -1,
-        "default": -1
-      },
-      "number_of_repetitions": {
-        "description": "Usually a number between 1 and 5. Number of times HyperMapper runs a single sample of the search space. For statistical significance it may be useful to run a sample several time. The mean or the median of the multiple runs is taken by HyperMapper. Execution time is negatively affected from a high number of repetitions.",
-        "type": "integer",
-        "minimum": 1,
-        "default": 1
-      },
-      "hypermapper_mode": {
-        "type": "object",
-        "description": "One of the ways of using HyperMapper: default, exhaustive and client-server.",
-        "oneOf": [
-          {
-            "$ref": "#/hypermapper_modes/default"
-          },
-          {
-            "$ref": "#/hypermapper_modes/exhaustive"
-          },
-          {
-            "$ref": "#/hypermapper_modes/client-server"
-          }
-        ],
-        "default": { "mode": "default" }
-      },
-      "models": {
-        "type": "object",
-        "description": "HyperMapper currently supports Random Forests and Gaussian Processes",
-        "oneOf": [
-          {
-            "$ref": "#/models/randomForest"
-          },
-          {
-            "$ref": "#/models/gaussianProcess"
-          }
-        ],
-        "default": {
-          "model": "random_forest"
+  "additionalProperties": false,
+  "description": "Hypermapper parameters used to set up a Hypermapper before running",
+  "doe_sampling": {
+    "doe": {
+      "additionalProperties": false,
+      "properties": {
+        "doe_type": {
+          "default": "random sampling",
+          "enum": [
+            "random sampling",
+            "embedding random sampling"
+          ],
+          "type": "string"
+        },
+        "number_of_samples": {
+          "default": 10,
+          "description": "The number of samples during the design of experiment phase.",
+          "type": "integer"
+        },
+        "allow_repetitions": {
+          "default": false,
+          "description": "Whether to allow DoE to sample repeated configurations.",
+          "type": "boolean"
         }
-      },
-      "output_image": {
-        "type": "object",
-        "description": "Info used by the plot script to plot the results of the HyperMapper search.",
-        "$ref": "#/output_image/image",
-        "default": {
-                    "output_image_pdf_file": "output_pareto.pdf",
-                    "image_xlog": false,
-                    "image_ylog": false
-                  }
-      },
-      "optimization_objectives": {
-        "type": "array",
-        "items": { "type": "string" },
-        "description": "The names of the objectives HyperMapper will optimize. HyperMapper will automatically infer if this application is a mono or multi-objective optimization problem."
-      },
-      "feasible_output": {
-        "type": "object",
-        "description": "This the feasible/non feasible output flag, which is the validity or feasibility bit (true, false) of one sample of the space. This is an output of the code being optimized.",
-        "$ref": "#/feasible_output/feasible",
-        "default": {
-                    "name": "Valid",
-                    "true_value": "True",
-                    "false_value": "False"
-                  }
-      },
-      "timestamp": {
-        "type": "string",
-        "description": "Name of timestamp variable, this is a float that represents seconds from the linux epoch. This is useful to track the progress of the new samples over time and for comparison with other approaches than HyperMapper.",
-        "default": "Timestamp"
-      },
-      "evaluations_per_optimization_iteration": {
-        "description": "Defines the cap to how many evaluations are done in one optimization iteration.",
-        "type": "integer",
-        "minimum": 1,
-        "default": 1
-      },
-      "run_directory": {
-        "description": "Relative path from where HyperMapper is launched. The result files will be saved here.",
-        "type": "string",
-        "default": "."
-      },
-      "output_data_file": {
-        "description": "Output file containing all the points explored by HyperMapper.",
-        "type": "string",
-        "default": "output_samples.csv"
-      },
-      "output_pareto_file": {
-        "description": "Output file containing the Pareto points explored by HyperMapper.",
-        "type": "string",
-        "default": "output_pareto.csv"
-      },
-      "design_of_experiment": {
-        "type": "object",
-        "description": "Before starting the active learning phase, HyperMapper samples the space: the design of experiment (doe) phase. How many times it samples the space and how is declared here. The doe sampling methods are: random sampling, standard latin hypercube and k latin hypercube. Later on the sliced latin hypercube sampling will be introduced.",
-        "$ref": "#/doe_sampling/doe",
-        "default": {
-                    "doe_type": "random sampling",
-                    "number_of_samples": 10
-                  }
-      },
-      "input_parameters" : {
-        "type": "object",
-        "description": "The input variables that define the search space to explore.",
-        "patternProperties": {
-            "^[0-9a-zA-Z_-]+$": {
-                 "properties": {
-                    "prior" : {
-                       "oneOf": [
-                          {
-                            "type" : "string",
-                            "enum": ["gaussian", "uniform", "exponential", "decay", "estimate", "custom_gaussian"]
-                          },
-                          {
-                            "type" : "array"
-                          }
-                        ],
-                      "default" : "uniform"
-                    },
-                    "custom_gaussian_prior_means":{
-                      "type": ["array", "boolean"],
-                      "description": "means for the custom gaussian prior for this parameter. Can only be used with real parameters for now.",
-                      "default": false
-                    },
-                    "custom_gaussian_prior_stds":{
-                      "type": ["array", "boolean"],
-                      "description": "standard deviations for the custom gaussian prior for this parameter. Can only be used with real parameters for now.",
-                      "default": false
-                    },
-                    "parameter_type": {
-                        "description": "The type of the parameter that is being defined.",
-                        "type": "string",
-                        "enum": ["ordinal", "categorical", "real", "integer"]
-                    },
-                    "values": {
-                        "type": "array",
-                        "items": {
-                            "oneOf": [
-                                  { "type": "string" },
-                                  { "type": "number" }
-                                  ]
-                        },
-                        "description": "The values of this parameter. For real parameters it requires a min and a max. For integer a min and max. For ordinals a list of numbers. For categoricals a list of strings."
-                    },
-                    "parameter_default" : {
-                            "oneOf": [
-                                { "type": "string" },
-                                { "type": "number" }
-                                ]
-                    }
-                 },
-                 "additionalProperties": false,
-                 "required": ["parameter_type", "values"]
-          }
-        },
-        "additionalProperties": false,
-        "minProperties": 1
-      },
-      "acquisition_function":{
-        "type": "string",
-        "description": "which acquisition function to be used in the random scalarizations method: ucb or thompson sampling. Used in random scalarizations only.",
-        "enum":["UCB", "TS", "EI"],
-        "default": "EI"
-      },
-      "scalarization_method":{
-        "type": "string",
-        "description": "which method to use for scalarization. Linear and modified_tchebyshev are implemented as presented in https://arxiv.org/pdf/1805.12168.pdf, while tchebyshev is implemented as presented in https://www.cs.bham.ac.uk/~jdk/parego/ParEGO-TR3.pdf. Used in random scalarizations only.",
-        "enum": ["linear", "tchebyshev", "modified_tchebyshev"],
-        "default": "tchebyshev"
-      },
-      "weight_sampling":{
-        "type": "string",
-        "description": "which method to use to sample the scalarization weights: bounding box or flat. Flat means weights are sampled from a uniform distribution. Bounding box means weights will be sampled so that HyperMapper prioritizes objective values within the limits specified in 'bounding_box_limits'. Both sampling methods are described in: https://arxiv.org/abs/1805.12168.  Used in random scalarizations only.",
-        "enum": ["bounding_box", "flat"],
-        "default": "flat"
-      },
-      "bounding_box_limits":{
-        "type": "array",
-        "description": "an array of integer with the limits of the bounding boxes, either two elements or two elements per objective. Limits should be given in the same order as optimization_objectives. If only two elements are provided, the same bounds will be used for all objectives. Used in random scalarizations only.",
-        "minItems": 2,
-        "items": {
-          "type": "number"
-        },
-        "default": [0, 1]
-      },
-      "optimization_method":{
-        "type": "string",
-        "description": "Method to use for the multi-objective optimization in Hypermapper.",
-        "enum": ["bayesian_optimization", "random_scalarizations", "local_search", "prior_guided_optimization", "evolutionary_optimization"],
-        "default": "bayesian_optimization"
-      },
-      "local_search_starting_points":{
-        "type": "integer",
-        "description": "number of starting points for the multi-start local search used to optimize the acquisition functions.",
-        "default": 10
-      },
-      "local_search_random_points":{
-        "type": "integer",
-        "description": "number of random points for the multi-start local search used to optimize the acquisition functions.",
-        "default": 10000
-      },
-      "local_search_evaluation_limit":{
-        "type": "integer",
-        "description": "the maximum number of function evaluations the local search can perform. If -1, the number of function evaluations will not be limited.",
-        "default": -1,
-        "min": -1
-      },
-      "scalarization_key":{
-        "type": "string",
-        "description": "name used by HyperMapper to refer to the scalarization of the optimization objectives.",
-        "default": "scalarization"
-      },
-      "local_search_scalarization_weights":{
-        "type": "array",
-        "description": "weights to use in the scalarization of the optimization objectives. Must match the number of objectives. The sum of the weights should be 1, if it is not, HyperMapper will normalize them to 1.",
-        "minItems": 1,
-        "items": {
-          "type": "number"
-        },
-        "default": [1]
-      },
-      "print_parameter_importance":{
-        "type": "boolean",
-        "description": "whether to print the importance of each input parameter according to the surrogate model.",
-        "default": false
-      },
-      "normalize_inputs":{
-        "type": "boolean",
-        "description": "whether to normalize inputs to have zero mean and unit variance before fitting model.",
-        "default": false
-      },
-      "epsilon_greedy_threshold":{
-        "type": "number",
-        "description": "value for the epsilon in the epsilon greedy component of HyperMapper.",
-        "default": 0.1,
-        "minimum": 0,
-        "maximum": 1
-      },
-      "prior_method":{
-        "type": "string",
-        "description": "Method used by HyperMapper to incorporate user priors over the optimum in the BO procedure. (bopro/pibo)",
-        "default": "pibo"
-      },
-      "prior_beta":{
-        "type": "number",
-        "description": "Parameter for the confidence in the user prior in the PiBO - a large value slows the decay of the prior. Defaults to 0.1*number of iterations.",
-        "default": -1
-      },
-      "prior_floor":{
-        "type": "number",
-        "description": "Parameter for the lowest possible value the prior can take in the search space, to ensure strictly positive priors and rubustness.",
-        "default": 1e-6
-      },
-      "model_posterior_weight":{
-        "type": "number",
-        "description": "weight given to the probabilistic model versus the prior in HyperMapper's posterior computation. Larger values give more emphasis to the prior.",
-        "default": 10
-      },
-      "model_good_quantile":{
-        "type": "number",
-        "description": "defines the quantile of points the probabilistic model will consider 'good'.",
-        "default": 0.05
-      },
-      "prior_estimation_file":{
-          "type": "string",
-          "description": "a csv file containing a set of points to be used for density estimation.",
-          "default": "samples.csv"
-      },
-      "prior_estimation_quantile": {
-          "type": "number",
-          "description": "quantile of the best points to be used as 'good points' when estimating the prior",
-          "default": 0.1
-      },
-      "estimate_multivariate_priors": {
-        "type": "boolean",
-        "description": "whether to estimate a multivariate KDE prior for all input parameters. If true, the individual priors from each parameter will be ignored. Requires the 'prior_estimation_file' field. Can only be used with real parameters.",
-        "default": false
-      },
-      "resume_optimization": {
-        "type": "boolean",
-        "description": "whether to resume optimization from a previous state or start a new optimization.",
-        "default": false
-      },
-      "resume_optimization_data": {
-        "type": "string",
-        "description": "csv data of a previous optimization run to use to resume optimization.",
-        "default": "output_samples.csv"
-      },
-      "bandwidth_parameter": {
-        "type": "integer",
-        "description": "parameter used in the bandwidth selection. We use Scott's rule (https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.gaussian_kde.html), but replace the hardcoded 4 by this parameter.",
-        "default": 0
-      },
-      "bandwidth_n_factor": {
-        "type": "integer",
-        "description": "parameter used in the bandwidth selection. We use Scott's rule (https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.gaussian_kde.html), but multiply n by this factor.",
-        "default": 100
-      },
-      "prior_limit_estimation_points":{
-        "type": "integer",
-        "description": "number of random points to estimate the prior limits. The prior limits will be used to normalize the prior during optimization. The limits are updated as new prior values are found, but a initial estimation of the limits prevents the local search from using widely incorrect values in the first iteration.",
-        "default": 10000
-      },
-      "posterior_computation_lower_limit":{
-        "type": "number",
-        "description": "the minimum used for normalization in the acquisition function of prior-guided optimization.",
-        "default": 0.00000001
-      },
-      "custom_gaussian_prior_means":{
-        "type": "array",
-        "description": "means for the custom gaussian prior. Array must have size 1 or match the number of input parameters. If only one element is passed, the same mean will be used for all points. Can only be used with real parameters for now.",
-        "default": [0]
-      },
-      "custom_gaussian_prior_stds":{
-        "type": "array",
-        "description": "standard deviations for the custom gaussian prior. Array must have size 1 or match the number of input parameters. If only one element is passed, the same std will be used for all points. If -1, the std will be half of the input parameter's range. Can only be used with real parameters for now.",
-        "default": [-1]
-      },
-      "acquisition_function_optimizer":{
-        "type": "string",
-        "description": "which method to use to optimize the acquisition function. CMA_ES only works on continuous spaces (i.e. only parameters of type 'real').",
-        "enum":["local_search", "cma_es"],
-        "default": "local_search"
-      },
-      "evolution_population_size":{
-        "type": "integer",
-        "description": "number of points the Evolutionary Algorithm keeps track of.",
-        "default": 50
-      },
-      "evolution_generations":{
-        "type": "integer",
-        "description": "number of iterations through the evolutionary loop.",
-        "default": 150
-      },
-      "mutation_rate":{
-        "type": "integer",
-        "description": "number of parameters to mutate.",
-        "default": 1
-      },
-      "evolution_crossover":{
-        "type": "boolean",
-        "description": "whether to use crossover.",
-        "default": false
-      },
-      "regularize_evolution":{
-        "type": "boolean",
-        "description": "whether to regularize (remove the oldest) the evolution.",
-        "default": false
-      },
-      "batch_size":{
-        "type": "integer",
-        "description": "number of samples to pick for tournament selection, crossover needs at least three.",
-        "default": 2
-      },
-      "print_best":{
-        "type": ["string", "boolean"],
-        "description": "Whether to print out the best point found after optimization. By default, it will be printed if running on default mode and will not be printed if running on client-server mode. The best point is always written on the logfile.",
-        "default": "auto"
-      },
-      "print_posterior_best":{
-        "type": "boolean",
-        "description": "Whether to print out the best point according to HyperMapper's posterior model's mean after optimization. The best point is computed using HyperMapper's local search.",
-        "default": false
-      },
-      "cma_es_sigma": {
-        "type": "number",
-        "description": "Sigma hyperparameter for the CMA-ES algorithm.",
-        "default": 0.2
-      },
-      "cma_es_starting_points":{
-        "type": "integer",
-        "description": "number of starting points for the cma-es search used to optimize the acquisition functions. Deprecated.",
-        "default": 1
-      },
-      "cma_es_random_points":{
-        "type": "integer",
-        "description": "number of random points for the cma-es search used to optimize the acquisition functions. Deprecated.",
-        "default": 10000
       }
-    },
-    "additionalProperties": false,
-    "required": ["optimization_objectives"],
-
-
-
-    "hypermapper_modes": {
-        "exhaustive": {
-            "properties": {
-                "mode": { "enum": [ "exhaustive" ] },
-                "exhaustive_search_file": {
-                    "description": "File containing the exhaustive search. For interesting problems this is usually not available because the space is usually too big. Example: exhaustive_search_file.csv",
-                    "type": "string"
-                }
-            },
-            "required": ["mode", "exhaustive_search_file"],
-            "additionalProperties": false
-        },
-        "client-server": {
-            "properties": {
-                "mode": { "enum": [ "client-server" ] }
-            },
-            "required": ["mode"],
-            "additionalProperties": false
-        },
-        "default": {
-            "properties": {
-                "mode": { "enum": [ "default" ] }
-            },
-            "required": ["mode"],
-            "additionalProperties": false
-        }
-    },
-    "models": {
-      "randomForest": {
-          "properties": {
-              "model": { "enum": [ "random_forest" ] },
-              "number_of_trees": {"description": "Number of trees in the forest.", "type": "integer", "minimum": 1, "maximum": 1000, "default": 10},
-              "max_features": {"description": "Percentage of the features to be used when fitting the forest.", "type": "number", "minimum": 0, "maximum": 1, "default": 0.5},
-              "bootstrap": {"description": "Whether to use bagging when fitting the forest.", "type": "boolean", "default": false},
-              "min_samples_split": {"description": "Minimum number of samples required to split a node.", "type": "integer", "minimum": 2, "default": 5}
-          },
-          "required": ["model"]
-      },
-      "gaussianProcess": {
-        "properties": {
-            "model": { "enum": [ "gaussian_process" ] }
-        },
-        "required": ["model"]
     }
   },
-    "output_image": {
-        "image": {
-            "properties": {
-                "output_image_pdf_file": {
-                  "description": "Output image containing the Pareto and the exploration of HyperMapper.",
-                  "type": "string",
-                  "default": "output_image.pdf"
-                },
-                "optimization_objectives_labels_image_pdf": {
-                  "type": "array",
-                  "items": { "type": "string" },
-                  "description": "The labels of the objectives HyperMapper will optimize. These are used in the plot script."
-                },
-                "image_xlog": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "The x axis of the image will be plot with a log scale if set to true."
-                },
-                "image_ylog": {
-                  "type": "boolean",
-                  "default": false,
-                  "description": "The y axis of the image will be plot with a log scale if set to true."
-                },
-                "objective_1_max": {
-                  "type": "integer",
-                  "description": "This max value if present enables the plot to show axis 1 as a percentage. The value is used to compute the percentage."
-                },
-                "objective_2_max": {
-                  "type": "integer",
-                  "description": "This max value if present enables the plot to show axis 2 as a percentage. The value is used to compute the percentage."
-                }
-            },
-            "additionalProperties": false
+  "feasible_output": {
+    "feasible": {
+      "additionalProperties": false,
+      "properties": {
+        "enable_feasible_predictor": {
+          "default": false,
+          "description": "Enables a classifier (the predictor) that will predict which samples of the space are feasible (i.e. valid) samples. This in turn helps to focus the search on areas that are feasible optimizing the number of samples that are actually run. This field has a negative impact on the speed of Hypermapper but a positive impact on the final Pareto result.",
+          "type": "boolean"
+        },
+        "false_value": {
+          "default": "false",
+          "description": "The value that indicates that the sample is non valid. Example 1: false. Example 2: 0. Example 3: False."
+        },
+        "feasibility_threshold": {
+          "default": 0.1,
+          "description": "Minimum required probability of feasibility.",
+          "type": "number"
+        },
+        "name": {
+          "default": "Valid",
+          "description": "Name of the validity bit. Example: 'Valid'.",
+          "type": "string"
+        },
+        "true_value": {
+          "default": "true",
+          "description": "The value that indicates that the sample is valid. Example 1: true. Example 2: 1. Example 3: True."
         }
+      }
+    }
+  },
+  "hypermapper_modes": {
+    "client-server": {
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "enum": [
+            "client-server"
+          ]
+        }
+      },
+      "required": [
+        "mode"
+      ]
     },
-    "doe_sampling": {
-        "doe": {
-            "properties": {
-                "doe_type": {
-                    "enum": [
-                          "random sampling",
-                          "standard latin hypercube",
-                          "k latin hypercube",
-                          "grid_search"
-                        ],
-                    "type": "string",
-                    "default": "random sampling"
-                },
-                "number_of_samples": {
-                  "description": "The number of samples during the design of experiment phase.",
-                  "type": "integer",
-                  "default": 10
-                }
-            },
-            "additionalProperties": false
+    "default": {
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "enum": [
+            "default"
+          ]
         }
+      },
+      "required": [
+        "mode"
+      ]
+    },
+    "exhaustive": {
+      "additionalProperties": false,
+      "properties": {
+        "exhaustive_search_file": {
+          "description": "File containing the exhaustive search. For interesting problems this is usually not available because the space is usually too big. Example: exhaustive_search_file.csv",
+          "type": "string"
+        },
+        "mode": {
+          "enum": [
+            "exhaustive"
+          ]
+        }
+      },
+      "required": [
+        "mode",
+        "exhaustive_search_file"
+      ]
+    }
+  },
+  "models": {
+    "gaussianProcess": {
+      "properties": {
+        "model": {
+          "enum": [
+            "gaussian_process"
+          ]
+        }
+      },
+      "required": [
+        "model"
+      ]
+    },
+    "randomForest": {
+      "properties": {
+        "bootstrap": {
+          "default": true,
+          "description": "Whether to use bagging when fitting the forest.",
+          "type": "boolean"
+        },
+        "max_features": {
+          "default": 0.5,
+          "description": "Percentage of the features to be used when fitting the forest.",
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        "min_samples_split": {
+          "default": 2,
+          "description": "Minimum number of samples required to split a node.",
+          "minimum": 2,
+          "type": "integer"
+        },
+        "model": {
+          "enum": [
+            "random_forest"
+          ]
+        },
+        "number_of_trees": {
+          "default": 200,
+          "description": "Number of trees in the forest.",
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "use_all_data_to_fit_mean": {
+          "default": false,
+          "description": "Whether to still use all data to fit the mean of the leaves when bootstrapping in Random Forests.",
+          "type": "boolean"
+        },
+        "use_all_data_to_fit_variance": {
+          "default": false,
+          "description": "Whether to still use all data to fit the variance of the leaves when bootstrapping in Random Forests.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "model"
+      ]
+    }
+  },
+  "properties": {
+    "acquisition_function": {
+      "default": "EI",
+      "description": "which acquisition function to be used: EI or UCB.",
+      "enum": [
+        "UCB",
+        "EI",
+        "EI_BOPRO",
+        "EI_PIBO"
+      ],
+      "type": "string"
+    },
+    "acquisition_function_optimizer": {
+      "default": "local_search",
+      "description": "which method to use to optimize the acquisition function.",
+      "enum": [
+        "local_search"
+      ],
+      "type": "string"
+    },
+    "allow_duplicate_samples": {
+      "default": true,
+      "description": "Whether to allow the BO to choose a single point multiple times",
+      "type": "boolean"
+    },
+    "application_name": {
+      "default": "application",
+      "description": "Name of the application, this is for printing and file naming purposes.",
+      "type": "string"
+    },
+    "design_of_experiment": {
+      "$ref": "#/doe_sampling/doe",
+      "default": {
+        "doe_type": "random sampling",
+        "number_of_samples": 10
+      },
+      "description": "Before starting the active learning phase, Hypermapper samples the space: the design of experiment (doe) phase. How many times it samples the space and how is declared here. The doe sampling methods are: random sampling, embedded random sampling.",
+      "type": "object"
+    },
+    "epsilon_greedy_threshold": {
+      "default": 0,
+      "description": "value for the epsilon in the epsilon greedy component of Hypermapper.",
+      "maximum": 1,
+      "minimum": 0,
+      "type": "number"
+    },
+    "evolution_crossover": {
+      "default": false,
+      "description": "whether to use crossover.",
+      "type": "boolean"
+    },
+    "evolution_generations": {
+      "default": 150,
+      "description": "number of iterations through the evolutionary loop.",
+      "type": "integer"
+    },
+    "evolution_population_size": {
+      "default": 50,
+      "description": "number of points the Evolutionary Algorithm keeps track of.",
+      "type": "integer"
+    },
+    "exploration_augmentation": {
+      "default": 0.0001,
+      "description": "subtracted from the best objective value in EI",
+      "type": "number"
     },
     "feasible_output": {
-        "feasible": {
-            "properties": {
-                "name": {
-                    "description": "Name of the validity bit. Example: 'Valid'.",
-                    "type": "string",
-                    "default": "Valid"
-                },
-                "true_value": {
-                    "description": "The value that indicates that the sample is valid. Example 1: true. Example 2: 1. Example 3: True.",
-                    "default": "true"
-                },
-                "false_value": {
-                    "description": "The value that indicates that the sample is non valid. Example 1: false. Example 2: 0. Example 3: False.",
-                    "default": "false"
-                },
-                "enable_feasible_predictor": {
-                    "description": "Enables a classifier (the predictor) that will predict which samples of the space are feasible (i.e. valid) samples. This in turn helps to focus the search on areas that are feasible optimizing the number of samples that are actually run. This field has a negative impact on the speed of HyperMapper but a positive impact on the final Pareto result.",
-                    "type": "boolean",
-                    "default": false
-                },
-                "enable_feasible_predictor_grid_search_on_recall_and_precision": {
-                    "description": "Enables a grid search cross-validation on the classifier (the predictor). This is useful for dev purposes to see if the classifier is classifying correctly the samples. An external dataset has to be provided (in the json field feasible_predictor_grid_search_validation_file) to run the cross-validation.",
-                    "type": "boolean",
-                    "default": false
-                },
-                "feasible_predictor_grid_search_validation_file": {
-                    "description": "Provides the cross-validation dataset enable_feasible_predictor_grid_search_on_recall_and_precision filed of the json.",
-                    "type": "string",
-                    "default": "/home/lnardi/spatial-lang/results/apps_classification_test_set/BlackScholes.csv"
-                }
-            },
-            "additionalProperties": false
+      "$ref": "#/feasible_output/feasible",
+      "default": {
+        "false_value": "False",
+        "name": "Valid",
+        "true_value": "True"
+      },
+      "description": "This the feasible/non feasible output flag, which is the validity or feasibility bit (true, false) of one sample of the space. This is an output of the code being optimized.",
+      "type": "object"
+    },
+    "hypermapper_mode": {
+      "default": {
+        "mode": "default"
+      },
+      "description": "One of the ways of using Hypermapper: default, exhaustive and client-server.",
+      "oneOf": [
+        {
+          "$ref": "#/hypermapper_modes/default"
+        },
+        {
+          "$ref": "#/hypermapper_modes/exhaustive"
+        },
+        {
+          "$ref": "#/hypermapper_modes/client-server"
         }
+      ],
+      "type": "object"
+    },
+    "input_parameters": {
+      "additionalProperties": false,
+      "description": "The input variables that define the search space to explore.",
+      "minProperties": 1,
+      "patternProperties": {
+        "^[0-9a-zA-Z_-]+$": {
+          "additionalProperties": false,
+          "properties": {
+            "constraints": {
+              "description": "constraints as evaluable string",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "dependencies": {
+              "description": "dependencies of constraints of tp",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "parameter_default": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "array"
+                }
+              ]
+            },
+            "parameter_type": {
+              "description": "The type of the parameter that is being defined.",
+              "enum": [
+                "ordinal",
+                "categorical",
+                "real",
+                "integer",
+                "permutation"
+              ],
+              "type": "string"
+            },
+            "parametrization": {
+              "description": "Parametrization for Permutation variables.",
+              "type": "string"
+            },
+            "prior": {
+              "default": "uniform",
+              "oneOf": [
+                {
+                  "enum": [
+                    "gaussian",
+                    "uniform",
+                    "exponential",
+                    "decay",
+                    "estimate",
+                    "custom_gaussian"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "array"
+                }
+              ]
+            },
+            "prior_parameters": {
+              "default": [],
+              "description": "Parameters for the prior distribution: mean and std",
+              "type": "array"
+            },
+            "transform": {
+              "description": "Transformations for variables.",
+              "enum": [
+                "none",
+                "log"
+              ],
+              "type": "string"
+            },
+            "values": {
+              "description": "The values of this parameter. For real parameters it requires a min and a max. For integer a min and max. For ordinals a list of numbers. For categoricals a list of strings. For permutations, the number of elements.",
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ]
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "parameter_type",
+            "values"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "lengthscale_prior": {
+      "default": {
+        "name": "none"
+      },
+      "description": "Which prior to use for the GP lengthscale. Only activated if 'normalize_inputs' = true. ",
+      "properties": {
+        "name": {
+          "default": [
+            "gamma"
+          ],
+          "enum": [
+            "none",
+            "gamma",
+            "lognormal"
+          ],
+          "type": "string"
+        },
+        "parameters": {
+          "items": {
+            "type": "number"
+          },
+          "type": "array",
+          "default": [1.3, 0.1]
+        }
+      },
+      "type": "object"
+    },
+    "local_search_from_best": {
+      "default": true,
+      "description": "whether to include best value in local search",
+      "type": "boolean"
+    },
+    "local_search_improvement_threshold": {
+      "default": 0,
+      "description": "the maximum number of function evaluations the local search can perform. If -1, the number of function evaluations will not be limited.",
+      "min": 0,
+      "type": "number"
+    },
+    "local_search_random_points": {
+      "default": 30000,
+      "description": "number of random points for the multi-start local search used to optimize the acquisition functions.",
+      "type": "integer"
+    },
+    "local_search_starting_points": {
+      "default": 10,
+      "description": "number of starting points for the multi-start local search used to optimize the acquisition functions.",
+      "type": "integer"
+    },
+    "local_search_step_size": {
+      "default": 0.03,
+      "description": "Standard deviation when selecting new points in the local search for continuous values.",
+      "type": "number"
+    },
+    "log_acq_value": {
+      "default": false,
+      "description": "whether to log transfor acq val",
+      "type": "boolean"
+    },
+    "log_file": {
+      "default": "hypermapper_logfile.log",
+      "description": "Change the name of the log file to this name. Log files are very handy in client-server mode where the prints are not displayed.",
+      "type": "string"
+    },
+    "log_transform_output": {
+      "default": false,
+      "description": "whether to logtransform outputs before fitting model.",
+      "type": "boolean"
+    },
+    "model_good_quantile": {
+      "default": 0.05,
+      "description": "defines the quantile of points the probabilistic model will consider 'good'.",
+      "type": "number"
+    },
+    "model_weight": {
+      "default": 10,
+      "description": "weight given to the probabilistic model versus the prior in Hypermapper's posterior computation. Larger values give more emphasis to the prior.",
+      "type": "number"
+    },
+    "models": {
+      "default": {
+        "model": "gaussian_process"
+      },
+      "description": "Hypermapper currently supports Random Forests and Gaussian Processes",
+      "oneOf": [
+        {
+          "$ref": "#/models/randomForest"
+        },
+        {
+          "$ref": "#/models/gaussianProcess"
+        }
+      ],
+      "type": "object"
+    },
+    "multistart_hyperparameter_optimization": {
+      "default": false,
+      "description": "Whether to start GP hyperparameter optimisation from different initial starting points. Slower, but yields better models.",
+      "type": "boolean"
+    },
+    "hyperparameter_optimization_iterations": {
+      "default": 5,
+      "description": "Number of iterations to run MLE for.",
+      "type": "integer"
+    },
+    "GP_model": {
+        "default": "botorch",
+        "description": "Type of GP model to use. gpy, botorch, gpytorch, botorch_fixed botorch_heteroskedastic are available.",
+        "type": "string"
+    },
+    "mutation_rate": {
+      "default": 1,
+      "description": "number of parameters to mutate.",
+      "type": "integer"
+    },
+    "naive_cot_rs": {
+      "default": false,
+      "description": "Whether to use naive rs for cot.",
+      "type": "boolean"
+    },
+    "noise": {
+      "default": true,
+      "description": "Whether the function is assumed to be noisy or not.",
+      "type": "boolean"
+    },
+    "noise_prior": {
+      "default": {
+        "name": "none"
+      },
+      "description": "Which prior to use for the GP outputscale. Only activated if 'normalize_inputs' = true. ",
+      "properties": {
+        "name": {
+          "default": [
+            "none"
+          ],
+          "enum": [
+            "none",
+            "gamma"
+          ],
+          "type": "string"
+        },
+        "parameters": {
+          "items": {
+            "type": "number"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "normalize_inputs": {
+      "default": true,
+      "description": "whether to normalize inputs to be in [0-1]^D",
+      "type": "boolean"
+    },
+    "number_of_repetitions": {
+      "default": 1,
+      "description": "Usually a number between 1 and 5. Number of times Hypermapper runs a single sample of the search space. For statistical significance it may be useful to run a sample several time. The mean or the median of the multiple runs is taken by Hypermapper. Execution time is negatively affected from a high number of repetitions.",
+      "minimum": 1,
+      "type": "integer"
+    },
+    "objective_value_target": {
+      "default": -9999,
+      "description": "Set a target for the EI acq.",
+      "type": "number"
+    },
+    "optimization_iterations": {
+      "default": 50,
+      "description": "Usually a number between 1 and 10. Max number of optimization iterations that Hypermapper can internally perform. We set a max number to limit the execution time of Hypermapper. Usually a bigger number will give a better accuracy but slower results.",
+      "maximum": 5000,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "optimization_method": {
+      "default": "bayesian_optimization",
+      "description": "Method to use for the optimization in Hypermapper.",
+      "enum": [
+        "bayesian_optimization",
+        "evolutionary_optimization",
+        "exhaustive"
+      ],
+      "type": "string"
+    },
+    "optimization_objectives": {
+      "description": "The names of the objectives Hypermapper will optimize. Hypermapper will automatically infer if this application is a mono or multi-objective optimization problem.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "output_data_file": {
+      "default": "output_samples.csv",
+      "description": "Output file containing all the points explored by Hypermapper.",
+      "type": "string"
+    },
+    "outputscale_prior": {
+      "default": {
+        "name": "none"
+      },
+      "description": "Which prior to use for the GP outputscale. Only activated if 'normalize_inputs' = true. ",
+      "properties": {
+        "name": {
+          "default": [
+            "none"
+          ],
+          "enum": [
+            "none",
+            "gamma"
+          ],
+          "type": "string"
+        },
+        "parameters": {
+          "items": {
+            "type": "number"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "predict_noiseless": {
+      "default": true,
+      "description": "To predict using GP without noise",
+      "type": "boolean"
+    },
+    "print_posterior_best": {
+      "default": false,
+      "description": "Whether to print out the best point according to Hypermapper's posterior model's mean after optimization. The best point is computed using Hypermapper's local search.",
+      "type": "boolean"
+    },
+    "prior_estimation_file": {
+      "default": "samples.csv",
+      "description": "a csv file containing a set of points to be used for density estimation.",
+      "type": "string"
+    },
+    "prior_estimation_quantile": {
+      "default": 0.1,
+      "description": "quantile of the best points to be used as 'good points' when estimating the prior",
+      "type": "number"
+    },
+    "prior_floor": {
+      "default": 1e-6,
+      "description": "the minimum used for normalization in the acquisition function of prior-guided optimization.",
+      "type": "number"
+    },
+    "prior_limit_estimation_points": {
+      "default": 10000,
+      "description": "number of random points to estimate the prior limits. The prior limits will be used to normalize the prior during optimization. The limits are updated as new prior values are found, but a initial estimation of the limits prevents the local search from using widely incorrect values in the first iteration.",
+      "type": "integer"
+    },
+    "regularize_evolution": {
+      "default": false,
+      "description": "whether to regularize (remove the oldest) the evolution.",
+      "type": "boolean"
+    },
+    "reoptimise_hyperparameters_interval": {
+      "default": 1,
+      "description": "Defines how often to reoptimise the GP hyperparameters.",
+      "type": "integer"
+    },
+    "resume_optimization": {
+      "default": false,
+      "description": "whether to resume optimization from a previous state or start a new optimization.",
+      "type": "boolean"
+    },
+    "resume_optimization_file": {
+      "default": "output_samples.csv",
+      "description": "csv data of a previous optimization run to use to resume optimization.",
+      "type": "string"
+    },
+    "reuse_gp_hyperparameters": {
+      "default": false,
+      "description": "Whether to store hyperparameters between iterations. Should yield average better likelihood but less exploration.",
+      "type": "boolean"
+    },
+    "run_directory": {
+      "default": ".",
+      "description": "Relative path from where Hypermapper is launched. The result files will be saved here.",
+      "type": "string"
+    },
+    "standardize_objectives": {
+      "default": true,
+      "description": "whether to standardize objectives to have zero mean and unit variance before fitting model.",
+      "type": "boolean"
+    },
+    "time_budget": {
+      "default": -1,
+      "description": "Max number of minutes that Hypermapper is allowed to run for. If -1, the runtime will not be limited.",
+      "minimum": -1,
+      "type": "number"
+    },
+    "timestamp": {
+      "default": "Timestamp",
+      "description": "Name of timestamp variable, this is a float that represents seconds from the linux epoch. This is useful to track the progress of the new samples over time and for comparison with other approaches than Hypermapper.",
+      "type": "string"
+    },
+    "use_STGP": {
+      "default": true,
+      "description": "whether to use a botorch SingleTaskGP.",
+      "type": "boolean"
     }
+  },
+  "required": [
+    "optimization_objectives"
+  ],
+  "title": "Parameters",
+  "type": "object"
 }

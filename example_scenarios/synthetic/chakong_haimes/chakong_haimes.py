@@ -6,6 +6,7 @@ import warnings
 from collections import OrderedDict
 
 # ensure backward compatibility
+# sys.path.append(".")
 from hypermapper import optimizer  # noqa
 
 

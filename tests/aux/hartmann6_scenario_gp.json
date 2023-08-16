@@ -1,0 +1,66 @@
+{
+    "application_name": "hartmann6",
+    "optimization_objectives": ["Value"],
+    "optimization_iterations": 100,
+    "acquisition_function": "EI",
+    "models" : {
+      "model" : "gaussian_process"
+    },
+    "multistart_hyperparameter_optimization" : false,
+    "epsilon_greedy_threshold" : 0.0,
+    "input_parameters" : {
+        "x1": {
+            "parameter_type" : "real",
+            "values" : [0, 1],
+            "parameter_default" : 0
+        },
+        "x2": {
+            "parameter_type" : "real",
+            "values" : [0, 1],
+            "parameter_default" : 0
+        },
+        "x3": {
+            "parameter_type" : "real",
+            "values" : [0, 1],
+            "parameter_default" : 0
+        },
+        "x4": {
+            "parameter_type" : "real",
+            "values" : [0, 1],
+            "parameter_default" : 0
+        },
+        "x5": {
+            "parameter_type" : "real",
+            "values" : [0, 1],
+            "parameter_default" : 0
+        },
+        "x6": {
+            "parameter_type" : "real",
+            "values" : [0, 1],
+            "parameter_default" : 0
+        }
+    },
+    "hyperparameter_optimization_iterations": 5,
+    "lengthscale_prior": {
+        "name": "gamma",
+        "parameters": [
+            3,
+            6
+        ]
+    },
+    "noise_prior": {
+        "name": "gamma",
+        "parameters": [
+            1.1,
+            0.05
+        ]
+    },
+    "outputscale_prior": {
+        "name": "gamma",
+        "parameters": [
+            2,
+            0.15
+        ]
+    },
+    "log_file": "hartmann6_gp.log"
+}

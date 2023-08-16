@@ -1,0 +1,149 @@
+{
+  "application_name": "asum",
+  "optimization_objectives": [
+    "runtime"
+  ],
+  "feasible_output": {
+    "enable_feasible_predictor": true,
+    "name": "Valid",
+    "true_value": "True",
+    "false_value": "False"
+  },
+  "log_transform_output": true,
+  "epsilon_greedy_threshold": 0,
+  "models": {
+    "model": "gaussian_process"
+  },
+  "optimization_method": "gaussian_process",
+  "optimization_iterations": 150,
+  "input_parameters": {
+    "tuned_sp0": {
+      "parameter_type": "ordinal",
+      "values": [
+        128,
+        256,
+        512,
+        1024,
+        2048,
+        4096,
+        8192,
+        16384,
+        32768,
+        65536,
+        131072,
+        262144,
+        524288,
+        1048576,
+        2097152,
+        4194304,
+        8388608,
+        16777216
+      ],
+      "constraints": [
+        "tuned_sp0 % (tuned_sp1 * tuned_stride) == 0"
+      ],
+      "dependencies": [
+        "tuned_sp1",
+        "tuned_stride"
+      ],
+      "parameter_default" : 16777216,
+      "transform": "log"
+    },
+    "tuned_gs0": {
+      "parameter_type": "ordinal",
+      "values": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32,
+        64,
+        128,
+        256,
+        512,
+        1024
+      ],
+      "constraints": [
+        "tuned_gs0 % tuned_ls0 == 0"
+      ],
+      "dependencies": [
+        "tuned_ls0"
+      ],
+      "parameter_default" : 1024,
+      "transform": "log"
+    },
+    "tuned_stride": {
+      "parameter_type": "ordinal",
+      "values": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32,
+        64,
+        128,
+        256,
+        512,
+        1024,
+        2048,
+        4096,
+        8192,
+        16384,
+        32768,
+        65536
+      ],
+      "constraints": [],
+      "dependencies": [],
+      "parameter_default" : 1024,
+      "transform": "log"
+    },
+    "tuned_sp1": {
+      "parameter_type": "ordinal",
+      "values": [
+        256,
+        512,
+        1024,
+        2048,
+        4096,
+        8192,
+        16384,
+        32768,
+        65536,
+        131072,
+        262144,
+        524288,
+        1048576,
+        2097152,
+        4194304,
+        8388608,
+        16777216
+      ],
+      "constraints": [],
+      "dependencies": [],
+      "parameter_default" : 8192,
+      "transform": "log"
+    },
+    "tuned_ls0": {
+      "parameter_type": "ordinal",
+      "values": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32,
+        64,
+        128,
+        256,
+        512,
+        1024
+      ],
+      "constraints": [],
+      "dependencies": [],
+      "parameter_default" : 1,
+      "transform": "log"
+    }
+  }
+}

@@ -1,0 +1,34 @@
+{
+    "application_name": "branin4",
+    "optimization_objectives": ["Value"],
+    "optimization_iterations": 15,
+    "acquisition_function": "EI_BOPRO",
+    "models" : {
+      "model" : "gaussian_process"
+    },
+    "input_parameters" : {
+        "x1": {
+            "parameter_type" : "real",
+            "values" : [-5, 10],
+            "parameter_default" : 0
+        },
+        "x2": {
+            "parameter_type" : "real",
+            "values" : [0, 15],
+            "parameter_default" : 0
+        },
+        "x3": {
+            "parameter_type" : "integer",
+            "values" : [-5, 10],
+            "parameter_default" : 0
+        },
+        "x4": {
+            "parameter_type" : "integer",
+            "values" : [0, 15],
+            "parameter_default" : 0,
+            "prior": [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
+        }
+    },
+    "predict_noiseless": true,
+    "log_file": "branin4_gp.log"
+}
