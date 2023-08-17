@@ -9,8 +9,8 @@ from hypermapper.param.space import Space
 
 
 def get_prior(
-        X: torch.Tensor,
-        param_space: Space,
+    X: torch.Tensor,
+    param_space: Space,
 ) -> torch.Tensor:
     """
     Compute the probability of configurations being good according to the prior.
@@ -32,12 +32,12 @@ def get_prior(
 
 
 def ei_pibo(
-        settings: dict,
-        param_space: Space,
-        X: torch.Tensor,
-        objective_weights: List[float],
-        iteration_number: int,
-        **kwargs,
+    settings: dict,
+    param_space: Space,
+    X: torch.Tensor,
+    objective_weights: List[float],
+    iteration_number: int,
+    **kwargs,
 ) -> torch.Tensor:
     """
     Compute a (multi-objective) EI acquisition function on X.

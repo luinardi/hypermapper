@@ -10,8 +10,10 @@ import numpy as np
 import pandas as pd
 from matplotlib.lines import Line2D
 
-if not os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')) in sys.path:
-    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+if not os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")) in sys.path:
+    sys.path.insert(
+        0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+    )
 from hypermapper.param import space
 from hypermapper.util.logging import Logger
 from hypermapper.util.file import read_settings_file, add_path
@@ -27,21 +29,21 @@ def load_data(file):
 
 
 def plot_regret(
-        settings_file,
-        data_dirs,
-        labels=None,
-        minimum=0,
-        outfile=None,
-        title=None,
-        plot_log=False,
-        unlog_y_axis=False,
-        budget=None,
-        out_dir=None,
-        ncol=4,
-        x_label=None,
-        y_label=None,
-        show_doe=True,
-        expert_configuration=None,
+    settings_file,
+    data_dirs,
+    labels=None,
+    minimum=0,
+    outfile=None,
+    title=None,
+    plot_log=False,
+    unlog_y_axis=False,
+    budget=None,
+    out_dir=None,
+    ncol=4,
+    x_label=None,
+    y_label=None,
+    show_doe=True,
+    expert_configuration=None,
 ):
     # Read json configuration file
     settings = read_settings_file(settings_file)
@@ -55,7 +57,9 @@ def plot_regret(
     param_space = space.Space(settings)
     output_metric = param_space.metric_names[0]  # only works for mono-objective
     doe_size = settings["design_of_experiment"]["number_of_samples"]
-    feasibility_flag = param_space.feasible_output_name  # returns a list, we just want the name
+    feasibility_flag = (
+        param_space.feasible_output_name
+    )  # returns a list, we just want the name
 
     best = 0
     if minimum is not None:

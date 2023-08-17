@@ -16,11 +16,11 @@ class Parameter:
     """
 
     def __init__(
-            self,
-            name: str,
-            default: Union[int, float],
-            constraints: List[str],
-            dependencies: List[str],
+        self,
+        name: str,
+        default: Union[int, float],
+        constraints: List[str],
+        dependencies: List[str],
     ):
         self.name = name
         self.default = default
@@ -46,10 +46,10 @@ class Parameter:
 
     @abstractmethod
     def convert(
-            self,
-            input_value: Union[str, float],
-            from_type: str,
-            to_type: str,
+        self,
+        input_value: Union[str, float],
+        from_type: str,
+        to_type: str,
     ) -> Union[str, float]:
         raise NotImplementedError
 
@@ -60,16 +60,16 @@ class RealParameter(Parameter):
     """
 
     def __init__(
-            self,
-            name: str,
-            min_value: float,
-            max_value: float,
-            default: float,
-            probability_distribution: Union[str, List[float], Tuple],
-            preferred_discretization,
-            constraints: Optional[List[str]] = None,
-            dependencies: Optional[List[str]] = None,
-            transform: Optional[str] = "none",
+        self,
+        name: str,
+        min_value: float,
+        max_value: float,
+        default: float,
+        probability_distribution: Union[str, List[float], Tuple],
+        preferred_discretization,
+        constraints: Optional[List[str]] = None,
+        dependencies: Optional[List[str]] = None,
+        transform: Optional[str] = "none",
     ):
         """
         Initialization method. The possible values for this parameter are between min_value and max_value.
@@ -101,12 +101,16 @@ class RealParameter(Parameter):
 
         elif isinstance(probability_distribution, list):
             self.distribution_name = "custom_distribution"
-            self.probability_distribution = torch.tensor(probability_distribution) / np.sum(probability_distribution)
+            self.probability_distribution = torch.tensor(
+                probability_distribution
+            ) / np.sum(probability_distribution)
             self.cdf = np.cumsum(self.probability_distribution)
 
         elif isinstance(probability_distribution, tuple):
             if not len(probability_distribution[1]) == 2:
-                raise Exception("gaussian prior requires two prior_parameters, mean and std.")
+                raise Exception(
+                    "gaussian prior requires two prior_parameters, mean and std."
+                )
             self.distribution_name = probability_distribution[0]
             self.distribution_parameters = probability_distribution[1]
 
@@ -120,13 +124,31 @@ class RealParameter(Parameter):
             - the samples
         """
         if self.distribution_name == "uniform" or uniform:
-            samples = self.min_value + torch.rand(size) * (self.max_value - self.min_value)
+            samples = self.min_value + torch.rand(size) * (
+                self.max_value - self.min_value
+            )
         elif self.distribution_name == "custom_distribution":
             x_probability = torch.tensor(np.random.uniform(0, 1, size))
-            samples = torch.tensor(np.interp(x_probability, self.cdf, [self.min_value + x * (self.max_value - self.min_value) / (len(self.cdf) - 1) for x in range(len(self.cdf))]))
+            samples = torch.tensor(
+                np.interp(
+                    x_probability,
+                    self.cdf,
+                    [
+                        self.min_value
+                        + x * (self.max_value - self.min_value) / (len(self.cdf) - 1)
+                        for x in range(len(self.cdf))
+                    ],
+                )
+            )
         elif self.distribution_name == "gaussian":
             # truncnorm expects limits in number of stds
-            a, b = (self.min_value - self.distribution_parameters[0]) / self.distribution_parameters[1], (self.max_value - self.distribution_parameters[0]) / self.distribution_parameters[1]
+            a, b = (
+                self.min_value - self.distribution_parameters[0]
+            ) / self.distribution_parameters[1], (
+                self.max_value - self.distribution_parameters[0]
+            ) / self.distribution_parameters[
+                1
+            ]
             samples = torch.tensor(
                 truncnorm.rvs(
                     a=a,
@@ -148,12 +170,25 @@ class RealParameter(Parameter):
         """
         x = x.view(-1)
         if self.distribution_name == "custom_distribution":
-            return np.interp(x, [self.min_value + x * (self.max_value - self.min_value) / (len(self.probability_distribution) - 1) for x in range(len(self.probability_distribution))], self.probability_distribution)
+            return np.interp(
+                x,
+                [
+                    self.min_value
+                    + x
+                    * (self.max_value - self.min_value)
+                    / (len(self.probability_distribution) - 1)
+                    for x in range(len(self.probability_distribution))
+                ],
+                self.probability_distribution,
+            )
         elif self.distribution_name == "gaussian":
             mean = self.distribution_parameters[0]
             std = self.distribution_parameters[1]
             dist = torch.distributions.Normal(mean, std)
-            return torch.exp(dist.log_prob(x)) / (dist.cdf(torch.tensor(self.max_value)) - dist.cdf(torch.tensor(self.min_value)))
+            return torch.exp(dist.log_prob(x)) / (
+                dist.cdf(torch.tensor(self.max_value))
+                - dist.cdf(torch.tensor(self.min_value))
+            )
         elif self.distribution_name == "uniform":
             return torch.ones_like(x) / (self.max_value - self.min_value)
 
@@ -173,12 +208,11 @@ class RealParameter(Parameter):
         return self.max_value
 
     def convert(
-            self,
-            input_value: Union[str, float],
-            from_type: str,
-            to_type: str,
+        self,
+        input_value: Union[str, float],
+        from_type: str,
+        to_type: str,
     ):
-
         """
         converts a single value between formats
 
@@ -192,14 +226,18 @@ class RealParameter(Parameter):
         if from_type == "string":
             intermediate_value = float(input_value)
         elif from_type == "01":
-            intermediate_value = input_value * (self.get_max() - self.get_min()) + self.get_min()
+            intermediate_value = (
+                input_value * (self.get_max() - self.get_min()) + self.get_min()
+            )
         else:
             intermediate_value = input_value
 
         if to_type == "string":
             return f"{intermediate_value}"
         elif to_type == "01":
-            return (intermediate_value - self.get_min()) / (self.get_max() - self.get_min())
+            return (intermediate_value - self.get_min()) / (
+                self.get_max() - self.get_min()
+            )
         else:
             return intermediate_value
 
@@ -210,15 +248,15 @@ class IntegerParameter(Parameter):
     """
 
     def __init__(
-            self,
-            name: str,
-            min_value: int,
-            max_value: int,
-            default: int,
-            probability_distribution: Union[str, List[float]],
-            constraints: Optional[List[str]] = None,
-            dependencies: Optional[List[str]] = None,
-            transform: Optional[str] = "none",
+        self,
+        name: str,
+        min_value: int,
+        max_value: int,
+        default: int,
+        probability_distribution: Union[str, List[float]],
+        constraints: Optional[List[str]] = None,
+        dependencies: Optional[List[str]] = None,
+        transform: Optional[str] = "none",
     ):
         """
         Initialization method. The possible values for this parameter are between min_value and max_value.
@@ -240,7 +278,9 @@ class IntegerParameter(Parameter):
         self.min_value = min_value
         self.max_value = max_value
         self.values = torch.arange(min_value, max_value + 1)
-        self.val_indices = dict(zip(self.values.to(dtype=torch.long).numpy(), list(range(len(self.values)))))
+        self.val_indices = dict(
+            zip(self.values.to(dtype=torch.long).numpy(), list(range(len(self.values))))
+        )
         self.transform = transform
 
         if isinstance(probability_distribution, str):
@@ -249,8 +289,12 @@ class IntegerParameter(Parameter):
                 self.distribution = torch.ones(len(self.values)) / len(self.values)
         else:
             self.distribution_name = "custom_distribution"
-            self.distribution = torch.tensor(probability_distribution) / np.sum(probability_distribution)
-        assert self.distribution_name in (["uniform", "custom_distribution"]), f"invalid distribution {self.distribution_name} for IntegerParameter."
+            self.distribution = torch.tensor(probability_distribution) / np.sum(
+                probability_distribution
+            )
+        assert self.distribution_name in (
+            ["uniform", "custom_distribution"]
+        ), f"invalid distribution {self.distribution_name} for IntegerParameter."
 
     def sample(self, size=1, uniform=False) -> torch.Tensor:
         """
@@ -294,10 +338,10 @@ class IntegerParameter(Parameter):
         return self.max_value
 
     def convert(
-            self,
-            input_value: Union[str, float],
-            from_type: str,
-            to_type: str,
+        self,
+        input_value: Union[str, float],
+        from_type: str,
+        to_type: str,
     ):
         """
         converts a single value between formats
@@ -312,14 +356,21 @@ class IntegerParameter(Parameter):
         if from_type in ["string", "internal"]:
             intermediate_value = int(input_value)
         elif from_type == "01":
-            intermediate_value = int(np.floor(input_value * (self.get_max() + 0.999999 - self.get_min()))) + self.get_min()
+            intermediate_value = (
+                int(
+                    np.floor(input_value * (self.get_max() + 0.999999 - self.get_min()))
+                )
+                + self.get_min()
+            )
         else:
             intermediate_value = input_value
 
         if to_type == "string":
             return f"{intermediate_value}"
         elif to_type == "01":
-            return (intermediate_value - self.get_min()) / (self.get_max() - self.get_min())
+            return (intermediate_value - self.get_min()) / (
+                self.get_max() - self.get_min()
+            )
         else:
             return intermediate_value
 
@@ -330,14 +381,14 @@ class OrdinalParameter(Parameter):
     """
 
     def __init__(
-            self,
-            name: str,
-            values: List[float],
-            default: float,
-            probability_distribution: Union[str, List[float]],
-            constraints: List[str] = None,
-            dependencies: List[str] = None,
-            transform: Optional[str] = "none",
+        self,
+        name: str,
+        values: List[float],
+        default: float,
+        probability_distribution: Union[str, List[float]],
+        constraints: List[str] = None,
+        dependencies: List[str] = None,
+        transform: Optional[str] = "none",
     ):
         """
         Initialization method. The possible values for this parameter are defined by the list values.
@@ -357,7 +408,9 @@ class OrdinalParameter(Parameter):
         Parameter.__init__(self, name, default, constraints, dependencies)
         self.values = torch.tensor(sorted(values, key=float))  # ascending order
         self.int_ordinal = all([v % 1 == 0 for v in self.values])
-        self.val_indices = dict(zip(self.values.to(dtype=torch.long).numpy(), list(range(len(self.values)))))
+        self.val_indices = dict(
+            zip(self.values.to(dtype=torch.long).numpy(), list(range(len(self.values))))
+        )
         self.distribution = []
         self.transform = transform
 
@@ -367,7 +420,9 @@ class OrdinalParameter(Parameter):
         else:
             self.distribution_name = "custom_distribution"
             self.distribution = torch.tensor(probability_distribution)
-        assert self.distribution_name in (["uniform", "custom_distribution"]), f"invalid distribution {self.distribution_name} for OrdinalParameter."
+        assert self.distribution_name in (
+            ["uniform", "custom_distribution"]
+        ), f"invalid distribution {self.distribution_name} for OrdinalParameter."
 
     def sample(self, size=1, uniform=False) -> torch.Tensor:
         """
@@ -423,10 +478,10 @@ class OrdinalParameter(Parameter):
             exit()
 
     def convert(
-            self,
-            input_value: Union[str, float],
-            from_type: str,
-            to_type: str,
+        self,
+        input_value: Union[str, float],
+        from_type: str,
+        to_type: str,
     ):
         """
         converts a single value between formats
@@ -441,7 +496,9 @@ class OrdinalParameter(Parameter):
         if from_type == "string":
             intermediate_value = float(input_value)
         elif from_type == "01":
-            intermediate_value = self.values[int(np.floor(input_value * self.get_size() * 0.999999))]
+            intermediate_value = self.values[
+                int(np.floor(input_value * self.get_size() * 0.999999))
+            ]
         else:
             intermediate_value = input_value
 
@@ -466,13 +523,13 @@ class CategoricalParameter(Parameter):
     """
 
     def __init__(
-            self,
-            name: str,
-            values: List[str],
-            default: str,
-            probability_distribution: Union[str, List[float]],
-            constraints: Optional[List[str]] = None,
-            dependencies: Optional[List[str]] = None,
+        self,
+        name: str,
+        values: List[str],
+        default: str,
+        probability_distribution: Union[str, List[float]],
+        constraints: Optional[List[str]] = None,
+        dependencies: Optional[List[str]] = None,
     ):
         """
         Initialization method. The possible values for this parameter are defined by the list values.
@@ -556,10 +613,10 @@ class CategoricalParameter(Parameter):
         return str(self.string_values[int(idx_value)].encode())
 
     def convert(
-            self,
-            input_value: Union[str, float],
-            from_type: str,
-            to_type: str,
+        self,
+        input_value: Union[str, float],
+        from_type: str,
+        to_type: str,
     ):
         """
         converts a single value between formats
@@ -615,13 +672,13 @@ class PermutationParameter(Parameter):
     """
 
     def __init__(
-            self,
-            name: str,
-            n_elements: int,
-            default: List[int],
-            parametrization: str,
-            constraints: Optional[List[str]] = None,
-            dependencies: Optional[List[str]] = None,
+        self,
+        name: str,
+        n_elements: int,
+        default: List[int],
+        parametrization: str,
+        constraints: Optional[List[str]] = None,
+        dependencies: Optional[List[str]] = None,
     ):
         """
         Initialization method. The possible values for this parameter are defined by the list values.
@@ -639,7 +696,9 @@ class PermutationParameter(Parameter):
         if constraints is None:
             constraints = []
         self.n_elements = n_elements
-        self.permutation_values: List[tuple] = [p for p in permutations([x for x in range(self.n_elements)])]
+        self.permutation_values: List[tuple] = [
+            p for p in permutations([x for x in range(self.n_elements)])
+        ]
         self.string_values = [f"{tuple(p)}" for p in self.permutation_values]
         self.values = torch.arange(len(self.permutation_values))
         self.default_index = None
@@ -649,10 +708,11 @@ class PermutationParameter(Parameter):
 
         self.parametrization = parametrization.lower()
         self.distribution = torch.ones(len(self.values)) / len(self.values)
-        self.val_indices = {i.item(): i for i in self.values}  # from internal to index (which are the same for permutations)
+        self.val_indices = {
+            i.item(): i for i in self.values
+        }  # from internal to index (which are the same for permutations)
 
     def parametrize(self, data: List[int]) -> Tuple[List[str], List[List[float]]]:
-
         """
         Provides a parametrization representation of the variable.
 
@@ -700,10 +760,11 @@ class PermutationParameter(Parameter):
                     for j in range(self.n_elements)
                 ],
                 [
-                    [self.permutation_values[int(d)][i] == j
-                     for i in range(self.n_elements)
-                     for j in range(self.n_elements)
-                     ]
+                    [
+                        self.permutation_values[int(d)][i] == j
+                        for i in range(self.n_elements)
+                        for j in range(self.n_elements)
+                    ]
                     for d in data
                 ],
             )
@@ -774,10 +835,10 @@ class PermutationParameter(Parameter):
         return f"{tuple(self.get_permutation_value(idx_value))}"
 
     def convert(
-            self,
-            input_value: Union[str, float, tuple],
-            from_type: str,
-            to_type: str,
+        self,
+        input_value: Union[str, float, tuple],
+        from_type: str,
+        to_type: str,
     ):
         """
         converts a single value between formats

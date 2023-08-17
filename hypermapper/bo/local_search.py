@@ -5,16 +5,23 @@ import torch
 from scipy.stats import truncnorm
 
 from hypermapper.param import space
-from hypermapper.param.parameters import Parameter, CategoricalParameter, PermutationParameter, OrdinalParameter, RealParameter, IntegerParameter
+from hypermapper.param.parameters import (
+    Parameter,
+    CategoricalParameter,
+    PermutationParameter,
+    OrdinalParameter,
+    RealParameter,
+    IntegerParameter,
+)
 
 
 def get_parameter_neighbors(
-        configuration: torch.Tensor,
-        parameter: Parameter,
-        parameter_idx: int,
-        only_smaller: Optional[bool] = False,
-        only_larger: Optional[bool] = False,
-        local_search_step_size: float = 0.03,
+    configuration: torch.Tensor,
+    parameter: Parameter,
+    parameter_idx: int,
+    only_smaller: Optional[bool] = False,
+    only_larger: Optional[bool] = False,
+    local_search_step_size: float = 0.03,
 ) -> torch.Tensor:
     """
     Returns neighbors for a single parameter.
@@ -51,7 +58,9 @@ def get_parameter_neighbors(
                 for j in range(i + 1, parameter.n_elements):
                     # swap i and j (probably sloooow)
                     neighbor = configuration.clone()
-                    permutation: List[int] = list(parameter.get_permutation_value(configuration[parameter_idx]))
+                    permutation: List[int] = list(
+                        parameter.get_permutation_value(configuration[parameter_idx])
+                    )
                     j_val = permutation[j]
                     permutation[j] = permutation[i]
                     permutation[i] = j_val
@@ -71,15 +80,28 @@ def get_parameter_neighbors(
         values = parameter.get_values()
         parameter_value = configuration[parameter_idx]
         value_idx = parameter.val_indices[parameter_value.item()]
-        values_list = ([values[value_idx - 1]] if value_idx > 0 and not only_larger else []) + ([values[value_idx + 1]] if value_idx < len(values) - 1 and not only_smaller else [])
+        values_list = (
+            [values[value_idx - 1]] if value_idx > 0 and not only_larger else []
+        ) + (
+            [values[value_idx + 1]]
+            if value_idx < len(values) - 1 and not only_smaller
+            else []
+        )
         for value in values_list:
             neighbor = configuration.clone()
             neighbor[parameter_idx] = value
             neighbors.append(neighbor)
 
     elif isinstance(parameter, IntegerParameter):
-        values_list = ([configuration[parameter_idx] - 1] if configuration[parameter_idx] > parameter.min_value and not only_larger else []) + \
-                      ([configuration[parameter_idx] + 1] if configuration[parameter_idx] < parameter.max_value and not only_smaller else [])
+        values_list = (
+            [configuration[parameter_idx] - 1]
+            if configuration[parameter_idx] > parameter.min_value and not only_larger
+            else []
+        ) + (
+            [configuration[parameter_idx] + 1]
+            if configuration[parameter_idx] < parameter.max_value and not only_smaller
+            else []
+        )
         for value in values_list:
             neighbor = configuration.clone()
             neighbor[parameter_idx] = value
@@ -105,8 +127,7 @@ def get_parameter_neighbors(
 
 
 def get_neighbors(
-        configuration: torch.Tensor,
-        param_space: space.Space
+    configuration: torch.Tensor, param_space: space.Space
 ) -> torch.Tensor:
     """
     Get the neighbors of a configuration
@@ -125,18 +146,30 @@ def get_neighbors(
         neighbors = configuration.unsqueeze(0)
 
         for parameter_idx, parameter in enumerate(parameters):
-            if isinstance(parameter, RealParameter) and param_space.use_gradient_descent:
+            if (
+                isinstance(parameter, RealParameter)
+                and param_space.use_gradient_descent
+            ):
                 continue
             neighbors = torch.cat(
-                (neighbors,
-                 get_parameter_neighbors(configuration, parameter, parameter_idx, local_search_step_size=param_space.settings["local_search_step_size"])
-                 ), 0)
+                (
+                    neighbors,
+                    get_parameter_neighbors(
+                        configuration,
+                        parameter,
+                        parameter_idx,
+                        local_search_step_size=param_space.settings[
+                            "local_search_step_size"
+                        ],
+                    ),
+                ),
+                0,
+            )
         return neighbors
 
 
 def _generate_conditional_neighbors(
-        configuration: torch.Tensor,
-        param_space: space.Space
+    configuration: torch.Tensor, param_space: space.Space
 ) -> torch.Tensor:
     """
     Support method to get_neighbours()
@@ -154,9 +187,13 @@ def _generate_conditional_neighbors(
         parameter_type = param_space.parameter_types[parameter_idx]
 
         if parameter_type in ("categorical", "permutation"):
-            parameter_neighbors = get_parameter_neighbors(configuration, parameter, parameter_idx)
+            parameter_neighbors = get_parameter_neighbors(
+                configuration, parameter, parameter_idx
+            )
             feasible = param_space.evaluate(parameter_neighbors, True)
-            neighbors.extend([neighbor for neighbor, f in zip(parameter_neighbors, feasible) if f])
+            neighbors.extend(
+                [neighbor for neighbor, f in zip(parameter_neighbors, feasible) if f]
+            )
 
         elif parameter_type in ["integer", "ordinal"]:
             """
@@ -164,7 +201,9 @@ def _generate_conditional_neighbors(
             """
             tmp_configuration = configuration
             while True:
-                parameter_neighbors = get_parameter_neighbors(tmp_configuration, parameter, parameter_idx, only_larger=True)
+                parameter_neighbors = get_parameter_neighbors(
+                    tmp_configuration, parameter, parameter_idx, only_larger=True
+                )
                 if len(parameter_neighbors) == 0:
                     break
                 if param_space.evaluate(parameter_neighbors, True)[0]:
@@ -177,7 +216,9 @@ def _generate_conditional_neighbors(
             """
             tmp_configuration = configuration
             while True:
-                parameter_neighbors = get_parameter_neighbors(tmp_configuration, parameter, parameter_idx, only_smaller=True)
+                parameter_neighbors = get_parameter_neighbors(
+                    tmp_configuration, parameter, parameter_idx, only_smaller=True
+                )
                 if len(parameter_neighbors) == 0:
                     break
                 if param_space.evaluate(parameter_neighbors, True)[0]:
@@ -188,9 +229,16 @@ def _generate_conditional_neighbors(
         elif parameter_type == "real":
             if param_space.use_gradient_descent:
                 continue
-            parameter_neighbors = get_parameter_neighbors(configuration, parameter, parameter_idx, local_search_step_size = param_space.settings["local_search_step_size"])
+            parameter_neighbors = get_parameter_neighbors(
+                configuration,
+                parameter,
+                parameter_idx,
+                local_search_step_size=param_space.settings["local_search_step_size"],
+            )
             feasible = param_space.evaluate(parameter_neighbors, True)
-            neighbors.extend([neighbor for neighbor, f in zip(parameter_neighbors, feasible) if f])
+            neighbors.extend(
+                [neighbor for neighbor, f in zip(parameter_neighbors, feasible) if f]
+            )
 
     if neighbors:
         return torch.cat([n.unsqueeze(0) for n in neighbors], 0)
@@ -199,11 +247,11 @@ def _generate_conditional_neighbors(
 
 
 def local_search(
-        start_configuration: torch.Tensor,
-        settings: Dict,
-        param_space: space.Space,
-        acquisition_function: Callable,
-        acquisition_function_parameters: Dict,
+    start_configuration: torch.Tensor,
+    settings: Dict,
+    param_space: space.Space,
+    acquisition_function: Callable,
+    acquisition_function_parameters: Dict,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Optimize the acquisition function using a mix of random and local search.
@@ -237,13 +285,14 @@ def local_search(
     while True:
         neighbors = get_neighbors(configuration, param_space)
         neighbor_values = acquisition_function(
-            settings,
-            param_space,
-            X=neighbors,
-            **acquisition_function_parameters
+            settings, param_space, X=neighbors, **acquisition_function_parameters
         )
         if neighbor_values.shape[0] == 0:
-            sys.stdout.write_to_logfile("No neighbours found: " + f"<{' '.join(str(x.item()) for x in configuration)}>" + "\n")
+            sys.stdout.write_to_logfile(
+                "No neighbours found: "
+                + f"<{' '.join(str(x.item()) for x in configuration)}>"
+                + "\n"
+            )
             break
 
         new_best_value, best_idx = torch.max(neighbor_values, 0)
@@ -256,7 +305,11 @@ def local_search(
             + "\n"
         )
 
-        if torch.all(torch.eq(configuration, best_neighbor)) or new_best_value <= current_best_value + settings["local_search_improvement_threshold"]:
+        if (
+            torch.all(torch.eq(configuration, best_neighbor))
+            or new_best_value
+            <= current_best_value + settings["local_search_improvement_threshold"]
+        ):
             acquisition_function_parameters["verbose"] = True
             acquisition_function(
                 settings,
@@ -272,6 +325,3 @@ def local_search(
             current_best_value = new_best_value
 
     return configuration, current_best_value
-
-
-

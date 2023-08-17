@@ -24,13 +24,14 @@ def hpvm(X):
     :return: the value of the branin function.
     """
 
+    return {"ExecTime": np.sum([float(x) ** 2 for x in X.values()]), "Valid": True}
 
-    return {"ExecTime" : np.sum([float(x)**2 for x in X.values()]), "Valid" : True}
 
 def main():
     parameters_file = "example_scenarios/synthetic/hpvm/hpvm_scenario.json"
     optimizer.optimize(parameters_file, hpvm)
     print("End")
+
 
 if __name__ == "__main__":
     main()

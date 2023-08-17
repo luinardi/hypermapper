@@ -15,6 +15,7 @@ from hypermapper.param.space import Space
 # JSON
 #####################################
 
+
 def read_settings_file(settings_file):
     """
     Reads a json settings file and returns a settings dict.
@@ -94,6 +95,7 @@ def validate_json(parameters_file):
 # GENERAL
 #####################################
 
+
 def add_path(settings: Dict, file_name: str):
     """
     Add run_directory if file_name is not an absolute path.
@@ -125,10 +127,10 @@ def initialize_output_data_file(settings, headers):
          - application_name: the name given to the application in the settings file.
     """
     if settings["output_data_file"] == "output_samples.csv":
-        settings["output_data_file"] = settings["application_name"] + "_" + settings["output_data_file"]
-    settings["output_data_file"] = add_path(
-        settings, settings["output_data_file"]
-    )
+        settings["output_data_file"] = (
+            settings["application_name"] + "_" + settings["output_data_file"]
+        )
+    settings["output_data_file"] = add_path(settings, settings["output_data_file"])
     with open(settings["output_data_file"], "w") as f:
         w = csv.writer(f)
         w.writerow(headers)
@@ -138,11 +140,12 @@ def initialize_output_data_file(settings, headers):
 # SAVE AND LOAD
 #####################################
 
+
 def load_data_file(
-        space: Space,
-        data_file: str,
-        selection_keys_list: list = None,
-        only_valid=False,
+    space: Space,
+    data_file: str,
+    selection_keys_list: list = None,
+    only_valid=False,
 ) -> DataArray:
     """
     This function read data from a csv file.
@@ -173,21 +176,42 @@ def load_data_file(
             )
 
     # make sure that the values are in the correct order
-    parameter_indices = [headers.index(parameter_name) for parameter_name in space.parameter_names if parameter_name in selection_keys_list or not selection_keys_list]
-    parameters_array = space.convert([[row[i] for i in parameter_indices] for row in data], from_type="string", to_type="internal")
+    parameter_indices = [
+        headers.index(parameter_name)
+        for parameter_name in space.parameter_names
+        if parameter_name in selection_keys_list or not selection_keys_list
+    ]
+    parameters_array = space.convert(
+        [[row[i] for i in parameter_indices] for row in data],
+        from_type="string",
+        to_type="internal",
+    )
 
     metric_indices = [headers.index(metric_name) for metric_name in space.metric_names]
-    metrics_array = torch.tensor([[float(row[i]) for i in metric_indices] for row in data], dtype=torch.float64)
+    metrics_array = torch.tensor(
+        [[float(row[i]) for i in metric_indices] for row in data], dtype=torch.float64
+    )
     if space.enable_feasible_predictor:
-        feasible_array = torch.tensor([row[headers.index(space.feasible_output_name)] == space.true_value for row in data], dtype=torch.bool)
+        feasible_array = torch.tensor(
+            [
+                row[headers.index(space.feasible_output_name)] == space.true_value
+                for row in data
+            ],
+            dtype=torch.bool,
+        )
     else:
         feasible_array = torch.Tensor()
     if "timestamp" in headers:
-        timestamp_array = torch.tensor([float(row[headers.index("timestamp")]) for row in data], dtype=torch.float64)
+        timestamp_array = torch.tensor(
+            [float(row[headers.index("timestamp")]) for row in data],
+            dtype=torch.float64,
+        )
     else:
         timestamp_array = torch.zeros(parameters_array.shape[0], dtype=torch.float64)
 
-    data_array = DataArray(parameters_array, metrics_array, timestamp_array, feasible_array)
+    data_array = DataArray(
+        parameters_array, metrics_array, timestamp_array, feasible_array
+    )
     # Filtering the valid rows
     if only_valid:
         data_array = data_array.get_feasible()
@@ -196,10 +220,10 @@ def load_data_file(
 
 
 def load_data_files(
-        space: Space,
-        filenames: List[str],
-        selection_keys_list: list = [],
-        only_valid: bool = False
+    space: Space,
+    filenames: List[str],
+    selection_keys_list: list = [],
+    only_valid: bool = False,
 ):
     """
     Create a new data structure that contains the merged info from all the files.
@@ -212,7 +236,15 @@ def load_data_files(
     Returns:
         - an array with the info in the param files merged.
     """
-    arrays = [load_data_file(space, filename, selection_keys_list=selection_keys_list, only_valid=only_valid)[:-1] for filename in filenames]
+    arrays = [
+        load_data_file(
+            space,
+            filename,
+            selection_keys_list=selection_keys_list,
+            only_valid=only_valid,
+        )[:-1]
+        for filename in filenames
+    ]
     data_array = arrays[0]
     for array in arrays[1:]:
         data_array.cat(array)
@@ -235,11 +267,17 @@ def load_previous(space: Space, settings: Dict) -> Tuple[DataArray, Any, Any]:
     if not settings["resume_optimization_file"].endswith(".csv"):
         raise Exception("Error: resume data file must be a CSV")
     if settings["resume_optimization_file"] == "output_samples.csv":
-        settings["resume_optimization_file"] = settings["application_name"] + "_output_samples.csv"
+        settings["resume_optimization_file"] = (
+            settings["application_name"] + "_output_samples.csv"
+        )
 
     data_array = load_data_file(space, settings["resume_optimization_file"])
-    absolute_configuration_index = data_array.len  # get the number of points evaluated in the previous run
-    beginning_of_time = data_array.timestamp_array[-1]  # Set the timestamp back to match the previous run
+    absolute_configuration_index = (
+        data_array.len
+    )  # get the number of points evaluated in the previous run
+    beginning_of_time = data_array.timestamp_array[
+        -1
+    ]  # Set the timestamp back to match the previous run
     print(
         "Resumed optimization, number of samples = %d ......."
         % absolute_configuration_index

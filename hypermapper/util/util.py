@@ -9,7 +9,6 @@ from hypermapper.param.data import DataArray
 
 
 def update_mean_std(values: torch.Tensor, settings: Dict):
-
     """
     Update the mean and standard deviation of the objective function values.
     Args:
@@ -35,6 +34,7 @@ def update_mean_std(values: torch.Tensor, settings: Dict):
 # Data structure handling
 ####################################################
 
+
 def are_configurations_equal(configuration1, configuration2):
     """
     Compare two configurations. They are considered equal if they hold the same values for all keys.
@@ -51,7 +51,9 @@ def are_configurations_equal(configuration1, configuration2):
     return True
 
 
-def get_min_configurations(data_array: DataArray, number_of_configurations: int) -> DataArray:
+def get_min_configurations(
+    data_array: DataArray, number_of_configurations: int
+) -> DataArray:
     """
     Get the configurations with minimum value according to the comparison key
 
@@ -63,17 +65,22 @@ def get_min_configurations(data_array: DataArray, number_of_configurations: int)
     """
 
     if data_array.metrics_array.shape[1] > 1:
-        raise Exception("Calling min config on a multi-objective problem which is not implemented. ")
+        raise Exception(
+            "Calling min config on a multi-objective problem which is not implemented. "
+        )
 
-    number_of_configurations = min(number_of_configurations, data_array.metrics_array.shape[0])
-    best_indices = torch.sort(data_array.metrics_array[0]).indices[:number_of_configurations]
+    number_of_configurations = min(
+        number_of_configurations, data_array.metrics_array.shape[0]
+    )
+    best_indices = torch.sort(data_array.metrics_array[0]).indices[
+        :number_of_configurations
+    ]
 
     return data_array.slice(best_indices)
 
 
 def get_min_feasible_configurations(
-        data_array: DataArray,
-        number_of_configurations: int
+    data_array: DataArray, number_of_configurations: int
 ):
     """
     Input:
@@ -105,8 +112,8 @@ def lex_sort_unique(matrix: np.ndarray) -> List[bool]:
 
 
 def remove_duplicate_configs(
-        configurations: Union[np.ndarray, Tuple[np.ndarray]],
-        ignore_columns=None,
+    configurations: Union[np.ndarray, Tuple[np.ndarray]],
+    ignore_columns=None,
 ):
     """
     Removes the duplicates from the combined configurations configs, and lets the first configs keep the remaining
@@ -125,13 +132,13 @@ def remove_duplicate_configs(
         if ignore_columns is not None:
             merged_configs = np.delete(merged_configs, ignore_columns, axis=1)
         # _, unique_indices = np.unique(merged_configs, return_index=True, axis=0)
-        unique_indices = np.arange(len(merged_configs))[
-            lex_sort_unique(merged_configs)
-        ]
+        unique_indices = np.arange(len(merged_configs))[lex_sort_unique(merged_configs)]
 
         split_unique_indices = []
         for config_length in config_lengths:
-            split_unique_indices.append([i for i in unique_indices if 0 <= i < config_length])
+            split_unique_indices.append(
+                [i for i in unique_indices if 0 <= i < config_length]
+            )
             unique_indices -= config_length
         return [
             configurations[i][split_unique_indices[i]]
@@ -143,9 +150,7 @@ def remove_duplicate_configs(
         if ignore_columns is not None:
             configs_copy = np.delete(configs_copy, ignore_columns, axis=1)
         # _, unique_indices = np.unique(configs_copy, return_index=True, axis=0)
-        unique_indices = np.arange(len(configs_copy))[
-            lex_sort_unique(configs_copy)
-        ]
+        unique_indices = np.arange(len(configs_copy))[lex_sort_unique(configs_copy)]
         return configurations[unique_indices]
 
 
@@ -204,6 +209,7 @@ get_next_color.color_count = 0
 # Scalarization
 ####################################################
 
+
 def sample_weight_flat(optimization_metrics):
     """
     Sample lambdas for each objective following a dirichlet distribution with alphas equal to 1.
@@ -214,8 +220,6 @@ def sample_weight_flat(optimization_metrics):
         - a list containing the weight of each objective.
     """
     alphas = np.ones(len(optimization_metrics))
-    sampled_weights = stats.dirichlet.rvs(
-        alpha=alphas, size=1
-    )
+    sampled_weights = stats.dirichlet.rvs(alpha=alphas, size=1)
 
     return torch.tensor(sampled_weights)

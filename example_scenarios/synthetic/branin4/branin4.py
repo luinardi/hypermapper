@@ -7,9 +7,8 @@ import warnings
 from collections import OrderedDict
 
 # ensure backward compatibility
-sys.path.insert(0,".")
+sys.path.insert(0, ".")
 from hypermapper import optimizer  # noqa
-
 
 
 def branin_function(x1, x2):

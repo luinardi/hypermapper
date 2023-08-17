@@ -9,37 +9,40 @@ import torch
 from hypermapper.bo.models.rf import RFRegressionModel, RFClassificationModel
 from hypermapper.param.data import DataArray
 from hypermapper.param.space import Space
-from hypermapper.param.transformations import transform_data, preprocess_parameters_array, transform_estimate
+from hypermapper.param.transformations import (
+    transform_data,
+    preprocess_parameters_array,
+    transform_estimate,
+)
 
 
 class Model:
-
     @abstractmethod
     def fit(
-            self,
-            settings: Dict[str, Any],
-            previous_hyperparameters: Union[Dict[str, Any], None],
+        self,
+        settings: Dict[str, Any],
+        previous_hyperparameters: Union[Dict[str, Any], None],
     ):
         raise NotImplementedError
 
     @abstractmethod
     def get_mean_and_std(
-            self,
-            normalized_data,
-            predict_noiseless,
-            use_var=False,
+        self,
+        normalized_data,
+        predict_noiseless,
+        use_var=False,
     ):
         raise NotImplementedError
 
 
 def generate_mono_output_regression_models(
-        settings: Dict[str, Any],
-        data_array: DataArray,
-        param_space: Space,
-        objective_means: torch.Tensor = None,
-        objective_stds: torch.Tensor = None,
-        previous_hyperparameters: Dict[str, Union[float, List]] = None,
-        reoptimize: bool = True,
+    settings: Dict[str, Any],
+    data_array: DataArray,
+    param_space: Space,
+    objective_means: torch.Tensor = None,
+    objective_stds: torch.Tensor = None,
+    previous_hyperparameters: Dict[str, Union[float, List]] = None,
+    reoptimize: bool = True,
 ) -> Union[Tuple[List[Any], Dict[str, float]], Tuple[None, None]]:
     """
     Fit a regression model, supported model types are Random Forest and Gaussian Process.
@@ -60,7 +63,9 @@ def generate_mono_output_regression_models(
     """
     start_time = time.time()
 
-    X, Y, parametrization_names = transform_data(settings, data_array, param_space, objective_means, objective_stds)
+    X, Y, parametrization_names = transform_data(
+        settings, data_array, param_space, objective_means, objective_stds
+    )
 
     models = []
     hyperparameters = None
@@ -69,20 +74,29 @@ def generate_mono_output_regression_models(
         if settings["models"]["model"] == "gaussian_process":
             if settings["GP_model"] == "gpy":
                 from hypermapper.bo.models.gpgpy import GpGpy
+
                 model = GpGpy(settings, X, y)
             elif settings["GP_model"] == "botorch":
                 from hypermapper.bo.models.gpbotorch import GpBotorch
+
                 model = GpBotorch(settings, X, y)
             elif settings["GP_model"] == "gpytorch":
                 from hypermapper.bo.models.gpgpytorch import GpGpytorch
+
                 model = GpGpytorch(settings, X, y)
             elif settings["GP_model"] == "botorch_fixed":
                 from hypermapper.bo.models.gpbotorch import GpBotorchFixed
-                std_estimate = transform_estimate(settings, data_array.std_estimate, objective_means, objective_stds)
+
+                std_estimate = transform_estimate(
+                    settings, data_array.std_estimate, objective_means, objective_stds
+                )
                 model = GpBotorchFixed(settings, X, y, std_estimate)
             elif settings["GP_model"] == "botorch_heteroskedastic":
                 from hypermapper.bo.models.gpbotorch import GpBotorchHeteroskedastic
-                std_estimate = transform_estimate(settings, data_array.std_estimate, objective_means, objective_stds)
+
+                std_estimate = transform_estimate(
+                    settings, data_array.std_estimate, objective_means, objective_stds
+                )
                 model = GpBotorchHeteroskedastic(settings, X, y, std_estimate)
             else:
                 raise Exception("Unrecognized GP model type:", settings["GP_model"])
@@ -91,7 +105,9 @@ def generate_mono_output_regression_models(
                 if hyperparameters is None:
                     return None, None
             else:
-                model.covar_module.base_kernel.lengthscale = tuple(previous_hyperparameters["lengthscale"])
+                model.covar_module.base_kernel.lengthscale = tuple(
+                    previous_hyperparameters["lengthscale"]
+                )
                 model.covar_module.outputscale = previous_hyperparameters["variance"]
                 model.likelihood.noise_covar.noise = previous_hyperparameters["noise"]
 
@@ -102,21 +118,25 @@ def generate_mono_output_regression_models(
                 bootstrap=settings["models"]["bootstrap"],
                 min_samples_split=settings["models"]["min_samples_split"],
                 use_all_data_to_fit_mean=settings["models"]["use_all_data_to_fit_mean"],
-                use_all_data_to_fit_variance=settings["models"]["use_all_data_to_fit_variance"],
+                use_all_data_to_fit_variance=settings["models"][
+                    "use_all_data_to_fit_variance"
+                ],
             )
             model.fit_rf(X, y)
         else:
             raise Exception("Unrecognized model type:", settings["models"]["model"])
 
         models.append(model)
-    sys.stdout.write_to_logfile(("End of training - Time %10.2f sec\n" % (time.time() - start_time)))
+    sys.stdout.write_to_logfile(
+        ("End of training - Time %10.2f sec\n" % (time.time() - start_time))
+    )
     return models, hyperparameters
 
 
 def generate_classification_model(
-        settings: Dict[str, Any],
-        param_space: Space,
-        data_array: DataArray,
+    settings: Dict[str, Any],
+    param_space: Space,
+    data_array: DataArray,
 ) -> RFClassificationModel:
     """
     Fit a Random Forest model (for now it is Random Forest but in the future we will host more models here (e.g. GPs and lattices)).
@@ -137,16 +157,19 @@ def generate_classification_model(
         data_array.feasible_array,
     )
 
-    sys.stdout.write_to_logfile("End of training - Time %10.2f sec\n" % ((datetime.datetime.now() - start_time).total_seconds()))
+    sys.stdout.write_to_logfile(
+        "End of training - Time %10.2f sec\n"
+        % ((datetime.datetime.now() - start_time).total_seconds())
+    )
     return classifier
 
 
 def compute_model_mean_and_uncertainty(
-        data: torch.Tensor,
-        models: list,
-        param_space: Space,
-        var: bool = False,
-        predict_noiseless: bool = True,
+    data: torch.Tensor,
+    models: list,
+    param_space: Space,
+    var: bool = False,
+    predict_noiseless: bool = True,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Compute the predicted mean and uncertainty (either standard deviation or variance) for a number of points.

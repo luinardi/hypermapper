@@ -9,11 +9,11 @@ from hypermapper.param.space import Space
 
 
 def transform_data(
-        settings: Dict,
-        data_array: DataArray,
-        param_space: Space,
-        objective_means: torch.Tensor,
-        objective_stds: torch.Tensor,
+    settings: Dict,
+    data_array: DataArray,
+    param_space: Space,
+    objective_means: torch.Tensor,
+    objective_stds: torch.Tensor,
 ) -> Tuple[torch.Tensor, torch.Tensor, List[str]]:
     """
     Transform the data array into a format that can be used by the GP models. It normalizes and the input, standardizes the output
@@ -31,7 +31,9 @@ def transform_data(
 
     """
     # Transform input
-    X, parametrization_names = preprocess_parameters_array(data_array.parameters_array, param_space)
+    X, parametrization_names = preprocess_parameters_array(
+        data_array.parameters_array, param_space
+    )
     # Transform output
     Y = data_array.metrics_array.clone()
     if settings["log_transform_output"]:
@@ -39,7 +41,9 @@ def transform_data(
 
     if settings["standardize_objectives"]:
         if not (objective_means is None or objective_stds is None):
-            Y = (Y - torch.ones(Y.shape) * objective_means) / (torch.ones(Y.shape) * objective_stds)
+            Y = (Y - torch.ones(Y.shape) * objective_means) / (
+                torch.ones(Y.shape) * objective_stds
+            )
         else:
             sys.stdout.write_to_logfile(
                 "Warning: no statistics provided, skipping objective standardization.\n"
@@ -49,10 +53,10 @@ def transform_data(
 
 
 def transform_estimate(
-        settings: Dict,
-        std_estimate: torch.Tensor,
-        objective_means: torch.Tensor,
-        objective_stds: torch.Tensor,
+    settings: Dict,
+    std_estimate: torch.Tensor,
+    objective_means: torch.Tensor,
+    objective_stds: torch.Tensor,
 ):
     """
     Transform the estimate of the standard deviation of the noise used in fixed and heteroskedastic GP noise models.
@@ -64,15 +68,19 @@ def transform_estimate(
     """
 
     if settings["log_transform_output"]:
-        raise Exception("Log transform output not supported with Fixed/Heteroskedastic noise.")
-    if settings["standardize_objectives"] and not (objective_means is None or objective_stds is None):
+        raise Exception(
+            "Log transform output not supported with Fixed/Heteroskedastic noise."
+        )
+    if settings["standardize_objectives"] and not (
+        objective_means is None or objective_stds is None
+    ):
         std_estimate = std_estimate / objective_stds
     return std_estimate
 
 
 def preprocess_parameters_array(
-        X: torch.Tensor,
-        param_space: Space,
+    X: torch.Tensor,
+    param_space: Space,
 ) -> Tuple[torch.Tensor, List[str]]:
     """
     Preprocess a data_array before feeding into a regression/classification model.
@@ -92,9 +100,9 @@ def preprocess_parameters_array(
     new_names = []
     for idx, parameter in enumerate(param_space.parameters):
         if (
-                isinstance(parameter, RealParameter) or
-                isinstance(parameter, IntegerParameter) or
-                isinstance(parameter, OrdinalParameter)
+            isinstance(parameter, RealParameter)
+            or isinstance(parameter, IntegerParameter)
+            or isinstance(parameter, OrdinalParameter)
         ):
             new_names.append(parameter.name)
             new_X = torch.cat((new_X, X[:, idx].unsqueeze(1)), dim=1)

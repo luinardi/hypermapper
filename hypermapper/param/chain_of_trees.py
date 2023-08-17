@@ -17,13 +17,13 @@ class Node:
     """
 
     def __init__(
-            self,
-            parent: Any,
-            value: Any,
-            parameter_name: str,
-            val_idx: int = None,
-            probability: float = 1,
-            prior_weighted_probability: float = 1,
+        self,
+        parent: Any,
+        value: Any,
+        parameter_name: str,
+        val_idx: int = None,
+        probability: float = 1,
+        prior_weighted_probability: float = 1,
     ):
         """
 
@@ -62,9 +62,8 @@ class Node:
         Update the probabilities for the node's child parameters
         """
         if self.children:
-            child_parameter = param_space.parameters[param_space.parameter_names.index(
-                self.children[0].parameter_name
-            )
+            child_parameter = param_space.parameters[
+                param_space.parameter_names.index(self.children[0].parameter_name)
             ]
             child_val_idxs = [child.val_idx for child in self.children]
             child_probability = self.probability / len(self.children)
@@ -130,11 +129,7 @@ class ChainOfTrees:
     of each tree.
     """
 
-    def __init__(
-        self,
-        cot_order: List[int],
-        all_parameters: bool
-    ):
+    def __init__(self, cot_order: List[int], all_parameters: bool):
         """
         Input:
             - cot_order: order in which the variables come in the trees
@@ -147,7 +142,9 @@ class ChainOfTrees:
         self.cot_order = cot_order  # order in which the variables come in the trees
         self.all_parameters = all_parameters
         if all_parameters:
-            self.reverse_order = [cot_order.index(i) for i in range(self.dimension)]  # indices to reverse to the original parameter order
+            self.reverse_order = [
+                cot_order.index(i) for i in range(self.dimension)
+            ]  # indices to reverse to the original parameter order
 
     def to_cot_order(self, configuration: torch.Tensor) -> torch.Tensor:
         """
@@ -163,7 +160,9 @@ class ChainOfTrees:
         Transforms a tensor the original order.
         """
         if not self.all_parameters:
-            raise Exception("ChainOfTrees.to_original_order doesn't work for incomplete trees. See over the code.")
+            raise Exception(
+                "ChainOfTrees.to_original_order doesn't work for incomplete trees. See over the code."
+            )
         if configuration.dim() == 1:
             return configuration[self.reverse_order]
         else:
@@ -192,11 +191,11 @@ class ChainOfTrees:
         return config
 
     def sample(
-            self,
-            n_samples: int,
-            sample_type: str,
-            parameter_names: List[str],
-            allow_repetitions: Optional[bool] = False,
+        self,
+        n_samples: int,
+        sample_type: str,
+        parameter_names: List[str],
+        allow_repetitions: Optional[bool] = False,
     ) -> torch.Tensor:
         """
         Sampling feasible random configurations using the chain of trees.
@@ -227,7 +226,7 @@ class ChainOfTrees:
         else:
             for tree_idx, tree in enumerate(self.trees):
                 allow_repetitions_for_this_tree = (
-                        allow_repetitions or tree_idx != max_length_index
+                    allow_repetitions or tree_idx != max_length_index
                 )
                 if sample_type == "uniform":
                     pr = None
@@ -253,14 +252,16 @@ class ChainOfTrees:
                         output[i].append(nodes[i].value)
                     ordered_names.append(nodes[0].parameter_name)
                     nodes = [node.parent for node in nodes]
-            output = torch.tensor(output)[:, torch.tensor([ordered_names.index(name) for name in parameter_names])]
+            output = torch.tensor(output)[
+                :, torch.tensor([ordered_names.index(name) for name in parameter_names])
+            ]
             return output
 
     def _partitioned_sample(
-            self,
-            n_samples: int,
-            sample_type: str,
-            parameter_names: List[str],
+        self,
+        n_samples: int,
+        sample_type: str,
+        parameter_names: List[str],
     ) -> Tensor:
         """
         this method is a hack to deal with random sampling from a CoT, when we want many samples and no repetitions
@@ -274,7 +275,14 @@ class ChainOfTrees:
         iter = 0
         max_samples = np.max([len(t.get_leaves()) for t in self.get_trees()])
         while len(all_samples) < n_samples and iter < 1000:
-            new_samples = torch.cat([x for x in self.sample(max_samples, sample_type, parameter_names, False).unsqueeze(0)])
+            new_samples = torch.cat(
+                [
+                    x
+                    for x in self.sample(
+                        max_samples, sample_type, parameter_names, False
+                    ).unsqueeze(0)
+                ]
+            )
             if not len(all_samples) == 0:
                 bools = [not (all_samples == x).all(1).any() for x in new_samples]
                 new_samples = new_samples[bools, :]
@@ -338,7 +346,9 @@ class ChainOfTrees:
         configurations = torch.zeros((self.get_size(), self.dimension))
         tree_partial_configurations = []
         for tree_idx, tree in enumerate(self.trees):
-            tree_partial_configurations.append([leaf.get_partial_configuration() for leaf in tree.get_leaves()])
+            tree_partial_configurations.append(
+                [leaf.get_partial_configuration() for leaf in tree.get_leaves()]
+            )
         cartesian_product = list(itertools.product(*tree_partial_configurations))
         for i, c in enumerate(cartesian_product):
             configurations[i, :] = torch.cat(c)
@@ -412,7 +422,12 @@ class Tree:
                 child.set_prior_weighted_probability(
                     current_node.get_probability()
                     * parameter_dict[child.parameter_name].pdf(child.value)
-                    / sum([parameter_dict[c.parameter_name].pdf(c.value) for c in children])
+                    / sum(
+                        [
+                            parameter_dict[c.parameter_name].pdf(c.value)
+                            for c in children
+                        ]
+                    )
                 )
 
     def get_nodes_and_edges(self):

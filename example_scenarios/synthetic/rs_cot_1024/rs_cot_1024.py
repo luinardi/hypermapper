@@ -17,7 +17,6 @@ except:
 
 
 def rs_cot_1024(X):
-
     if isinstance(X, dict):
         v3 = X["tuned_v3"]
         v4 = X["tuned_v4"]

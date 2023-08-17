@@ -21,10 +21,10 @@ class GpBotorch(botorch.models.SingleTaskGP, Model):
     """
 
     def __init__(
-            self,
-            settings,
-            X: torch.Tensor,
-            y: torch.Tensor,
+        self,
+        settings,
+        X: torch.Tensor,
+        y: torch.Tensor,
     ):
         """
         input:
@@ -34,7 +34,10 @@ class GpBotorch(botorch.models.SingleTaskGP, Model):
         """
         y = y.to(X)
 
-        if settings["noise_prior"] is not None and settings["noise_prior"]["name"] == "Gamma":
+        if (
+            settings["noise_prior"] is not None
+            and settings["noise_prior"]["name"] == "Gamma"
+        ):
             noise_prior = GammaPrior(*settings["noise_prior"]["parameters"])
             noise_prior_mode = (noise_prior.concentration - 1) / noise_prior.rate
             likelihood = GaussianLikelihood(
@@ -48,7 +51,9 @@ class GpBotorch(botorch.models.SingleTaskGP, Model):
             )
         else:
             likelihood = None
-        botorch.models.SingleTaskGP.__init__(self, X, y.unsqueeze(1), likelihood=likelihood)
+        botorch.models.SingleTaskGP.__init__(
+            self, X, y.unsqueeze(1), likelihood=likelihood
+        )
 
     def apply_hyperparameters(self, lengthscale, outputscale, noise, mean):
         self.covar_module.base_kernel.lengthscale = lengthscale
@@ -57,9 +62,9 @@ class GpBotorch(botorch.models.SingleTaskGP, Model):
         self.mean_module.constant = mean
 
     def fit(
-            self,
-            settings: Dict[str, Any],
-            previous_hyperparameters: Union[Dict[str, Any], None],
+        self,
+        settings: Dict[str, Any],
+        previous_hyperparameters: Union[Dict[str, Any], None],
     ):
         """
         Fits the model hyperparameters.
@@ -76,21 +81,35 @@ class GpBotorch(botorch.models.SingleTaskGP, Model):
             best_GP = None
 
             # gen sample points
-            sample_points = [(self.covar_module.base_kernel.lengthscale, self.covar_module.outputscale,
-                              self.likelihood.noise_covar.noise.item(), self.mean_module.constant.item())] + [
-                                (10 ** (1.5 * np.random.random(self.train_inputs[0].shape[1]) - 1),
-                                 10 ** (1.5 * np.random.random() - 1),
-                                 10 ** (4 * np.random.random() - 5),
-                                 0
-                                 )
-                                for _ in range(settings["hyperparameter_optimization_iterations"])
-                            ]
+            sample_points = [
+                (
+                    self.covar_module.base_kernel.lengthscale,
+                    self.covar_module.outputscale,
+                    self.likelihood.noise_covar.noise.item(),
+                    self.mean_module.constant.item(),
+                )
+            ] + [
+                (
+                    10 ** (1.5 * np.random.random(self.train_inputs[0].shape[1]) - 1),
+                    10 ** (1.5 * np.random.random() - 1),
+                    10 ** (4 * np.random.random() - 5),
+                    0,
+                )
+                for _ in range(settings["hyperparameter_optimization_iterations"])
+            ]
 
             for i, sample_point in enumerate(sample_points):
                 try:
-                    self.apply_hyperparameters(sample_point[0], sample_point[1], sample_point[2], sample_point[3])
+                    self.apply_hyperparameters(
+                        sample_point[0],
+                        sample_point[1],
+                        sample_point[2],
+                        sample_point[3],
+                    )
                     try:
-                        warnings.filterwarnings("ignore", category=gpytorch.utils.warnings.GPInputWarning)
+                        warnings.filterwarnings(
+                            "ignore", category=gpytorch.utils.warnings.GPInputWarning
+                        )
                         fit_gpytorch_mll(mll)
                     except Exception as e:
                         print(f"Warning: failed to fit in iteration {i}")
@@ -99,8 +118,12 @@ class GpBotorch(botorch.models.SingleTaskGP, Model):
                     mll_val = mll(self(*self.train_inputs), self.train_targets)
                     if mll_val > best_log_likelihood:
                         best_log_likelihood = mll_val
-                        best_GP = (self.covar_module.base_kernel.lengthscale, self.covar_module.outputscale,
-                                   self.likelihood.noise_covar.noise.item(), self.mean_module.constant.item())
+                        best_GP = (
+                            self.covar_module.base_kernel.lengthscale,
+                            self.covar_module.outputscale,
+                            self.likelihood.noise_covar.noise.item(),
+                            self.mean_module.constant.item(),
+                        )
 
                     if mll_val < worst_log_likelihood:
                         worst_log_likelihood = mll_val
@@ -109,10 +132,14 @@ class GpBotorch(botorch.models.SingleTaskGP, Model):
                     pass
 
             if best_GP is None:
-                sys.stdout.write_to_logfile(f"Failed to fit the GP hyperparameters in all of the {settings['hyperparameter_optimization_iterations']} initial points.\n")
+                sys.stdout.write_to_logfile(
+                    f"Failed to fit the GP hyperparameters in all of the {settings['hyperparameter_optimization_iterations']} initial points.\n"
+                )
                 return None
             try:
-                self.apply_hyperparameters(best_GP[0], best_GP[1], best_GP[2], best_GP[3])
+                self.apply_hyperparameters(
+                    best_GP[0], best_GP[1], best_GP[2], best_GP[3]
+                )
             except np.linalg.LinAlgError as e:
                 sys.stdout.write_to_logfile(
                     f"Caught exception when getting GP hyperparameters: {e}. Continuing.\n"
@@ -161,12 +188,7 @@ class GpBotorch(botorch.models.SingleTaskGP, Model):
             loss.backward()
             optimizer.step()
 
-    def get_mean_and_std(
-            self,
-            normalized_data,
-            predict_noiseless,
-            use_var=False
-    ):
+    def get_mean_and_std(self, normalized_data, predict_noiseless, use_var=False):
         """
         Compute the predicted mean and uncertainty (either standard deviation or variance) for a number of points with a GP model.
 
@@ -198,11 +220,11 @@ class GpBotorchHeteroskedastic(botorch.models.HeteroskedasticSingleTaskGP, Model
     """
 
     def __init__(
-            self,
-            settings,
-            X: torch.Tensor,
-            y: torch.Tensor,
-            std_estimate: torch.Tensor,
+        self,
+        settings,
+        X: torch.Tensor,
+        y: torch.Tensor,
+        std_estimate: torch.Tensor,
     ):
         """
         input:
@@ -213,12 +235,14 @@ class GpBotorchHeteroskedastic(botorch.models.HeteroskedasticSingleTaskGP, Model
         """
         y = y.to(X)
         yVar = std_estimate.to(X) ** 2
-        botorch.models.HeteroskedasticSingleTaskGP.__init__(self, X, y.unsqueeze(1), yVar.unsqueeze(1))
+        botorch.models.HeteroskedasticSingleTaskGP.__init__(
+            self, X, y.unsqueeze(1), yVar.unsqueeze(1)
+        )
 
     def fit(
-            self,
-            settings: Dict[str, Any],
-            previous_hyperparameters: Union[Dict[str, Any], None],
+        self,
+        settings: Dict[str, Any],
+        previous_hyperparameters: Union[Dict[str, Any], None],
     ):
         """
         Fits the model hyperparameters.
@@ -264,12 +288,7 @@ class GpBotorchHeteroskedastic(botorch.models.HeteroskedasticSingleTaskGP, Model
 
         self.eval()
 
-    def get_mean_and_std(
-            self,
-            normalized_data,
-            predict_noiseless,
-            use_var=False
-    ):
+    def get_mean_and_std(self, normalized_data, predict_noiseless, use_var=False):
         """
         Compute the predicted mean and uncertainty (either standard deviation or variance) for a number of points with a GP model.
 
@@ -301,11 +320,11 @@ class GpBotorchFixed(botorch.models.FixedNoiseGP, Model):
     """
 
     def __init__(
-            self,
-            settings,
-            X: torch.Tensor,
-            y: torch.Tensor,
-            std_estimate: torch.Tensor,
+        self,
+        settings,
+        X: torch.Tensor,
+        y: torch.Tensor,
+        std_estimate: torch.Tensor,
     ):
         """
         input:
@@ -318,9 +337,9 @@ class GpBotorchFixed(botorch.models.FixedNoiseGP, Model):
         botorch.models.FixedNoiseGP.__init__(self, X, y.unsqueeze(1), yVar.unsqueeze(1))
 
     def fit(
-            self,
-            settings: Dict[str, Any],
-            previous_hyperparameters: Union[Dict[str, Any], None],
+        self,
+        settings: Dict[str, Any],
+        previous_hyperparameters: Union[Dict[str, Any], None],
     ):
         """
         Fits the model hyperparameters.
@@ -362,12 +381,7 @@ class GpBotorchFixed(botorch.models.FixedNoiseGP, Model):
             loss.backward()
             optimizer.step()
 
-    def get_mean_and_std(
-            self,
-            normalized_data,
-            predict_noiseless,
-            use_var=False
-    ):
+    def get_mean_and_std(self, normalized_data, predict_noiseless, use_var=False):
         """
         Compute the predicted mean and uncertainty (either standard deviation or variance) for a number of points with a GP model.
 

@@ -20,23 +20,19 @@ setup(
     ],
     install_requires=[
         "numpy>=1.24.4",
-	"setuptools>=68.0.0",
-	"torch>=2.0.1",
-	"GPy>=1.10.0",
-	"scipy>=1.10.1",
-	"scikit-learn>=1.3.0",
-	"matplotlib>=3.7.2",
-	"jsonschema>=4.19.0",
-	"numexpr>=2.8.5",
-	"networkx>=3.1",
-	"graphviz>=0.20.1",
-	"botorch>=0.8.5",
-	"gpytorch>=1.10"
+        "setuptools>=68.0.0",
+        "torch>=2.0.1",
+        "GPy>=1.10.0",
+        "scipy>=1.10.1",
+        "scikit-learn>=1.3.0",
+        "matplotlib>=3.7.2",
+        "jsonschema>=4.19.0",
+        "numexpr>=2.8.5",
+        "networkx>=3.1",
+        "graphviz>=0.20.1",
+        "botorch>=0.8.5",
+        "gpytorch>=1.10",
     ],
     python_requires=">=3.6",
-    entry_points = {
-    	'console_scripts': [
-		'hypermapper = hypermapper.run:main'
-	]
-    }
+    entry_points={"console_scripts": ["hypermapper = hypermapper.run:main"]},
 )

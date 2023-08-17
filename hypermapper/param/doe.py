@@ -6,11 +6,11 @@ from hypermapper.param.space import Space
 
 
 def get_doe_sample_configurations(
-        param_space: Space,
-        data_array: DataArray,
-        n_samples: int,
-        doe_type: str,
-        allow_repetitions: Optional[bool] = False,
+    param_space: Space,
+    data_array: DataArray,
+    n_samples: int,
+    doe_type: str,
+    allow_repetitions: Optional[bool] = False,
 ):
     """
     Get a list of n_samples configurations with no repetitions and that are not already present in fast_addressing_of_data_array.

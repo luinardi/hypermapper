@@ -7,8 +7,8 @@ from hypermapper.param.parameters import Parameter
 
 
 def evaluate_constraints(
-        constraints: List[str],
-        configurations: Dict[str, List[Any]],
+    constraints: List[str],
+    configurations: Dict[str, List[Any]],
 ) -> List[bool]:
     """
     Checks configuration feasibility
@@ -33,19 +33,26 @@ def evaluate_constraints(
     for varname in configurations:
         if type(configurations[varname][0]) in (list, tuple):
             for i in range(len(configurations[varname][0])):
-                permutation_configurations[f"{varname}_{i}"] = [configurations[varname][j][i] for j in range(n_configurations)]
-                permutation_configurations[f"{varname}_i{i}"] = [list(configurations[varname][j]).index(i) for j in range(n_configurations)]
+                permutation_configurations[f"{varname}_{i}"] = [
+                    configurations[varname][j][i] for j in range(n_configurations)
+                ]
+                permutation_configurations[f"{varname}_i{i}"] = [
+                    list(configurations[varname][j]).index(i)
+                    for j in range(n_configurations)
+                ]
 
     feasible = np.array([True for x in range(n_configurations)])
     for constraint in constraints:
-        feasible = feasible & ne.evaluate(constraint, {**configurations, **permutation_configurations})
+        feasible = feasible & ne.evaluate(
+            constraint, {**configurations, **permutation_configurations}
+        )
     return list(feasible)
 
 
 def filter_conditional_values(
-        parameter: Parameter,
-        constraints: Union[List[str], None],
-        partial_configuration: Dict[str, Any]
+    parameter: Parameter,
+    constraints: Union[List[str], None],
+    partial_configuration: Dict[str, Any],
 ) -> List[Any]:
     """
     Returns all of its values which are feasible with regards to its constraints given previous values given in partial_configuration.
@@ -59,8 +66,15 @@ def filter_conditional_values(
     if constraints is None:
         return parameter.values
     configurations = {
-        **{kv[0]: [kv[1]] * len(parameter.values) for kv in partial_configuration.items()},
-        **{parameter.name: [parameter.convert(v, "internal", "original") for v in parameter.values]}
+        **{
+            kv[0]: [kv[1]] * len(parameter.values)
+            for kv in partial_configuration.items()
+        },
+        **{
+            parameter.name: [
+                parameter.convert(v, "internal", "original") for v in parameter.values
+            ]
+        },
     }
     feasible = evaluate_constraints(constraints, configurations)
     return [value for idx, value in enumerate(parameter.values) if feasible[idx]]

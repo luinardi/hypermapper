@@ -51,7 +51,7 @@ def branin4_cli(path):
             x3 = float(parameters_values[2])
             x4 = float(parameters_values[3])
             Value = branin4_function(
-                {"x1": x1, "x2":x2, "x3": x3, "x4": x4}
+                {"x1": x1, "x2": x2, "x3": x3, "x4": x4}
             )  # Evaluate objective function
             str_to_hypermapper += (
                 str(x1)

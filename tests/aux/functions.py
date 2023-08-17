@@ -51,6 +51,7 @@ def branin4_function(X):
 
     return y_value
 
+
 def branin4_function_stde(X):
     """
     Compute the four-dimensional branin function.
@@ -136,14 +137,14 @@ def rs_cot_1024(X):
 
     # dummy computation for function value
     function_value = (
-            alpha * v3 * v4  # 0 - 1e2
-            + alpha * (v5 + v6 - beta) ** 2  # 0 - 1e2
-            - gamma * np.sin(v7 / delta) * np.sin(v8 / delta)  # -1e1 - 1e1
-            + np.log(ls0 + 1)
-            - np.log(ls1 + 1)  # 0 - 1e1
-            + np.log(gs0 + 1)
-            - np.log(gs1 + 1)  # -1e1 - 0
-            + alpha * (v3 + v5 + v7 - ls0 - gs1) ** 2  # 0 - 1e2
+        alpha * v3 * v4  # 0 - 1e2
+        + alpha * (v5 + v6 - beta) ** 2  # 0 - 1e2
+        - gamma * np.sin(v7 / delta) * np.sin(v8 / delta)  # -1e1 - 1e1
+        + np.log(ls0 + 1)
+        - np.log(ls1 + 1)  # 0 - 1e1
+        + np.log(gs0 + 1)
+        - np.log(gs1 + 1)  # -1e1 - 0
+        + alpha * (v3 + v5 + v7 - ls0 - gs1) ** 2  # 0 - 1e2
     )
 
     valid = True
@@ -208,16 +209,16 @@ def perm(X):
     x5 = X["uf"]
 
     return {
-        "compute_time": x1 ** 2
-                        + x2 ** 2
-                        + x3 ** 2
-                        + x4 ** 2
-                        + x5 ** 2
-                        + p[0] ** 2
-                        + p[1]
-                        - p[3]
-                        - p[4] ** 2
-                        + 2 ** np.random.normal(),
+        "compute_time": x1**2
+        + x2**2
+        + x3**2
+        + x4**2
+        + x5**2
+        + p[0] ** 2
+        + p[1]
+        - p[3]
+        - p[4] ** 2
+        + 2 ** np.random.normal(),
         "Valid": True,
     }
 
@@ -230,15 +231,19 @@ def hartmann6_function(X):
 
     alpha = [1.0, 1.2, 3.0, 3.2]
 
-    A = [[10, 3, 17, 3.5, 1.7, 8],
-         [0.05, 10, 17, 0.1, 8, 14],
-         [3, 3.5, 1.7, 10, 17, 8],
-         [17, 8, 0.05, 10, 0.1, 14]]
+    A = [
+        [10, 3, 17, 3.5, 1.7, 8],
+        [0.05, 10, 17, 0.1, 8, 14],
+        [3, 3.5, 1.7, 10, 17, 8],
+        [17, 8, 0.05, 10, 0.1, 14],
+    ]
     A = np.asarray(A)
-    P = [[1312, 1696, 5569, 124, 8283, 5886],
-         [2329, 4135, 8307, 3736, 1004, 9991],
-         [2348, 1451, 3522, 2883, 3047, 6650],
-         [4047, 8828, 8732, 5743, 1091, 381]]
+    P = [
+        [1312, 1696, 5569, 124, 8283, 5886],
+        [2329, 4135, 8307, 3736, 1004, 9991],
+        [2348, 1451, 3522, 2883, 3047, 6650],
+        [4047, 8828, 8732, 5743, 1091, 381],
+    ]
     P = np.asarray(P)
     c = 10 ** (-4)
     P = np.multiply(P, c)

@@ -9,15 +9,15 @@ from hypermapper.param.space import Space
 
 
 def ucb(
-        settings: Dict,
-        param_space: Space,
-        X: torch.Tensor,
-        objective_weights: torch.Tensor,
-        regression_models: List[Any],
-        iteration_number: int,
-        classification_model: Any,
-        feasibility_threshold,
-        **kwargs,
+    settings: Dict,
+    param_space: Space,
+    X: torch.Tensor,
+    objective_weights: torch.Tensor,
+    regression_models: List[Any],
+    iteration_number: int,
+    classification_model: Any,
+    feasibility_threshold,
+    **kwargs,
 ) -> torch.Tensor:
     """
     Multi-objective ucb acquisition function as detailed in https://arxiv.org/abs/1805.12168.
@@ -53,27 +53,28 @@ def ucb(
         feasibility_indicator = torch.ones(number_of_predictions)
 
     acq_val = (
-            (prediction_means + torch.sqrt(beta * prediction_variances)) @ objective_weights
-            * feasibility_indicator
-            * (feasibility_indicator >= feasibility_threshold)
+        (prediction_means + torch.sqrt(beta * prediction_variances))
+        @ objective_weights
+        * feasibility_indicator
+        * (feasibility_indicator >= feasibility_threshold)
     )
 
     return acq_val
 
 
 def ei(
-        settings: dict,
-        param_space: Space,
-        X: torch.Tensor,
-        objective_weights: List[float],
-        regression_models: List[Any],
-        best_values: float,
-        objective_means: torch.Tensor,
-        objective_stds: torch.Tensor,
-        classification_model: Any,
-        feasibility_threshold: float,
-        verbose: bool = False,
-        **kwargs,
+    settings: dict,
+    param_space: Space,
+    X: torch.Tensor,
+    objective_weights: List[float],
+    regression_models: List[Any],
+    best_values: float,
+    objective_means: torch.Tensor,
+    objective_stds: torch.Tensor,
+    classification_model: Any,
+    feasibility_threshold: float,
+    verbose: bool = False,
+    **kwargs,
 ) -> torch.Tensor:
     """
     Compute a (multi-objective) EI acquisition function on X.
@@ -122,10 +123,9 @@ def ei(
     v = (normalized_best_values - f_means - xi) / f_stds
     normal = torch.distributions.Normal(torch.zeros_like(v), torch.ones_like(v))
     try:
-        objective_ei = (
-                (normalized_best_values - f_means - xi) * normal.cdf(v) +
-                f_stds * torch.exp(normal.log_prob(v))
-        )
+        objective_ei = (normalized_best_values - f_means - xi) * normal.cdf(
+            v
+        ) + f_stds * torch.exp(normal.log_prob(v))
     except Exception as e:
         print("SOME DEBUG INFO")
         print("v", v)
@@ -134,32 +134,36 @@ def ei(
         print(objective_stds)
         print(f_stds)
         raise e
-    scalarized_ei = (objective_ei @ objective_weights)
+    scalarized_ei = objective_ei @ objective_weights
     if verbose and objective_ei.shape[0] == 1:
         sys.stdout.write_to_logfile(
-            f"obj mean:{objective_means.squeeze().item()}  " +
-            f"obj std:{objective_stds.squeeze().item()} \n"
+            f"obj mean:{objective_means.squeeze().item()}  "
+            + f"obj std:{objective_stds.squeeze().item()} \n"
         )
         sys.stdout.write_to_logfile(
-            f"f*:{' '.join(str(x.item()) for x in normalized_best_values)}  " +
-            f"mu:{' '.join(str(x.item()) for x in f_means.squeeze(0))}  " +
-            f"sigma:{' '.join(str(x.item()) for x in f_stds.squeeze(0))}  " +
-            f"feasibility:{feasibility_indicator.item()}  " +
-            f"p1:{' '.join(str(x.item()) for x in ((normalized_best_values - f_means - xi) * normal.cdf(v)).squeeze(0))} " +
-            f"p2:{' '.join(str(x.item()) for x in (f_stds * torch.exp(normal.log_prob(v))).squeeze(0))}  " +
-            f"alpha:{' '.join(str(x.item()) for x in objective_ei.squeeze(0))}  " +
-            f"w:{' '.join(str(x) for x in objective_weights)}\n"
+            f"f*:{' '.join(str(x.item()) for x in normalized_best_values)}  "
+            + f"mu:{' '.join(str(x.item()) for x in f_means.squeeze(0))}  "
+            + f"sigma:{' '.join(str(x.item()) for x in f_stds.squeeze(0))}  "
+            + f"feasibility:{feasibility_indicator.item()}  "
+            + f"p1:{' '.join(str(x.item()) for x in ((normalized_best_values - f_means - xi) * normal.cdf(v)).squeeze(0))} "
+            + f"p2:{' '.join(str(x.item()) for x in (f_stds * torch.exp(normal.log_prob(v))).squeeze(0))}  "
+            + f"alpha:{' '.join(str(x.item()) for x in objective_ei.squeeze(0))}  "
+            + f"w:{' '.join(str(x) for x in objective_weights)}\n"
         )
         sys.stdout.write_to_logfile(
             f"log EI value: {torch.log10(scalarized_ei).item()}\n"
         )
     if settings["log_acq_value"]:
         acq_val = torch.log10(
-                scalarized_ei
-                * feasibility_indicator
-                * (feasibility_indicator >= feasibility_threshold)
-                + 1e-18
+            scalarized_ei
+            * feasibility_indicator
+            * (feasibility_indicator >= feasibility_threshold)
+            + 1e-18
         )
     else:
-        acq_val = scalarized_ei * feasibility_indicator * (feasibility_indicator >= feasibility_threshold)
+        acq_val = (
+            scalarized_ei
+            * feasibility_indicator
+            * (feasibility_indicator >= feasibility_threshold)
+        )
     return acq_val

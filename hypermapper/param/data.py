@@ -14,14 +14,13 @@ class DataArray:
     """
 
     def __init__(
-            self,
-            parameters_array: torch.Tensor,
-            metrics_array: torch.Tensor,
-            timestamp_array: torch.Tensor,
-            feasible_array: torch.Tensor,
-            std_estimate: Optional[torch.Tensor] = torch.Tensor(),
+        self,
+        parameters_array: torch.Tensor,
+        metrics_array: torch.Tensor,
+        timestamp_array: torch.Tensor,
+        feasible_array: torch.Tensor,
+        std_estimate: Optional[torch.Tensor] = torch.Tensor(),
     ):
-
         self.scalarization_array = None
         self.parameters_array = parameters_array
         self.metrics_array = metrics_array
@@ -38,10 +37,18 @@ class DataArray:
             data_array: another DataArray object.
         """
 
-        self.parameters_array = torch.cat((self.parameters_array, data_array.parameters_array), 0)
-        self.metrics_array = torch.cat((self.metrics_array, data_array.metrics_array), 0)
-        self.timestamp_array = torch.cat((self.timestamp_array, data_array.timestamp_array))
-        self.feasible_array = torch.cat((self.feasible_array, data_array.feasible_array)).to(dtype=torch.bool)
+        self.parameters_array = torch.cat(
+            (self.parameters_array, data_array.parameters_array), 0
+        )
+        self.metrics_array = torch.cat(
+            (self.metrics_array, data_array.metrics_array), 0
+        )
+        self.timestamp_array = torch.cat(
+            (self.timestamp_array, data_array.timestamp_array)
+        )
+        self.feasible_array = torch.cat(
+            (self.feasible_array, data_array.feasible_array)
+        ).to(dtype=torch.bool)
         self.std_estimate = torch.cat((self.std_estimate, data_array.std_estimate))
 
         self._update()
@@ -58,7 +65,11 @@ class DataArray:
             self.parameters_array[s, :],
             self.metrics_array[s, :],
             self.timestamp_array[s],
-            (self.feasible_array[s] if self.feasible_array.shape[0] > 0 else self.feasible_array),
+            (
+                self.feasible_array[s]
+                if self.feasible_array.shape[0] > 0
+                else self.feasible_array
+            ),
         )
 
     def get_feasible(self):
@@ -80,7 +91,10 @@ class DataArray:
         """
         Updates string dict which is used for checking duplicate solutions and length.
         """
-        self.string_dict = {"_".join([str(s) for s in row]): idx for idx, row in enumerate(self.parameters_array)}
+        self.string_dict = {
+            "_".join([str(s) for s in row]): idx
+            for idx, row in enumerate(self.parameters_array)
+        }
         self.len = self.parameters_array.shape[0]
 
     def copy(self):

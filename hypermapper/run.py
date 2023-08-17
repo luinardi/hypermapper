@@ -1,18 +1,23 @@
 import os
 import sys
 
-#if not os.path.abspath(os.path.join(os.path.dirname(__file__), '..')) in sys.path:
-#sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# if not os.path.abspath(os.path.join(os.path.dirname(__file__), '..')) in sys.path:
+# sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from typing import Union, Dict, Callable, Optional
 
-from hypermapper.util.util import get_min_configurations, get_min_feasible_configurations
+from hypermapper.util.util import (
+    get_min_configurations,
+    get_min_feasible_configurations,
+)
 from hypermapper.util.file import read_settings_file
 from hypermapper.util.logging import Logger
 import argparse
 
 
-def optimize(settings_file: Union[str, Dict], black_box_function: Optional[Callable] = None):
+def optimize(
+    settings_file: Union[str, Dict], black_box_function: Optional[Callable] = None
+):
     """
     Optimize is the main method of Hypermapper. It takes a problem to optimize and optimization settings
     in the form of a json file or a dict adn then performs the optimization procedure.
@@ -49,10 +54,12 @@ def optimize(settings_file: Union[str, Dict], black_box_function: Optional[Calla
     # run optimization method
     if settings["optimization_method"] in ["bayesian_optimization"]:
         from hypermapper.bo import bo
+
         data_array = bo.main(settings, black_box_function=black_box_function)
 
     elif settings["optimization_method"] == "exhaustive":
         from hypermapper.other import exhaustive
+
         data_array = exhaustive.main(settings, black_box_function=black_box_function)
 
     else:
@@ -66,9 +73,7 @@ def optimize(settings_file: Union[str, Dict], black_box_function: Optional[Calla
         feasible_output = settings["feasible_output"]
         if feasible_output["enable_feasible_predictor"]:
             feasible_output_name = feasible_output["name"]
-            best_point = get_min_feasible_configurations(
-                data_array, 1
-            )
+            best_point = get_min_feasible_configurations(data_array, 1)
         else:
             best_point = get_min_configurations(data_array, 1)
 

@@ -12,7 +12,6 @@ from hypermapper import optimizer  # noqa
 
 
 def taco(X):
-
     x1 = X["chunk_size"]
     x2 = X["omp_chunk_size"]
     x3 = X["omp_num_threads"]

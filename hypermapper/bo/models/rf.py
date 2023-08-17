@@ -47,10 +47,10 @@ class RFRegressionModel(RandomForestRegressor):
             self.zero_internal_mean = False
 
     def update_leaf_values(
-            self,
-            X: np.array,
-            y: np.array,
-            use_all_data_to_fit_variance: bool = False,
+        self,
+        X: np.array,
+        y: np.array,
+        use_all_data_to_fit_variance: bool = False,
     ):
         """
         The SKLearn RF implementation only uses the bootstrapped data to compute the leaf values. This method updates the values
@@ -130,9 +130,9 @@ class RFRegressionModel(RandomForestRegressor):
         return lower_bound, upper_bound
 
     def fit_rf(
-            self,
-            X: torch.Tensor,
-            y: torch.Tensor,
+        self,
+        X: torch.Tensor,
+        y: torch.Tensor,
     ):
         """
         Fit the adapted RF model.
@@ -148,12 +148,7 @@ class RFRegressionModel(RandomForestRegressor):
         if self.use_all_data_to_fit_mean:
             self.update_leaf_values(X, y, self.use_all_data_to_fit_variance)
 
-    def get_mean_and_std(
-        self,
-        X: torch.Tensor,
-        _,
-        use_var=False
-    ):
+    def get_mean_and_std(self, X: torch.Tensor, _, use_var=False):
         """
         Compute the predicted mean and uncertainty (either standard deviation or variance) for a number of points with an RF model.
 
@@ -177,11 +172,11 @@ class RFRegressionModel(RandomForestRegressor):
                 var_tree = tree.tree_.impurity[tree.apply(X)]
             var_tree[var_tree < 0] = 0
             mean_tree = tree.predict(X)
-            var += var_tree + mean_tree ** 2
+            var += var_tree + mean_tree**2
             means.append(mean_tree)
         mean = np.mean(np.array(means), axis=0)
         var /= self.n_estimators
-        var -= mean ** 2.0
+        var -= mean**2.0
         var[var < 0.0] = 0.0
 
         if use_var:
@@ -193,13 +188,12 @@ class RFRegressionModel(RandomForestRegressor):
 
 
 class RFClassificationModel(RandomForestClassifier):
-
     def __init__(
-            self,
-            settings: Dict,
-            param_space: Space,
-            X: torch.Tensor,
-            y: torch.Tensor,
+        self,
+        settings: Dict,
+        param_space: Space,
+        X: torch.Tensor,
+        y: torch.Tensor,
     ):
         """
         Fit a Random Forest classification model.
@@ -238,4 +232,6 @@ class RFClassificationModel(RandomForestClassifier):
             - tensor with model predictions.
         """
         normalized_data, names = preprocess_parameters_array(data, self.param_space)
-        return torch.tensor(self.predict_proba(normalized_data.numpy()))[:, list(self.classes_).index(True)]
+        return torch.tensor(self.predict_proba(normalized_data.numpy()))[
+            :, list(self.classes_).index(True)
+        ]

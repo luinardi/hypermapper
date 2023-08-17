@@ -2,8 +2,7 @@ from typing import Dict, Callable, Union
 
 
 def settings_check_bo(
-        settings: Dict,
-        black_box_function: Union[None, Callable]
+    settings: Dict, black_box_function: Union[None, Callable]
 ) -> Dict:
     """
     Initial consistency checks for BO.
@@ -24,7 +23,9 @@ def settings_check_bo(
             print("Error: the black box function parameter is not callable")
             raise SystemExit
 
-    if (settings["models"]["model"] == "gaussian_process") and (settings["acquisition_function"] == "TS"):
+    if (settings["models"]["model"] == "gaussian_process") and (
+        settings["acquisition_function"] == "TS"
+    ):
         print(
             "Error: The TS acquisition function with Gaussian Process models is still under implementation"
         )

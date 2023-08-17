@@ -20,10 +20,10 @@ class GpGpytorch(gpytorch.models.ExactGP, Model):
     """
 
     def __init__(
-            self,
-            settings: Dict[str, Any],
-            X: torch.Tensor,
-            y: torch.Tensor,
+        self,
+        settings: Dict[str, Any],
+        X: torch.Tensor,
+        y: torch.Tensor,
     ):
         """
         input:
@@ -150,9 +150,9 @@ class GpGpytorch(gpytorch.models.ExactGP, Model):
         self.mean_module.constant = mean
 
     def fit(
-            self,
-            settings: Dict[str, Any],
-            previous_hyperparameters: Union[Dict[str, Any], None],
+        self,
+        settings: Dict[str, Any],
+        previous_hyperparameters: Union[Dict[str, Any], None],
     ):
         """
         Fits the model hyperparameters.
@@ -171,21 +171,35 @@ class GpGpytorch(gpytorch.models.ExactGP, Model):
             n_iterations = settings["hyperparameter_optimization_iterations"]
 
             # gen sample points
-            sample_points = [(self.covar_module.base_kernel.lengthscale, self.covar_module.outputscale,
-                              self.likelihood.noise_covar.noise.item(), self.mean_module.constant.item())] + [
-                                (10 ** (1.5 * np.random.random(self.train_inputs[0].shape[1]) - 1),
-                                 10 ** (1.5 * np.random.random() - 1),
-                                 10 ** (4 * np.random.random() - 5),
-                                 0
-                                 )
-                                for _ in range(n_iterations)
-                            ]
+            sample_points = [
+                (
+                    self.covar_module.base_kernel.lengthscale,
+                    self.covar_module.outputscale,
+                    self.likelihood.noise_covar.noise.item(),
+                    self.mean_module.constant.item(),
+                )
+            ] + [
+                (
+                    10 ** (1.5 * np.random.random(self.train_inputs[0].shape[1]) - 1),
+                    10 ** (1.5 * np.random.random() - 1),
+                    10 ** (4 * np.random.random() - 5),
+                    0,
+                )
+                for _ in range(n_iterations)
+            ]
 
             for i, sample_point in enumerate(sample_points):
                 try:
-                    self.apply_hyperparameters(sample_point[0], sample_point[1], sample_point[2], sample_point[3])
+                    self.apply_hyperparameters(
+                        sample_point[0],
+                        sample_point[1],
+                        sample_point[2],
+                        sample_point[3],
+                    )
                     try:
-                        warnings.filterwarnings("ignore", category=gpytorch.utils.warnings.GPInputWarning)
+                        warnings.filterwarnings(
+                            "ignore", category=gpytorch.utils.warnings.GPInputWarning
+                        )
                         fit_gpytorch_mll(mll)
                     except Exception as e:
                         print(f"Warning: failed to fit in iteration {i}")
@@ -194,8 +208,12 @@ class GpGpytorch(gpytorch.models.ExactGP, Model):
                     mll_val = mll(self(*self.train_inputs), self.train_targets)
                     if mll_val > best_log_likelihood:
                         best_log_likelihood = mll_val
-                        best_GP = (self.covar_module.base_kernel.lengthscale, self.covar_module.outputscale,
-                                   self.likelihood.noise_covar.noise.item(), self.mean_module.constant.item())
+                        best_GP = (
+                            self.covar_module.base_kernel.lengthscale,
+                            self.covar_module.outputscale,
+                            self.likelihood.noise_covar.noise.item(),
+                            self.mean_module.constant.item(),
+                        )
 
                     if mll_val < worst_log_likelihood:
                         worst_log_likelihood = mll_val
@@ -204,11 +222,17 @@ class GpGpytorch(gpytorch.models.ExactGP, Model):
                     pass
 
             if best_GP is None:
-                print(f"Failed to fit the GP hyperparameters in all of the {settings['multistart_hyperparameter_optimization_iterations']} iterations.")
-                sys.stdout.write_to_logfile(f"Failed to fit the GP hyperparameters in all of the {settings['multistart_hyperparameter_optimization_iterations']} iterations.\n")
+                print(
+                    f"Failed to fit the GP hyperparameters in all of the {settings['multistart_hyperparameter_optimization_iterations']} iterations."
+                )
+                sys.stdout.write_to_logfile(
+                    f"Failed to fit the GP hyperparameters in all of the {settings['multistart_hyperparameter_optimization_iterations']} iterations.\n"
+                )
                 return None
             try:
-                self.apply_hyperparameters(best_GP[0], best_GP[1], best_GP[2], best_GP[3])
+                self.apply_hyperparameters(
+                    best_GP[0], best_GP[1], best_GP[2], best_GP[3]
+                )
             except np.linalg.LinAlgError as e:
                 sys.stdout.write_to_logfile(
                     f"Caught exception when getting GP hyperparameters: {e}. Continuing.\n"
@@ -224,7 +248,6 @@ class GpGpytorch(gpytorch.models.ExactGP, Model):
                 print(f"Warning: failed to fit model.")
                 print(e)
                 self._backup_fit(mll)
-
 
         sys.stdout.write_to_logfile(
             f"lengthscales:\n{self.covar_module.base_kernel.lengthscale.squeeze().detach().numpy()}\n"
@@ -255,12 +278,7 @@ class GpGpytorch(gpytorch.models.ExactGP, Model):
             loss.backward()
             optimizer.step()
 
-    def get_mean_and_std(
-            self,
-            normalized_data,
-            predict_noiseless,
-            use_var=False
-    ):
+    def get_mean_and_std(self, normalized_data, predict_noiseless, use_var=False):
         """
         Compute the predicted mean and uncertainty (either standard deviation or variance) for a number of points with a GP model.
 
