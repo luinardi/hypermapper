@@ -5,7 +5,7 @@ The Bayesian Optimization framework (Hypermapper) is a flexible out-of-the-box c
 This is a new version that is being introduced and so will be subject to change and improvements in the near future.  
 
 ## Installation
-To install the code, clone the repo and run the setup files.
+To install the code, clone the repo and run the setup files. Remember to first update pip.
 ```
 git clone https://github.com/luinardi/hypermapper.git
 cd hypermapper
