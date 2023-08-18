@@ -7,8 +7,9 @@ This is a new version that is being introduced and so will be subject to change 
 ## Installation
 To install the code, clone the repo and run the setup files.
 ```
-git clone XXX
+git clone https://github.com/luinardi/hypermapper.git
 cd hypermapper
+git checkout hypermapper-v3
 pip install -e .
 ```
 
