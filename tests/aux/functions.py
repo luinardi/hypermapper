@@ -51,6 +51,7 @@ def branin4_function(X):
 
     return y_value
 
+
 def branin4_function_categorical(X):
     """
     Compute the four-dimensional branin function.
