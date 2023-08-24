@@ -1,6 +1,3 @@
-import os
-import sys
-
 import torch
 from matplotlib import pyplot as plt
 
@@ -283,6 +280,7 @@ def crash_test():
     print("Discrete")
     runBenchmark("branin4_scenario_discrete", branin4_function)
     runBenchmark("rs_cot_1024_scenario", rs_cot_1024)
+    runBenchmark("branin4_scenario_categorical", branin4_function_categorical)
 
     # PIBO
     print("PIBO")

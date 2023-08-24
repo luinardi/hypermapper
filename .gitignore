@@ -2,3 +2,5 @@
 *.log
 tags
 outdata
+__pycache__/
+outputfiles/

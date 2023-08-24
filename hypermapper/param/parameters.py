@@ -549,7 +549,7 @@ class CategoricalParameter(Parameter):
         Parameter.__init__(self, name, values.index(default), constraints, dependencies)
         self.values = torch.arange(len(values))
         self.string_values = values
-        self.val_indices = {i: i for i in self.values}
+        self.val_indices = {i.item(): i.item() for i in self.values}
 
         if isinstance(probability_distribution, str):
             self.distribution_name = probability_distribution
@@ -636,7 +636,7 @@ class CategoricalParameter(Parameter):
             intermediate_value = int(input_value)
 
         if to_type in ["string", "original"]:
-            return self.values[intermediate_value]
+            return self.string_values[intermediate_value]
         elif to_type == "01":
             return intermediate_value / (self.get_size() - 1)
         else:

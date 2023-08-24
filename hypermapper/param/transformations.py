@@ -118,7 +118,7 @@ def preprocess_parameters_array(
         elif isinstance(parameter, CategoricalParameter):
             # Categorical variables are encoded as their index, generate a list of "index labels"
             categories = np.arange(parameter.get_size())
-            encoder = OneHotEncoder(categories="auto", sparse=False)
+            encoder = OneHotEncoder(categories="auto", sparse_output=False)
             encoder.fit(categories.reshape(-1, 1))
             x = np.array(X[:, idx]).reshape(-1, 1)
             encoded_x = encoder.transform(x)

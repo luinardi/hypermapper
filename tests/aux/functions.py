@@ -51,6 +51,24 @@ def branin4_function(X):
 
     return y_value
 
+def branin4_function_categorical(X):
+    """
+    Compute the four-dimensional branin function.
+    Value in four-dimensional branin is defined as the product of two Brannin functions.
+    :param X: dictionary containing the input points.
+    :return: the value of the branin function.
+    """
+    x1 = X["x1"]
+    x2 = X["x2"]
+    x3 = X["x3"]
+    x4 = X["x4"]
+    x5 = X["x5"]
+    f1_value = branin_function((x1, x2))
+    f2_value = branin_function((x3, x4))
+    y_value = f1_value * f2_value + (2 if x5 == "bad" else 0)
+
+    return y_value
+
 
 def branin4_function_stde(X):
     """
