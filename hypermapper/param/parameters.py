@@ -409,7 +409,7 @@ class OrdinalParameter(Parameter):
         self.values = torch.tensor(sorted(values, key=float))  # ascending order
         self.int_ordinal = all([v % 1 == 0 for v in self.values])
         self.val_indices = dict(
-            zip(self.values.to(dtype=torch.long).numpy(), list(range(len(self.values))))
+            zip(self.values.to(dtype=torch.float64).numpy(), list(range(len(self.values))))
         )
         self.distribution = []
         self.transform = transform
@@ -501,6 +501,13 @@ class OrdinalParameter(Parameter):
             ]
         else:
             intermediate_value = input_value
+            # this is a fix to safeguard against numerical imprecision
+            if intermediate_value not in self.values:
+                closest_value = min(self.values, key=lambda x: abs(x - intermediate_value))
+                if abs(closest_value - intermediate_value) > 1e-6:
+                    raise Exception("The input value in OrdinalParameter.convert() is not in the list of values.")
+                intermediate_value = closest_value
+
 
         if to_type == "string":
             if self.int_ordinal:

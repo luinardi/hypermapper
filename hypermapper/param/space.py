@@ -199,7 +199,7 @@ class Space:
                 param_values = param["values"]
                 param_obj = OrdinalParameter(
                     name=param_name,
-                    values=[float(p) for p in param_values],
+                    values=[np.float64(p) for p in param_values],
                     default=param_default,
                     probability_distribution=param_distribution,
                     constraints=param_constraints,
