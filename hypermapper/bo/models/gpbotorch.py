@@ -209,7 +209,7 @@ class GpBotorch(botorch.models.SingleTaskGP, Model):
         if use_var:
             uncertainty = var
         else:
-            uncertainty = np.sqrt(var)
+            uncertainty = torch.sqrt(var)
 
         return mean, uncertainty
 
@@ -309,7 +309,7 @@ class GpBotorchHeteroskedastic(botorch.models.HeteroskedasticSingleTaskGP, Model
         if use_var:
             uncertainty = var
         else:
-            uncertainty = np.sqrt(var)
+            uncertainty = torch.sqrt(var)
 
         return mean, uncertainty
 

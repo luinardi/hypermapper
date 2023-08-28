@@ -300,6 +300,6 @@ class GpGpytorch(gpytorch.models.ExactGP, Model):
         if use_var:
             uncertainty = var
         else:
-            uncertainty = np.sqrt(var)
+            uncertainty = torch.sqrt(var)
 
         return mean, uncertainty

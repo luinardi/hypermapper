@@ -193,6 +193,12 @@
       "description": "Name of the application, this is for printing and file naming purposes.",
       "type": "string"
     },
+    "batch_size": {
+      "default": 1,
+      "description": "Number of points to be evaluated in parallel.",
+      "minimum": 1,
+      "type": "integer"
+    },
     "design_of_experiment": {
       "$ref": "#/doe_sampling/doe",
       "default": {

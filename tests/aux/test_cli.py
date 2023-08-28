@@ -5,7 +5,7 @@ from subprocess import Popen, PIPE
 import os
 
 
-def branin4_cli(path):
+def branin4_cli(path, json="branin4_scenario_cli.json"):
     """
     This method implements the communication protocol between the Chakong and Haimes function and Hypermapper.
     The protocol is specified in the Hypermapper wiki and it is basically an exchange of data via
@@ -14,7 +14,7 @@ def branin4_cli(path):
     cmd = [
         "python",
         os.path.join(f"{path}", "..", "hypermapper", "run.py"),
-        os.path.join(f"{path}", "..", "tests", "aux", "branin4_scenario_cli.json"),
+        os.path.join(f"{path}", "..", "tests", "aux", json),
     ]
     print(cmd)  # Command to launch Hypermapper
     p = Popen(

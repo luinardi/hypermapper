@@ -177,87 +177,106 @@ def main(settings, black_box_function=None):
         )
         iteration_t0 = time.time()
         if random.uniform(0, 1) > settings["epsilon_greedy_threshold"]:
-            #############
-            # Fit models
-            #############
-            model_t0 = time.time()
-            (
-                regression_models,
-                model_hyperparameters,
-            ) = models.generate_mono_output_regression_models(
-                settings=settings,
-                data_array=feasible_data_array,
-                param_space=param_space,
-                objective_means=objective_means,
-                objective_stds=objective_stds,
-                previous_hyperparameters=model_hyperparameters,
-                reoptimize=(iteration - 1)
-                % settings["reoptimise_hyperparameters_interval"]
-                == 0,
-            )
-            ##########
-            # optimize
-            ##########
-            if regression_models is None:
-                best_configuration = random_sample(
-                    param_space=param_space,
-                    n_samples=1,
-                    allow_repetitions=False,
-                    previously_run=data_array.string_dict,
-                ).squeeze(0)
-            else:
-                classification_model = None
-                if enable_feasible_predictor and False in data_array.feasible_array:
-                    classification_model = models.generate_classification_model(
-                        settings,
-                        param_space,
-                        data_array,
-                    )
-                model_t1 = time.time()
-                sys.stdout.write_to_logfile(
-                    "Model fitting time %10.4f sec\n" % (model_t1 - model_t0)
-                )
-
-                objective_weights = sample_weight_flat(
-                    settings["optimization_objectives"]
-                )[0]
-                local_search_t0 = time.time()
-                best_values = torch.min(feasible_data_array.metrics_array, dim=0)[0]
-                best_configuration = optimize_acq(
+            tmp_data_array = data_array.copy() # copy that will contain fantasized data if batch_size > 1
+            tmp_feasible_data_array = tmp_data_array.get_feasible()
+            best_configurations = torch.Tensor()
+            for batch_idx in range(settings["batch_size"]):
+                #############
+                # Fit models
+                #############
+                model_t0 = time.time()
+                (
+                    regression_models,
+                    model_hyperparameters,
+                ) = models.generate_mono_output_regression_models(
                     settings=settings,
+                    data_array=tmp_feasible_data_array,
                     param_space=param_space,
-                    data_array=data_array,
-                    regression_models=regression_models,
-                    iteration_number=iteration,
-                    objective_weights=objective_weights,
                     objective_means=objective_means,
                     objective_stds=objective_stds,
-                    best_values=best_values,
-                    classification_model=classification_model,
+                    previous_hyperparameters=model_hyperparameters,
+                    reoptimize=(iteration - 1)
+                    % settings["reoptimise_hyperparameters_interval"] == 0,
                 )
+                ##########
+                # optimize
+                ##########
+                if regression_models is None:
+                    best_configuration = random_sample(
+                        param_space=param_space,
+                        n_samples=1,
+                        allow_repetitions=False,
+                        previously_run=data_array.string_dict,
+                    ).squeeze(0)
+                else:
+                    classification_model = None
+                    if enable_feasible_predictor and False in data_array.feasible_array:
+                        classification_model = models.generate_classification_model(
+                            settings,
+                            param_space,
+                            data_array,
+                        )
+                    model_t1 = time.time()
+                    sys.stdout.write_to_logfile(
+                        "Model fitting time %10.4f sec\n" % (model_t1 - model_t0)
+                    )
 
-                local_search_t1 = time.time()
-                sys.stdout.write_to_logfile(
-                    "Local search time %10.4f sec\n"
-                    % (local_search_t1 - local_search_t0)
-                )
+                    objective_weights = sample_weight_flat(
+                        settings["optimization_objectives"]
+                    )[0]
+                    local_search_t0 = time.time()
+                    best_values = torch.min(tmp_feasible_data_array.metrics_array, dim=0)[0]
+                    best_configuration = optimize_acq(
+                        settings=settings,
+                        param_space=param_space,
+                        data_array=tmp_data_array,
+                        regression_models=regression_models,
+                        iteration_number=iteration,
+                        objective_weights=objective_weights,
+                        objective_means=objective_means,
+                        objective_stds=objective_stds,
+                        best_values=best_values,
+                        classification_model=classification_model,
+                    )
+                    best_configurations = torch.cat(
+                        (best_configurations, best_configuration.unsqueeze(0)), 0
+                    )
+                    if batch_idx < settings["batch_size"] - 1:
+                        fantasized_values = torch.tensor(
+                            [model.get_mean_and_std(best_configuration.unsqueeze(0), False)[0]
+                             for model in regression_models]
+                        )
+                        fantasized_data_array = DataArray(
+                            best_configuration.unsqueeze(0),
+                            fantasized_values.unsqueeze(0),
+                            torch.Tensor(0),
+                            torch.Tensor(([1] if enable_feasible_predictor else [])),
+                        )
+                        tmp_data_array.cat(fantasized_data_array)
+                        tmp_feasible_data_array = tmp_data_array.get_feasible()
+
+                    local_search_t1 = time.time()
+                    sys.stdout.write_to_logfile(
+                        "Local search time %10.4f sec\n"
+                        % (local_search_t1 - local_search_t0)
+                    )
         else:
             sys.stdout.write_to_logfile(
                 f"random sampling a configuration to run due to epsilon greedy.\n"
             )
-            best_configuration = random_sample(
+            best_configurations = random_sample(
                 param_space,
-                n_samples=1,
+                n_samples=settings["batch_size"],
                 allow_repetitions=False,
                 previously_run=data_array.string_dict,
-            ).squeeze(0)
+            )
 
         ##################
         # Evaluate configs
         ##################
         black_box_function_t0 = time.time()
         new_data_array = param_space.run_configurations(
-            best_configuration.unsqueeze(0),
+            best_configurations,
             beginning_of_time,
             settings,
             black_box_function,

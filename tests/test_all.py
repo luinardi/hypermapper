@@ -269,8 +269,9 @@ def crash_test():
     runBenchmark("branin4_scenario_integer", branin4_function)
 
     # Resume
-    print("Resume")
+    print("Resume and Batch")
     runBenchmark("branin4_scenario_resume", branin4_function)
+    runBenchmark("branin4_scenario_batch", branin4_function)
 
     # Constraints
     print("Constraints")
@@ -307,7 +308,8 @@ def crash_test():
     hypermapper.optimize(settings, branin4_function)
 
     # CLI
-    branin4_cli(testing_directory)
+    branin4_cli(testing_directory, "branin4_scenario_cli.json")
+    branin4_cli(testing_directory, "branin4_scenario_cli_batch.json")
 
 
 if __name__ == "__main__":
