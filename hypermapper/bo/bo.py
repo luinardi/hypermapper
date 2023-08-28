@@ -177,7 +177,9 @@ def main(settings, black_box_function=None):
         )
         iteration_t0 = time.time()
         if random.uniform(0, 1) > settings["epsilon_greedy_threshold"]:
-            tmp_data_array = data_array.copy() # copy that will contain fantasized data if batch_size > 1
+            tmp_data_array = (
+                data_array.copy()
+            )  # copy that will contain fantasized data if batch_size > 1
             tmp_feasible_data_array = tmp_data_array.get_feasible()
             best_configurations = torch.Tensor()
             for batch_idx in range(settings["batch_size"]):
@@ -196,7 +198,8 @@ def main(settings, black_box_function=None):
                     objective_stds=objective_stds,
                     previous_hyperparameters=model_hyperparameters,
                     reoptimize=(iteration - 1)
-                    % settings["reoptimise_hyperparameters_interval"] == 0,
+                    % settings["reoptimise_hyperparameters_interval"]
+                    == 0,
                 )
                 ##########
                 # optimize
@@ -225,7 +228,9 @@ def main(settings, black_box_function=None):
                         settings["optimization_objectives"]
                     )[0]
                     local_search_t0 = time.time()
-                    best_values = torch.min(tmp_feasible_data_array.metrics_array, dim=0)[0]
+                    best_values = torch.min(
+                        tmp_feasible_data_array.metrics_array, dim=0
+                    )[0]
                     best_configuration = optimize_acq(
                         settings=settings,
                         param_space=param_space,
@@ -243,8 +248,12 @@ def main(settings, black_box_function=None):
                     )
                     if batch_idx < settings["batch_size"] - 1:
                         fantasized_values = torch.tensor(
-                            [model.get_mean_and_std(best_configuration.unsqueeze(0), False)[0]
-                             for model in regression_models]
+                            [
+                                model.get_mean_and_std(
+                                    best_configuration.unsqueeze(0), False
+                                )[0]
+                                for model in regression_models
+                            ]
                         )
                         fantasized_data_array = DataArray(
                             best_configuration.unsqueeze(0),
