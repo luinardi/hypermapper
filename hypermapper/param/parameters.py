@@ -409,7 +409,9 @@ class OrdinalParameter(Parameter):
         if constraints is None:
             constraints = []
         Parameter.__init__(self, name, default, constraints, dependencies)
-        self.values = torch.tensor(sorted(values), dtype=torch.float64)  # ascending order
+        self.values = torch.tensor(
+            sorted(values), dtype=torch.float64
+        )  # ascending order
         self.int_ordinal = all([v % 1 == 0 for v in self.values])
         self._val_indices = dict(
             zip(

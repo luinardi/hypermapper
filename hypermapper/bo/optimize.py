@@ -211,7 +211,10 @@ def optimize_acq(
 
     if settings["local_search_from_best"]:
         previous_configuration_indices = torch.topk(
-            data_array.metrics_array, largest=False, k=min(3, data_array.metrics_array.shape[0]), dim=0
+            data_array.metrics_array,
+            largest=False,
+            k=min(3, data_array.metrics_array.shape[0]),
+            dim=0,
         ).indices.reshape(-1)
         previous_configurations = data_array.parameters_array[
             previous_configuration_indices
