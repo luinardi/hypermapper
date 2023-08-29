@@ -514,7 +514,7 @@ class OrdinalParameter(Parameter):
             - the converted value
         """
         if from_type == "string":
-            intermediate_value = float(input_value)
+            intermediate_value = np.float64(input_value)
         elif from_type == "01":
             intermediate_value = self.values[
                 int(np.floor(input_value * self.get_size() * 0.999999))
@@ -529,6 +529,7 @@ class OrdinalParameter(Parameter):
                 if abs(closest_value - intermediate_value) > 1e-6:
                     raise Exception(
                         "The input value in OrdinalParameter.convert() is not in the list of values."
+                        f" Value: {intermediate_value} closest value: {closest_value}"
                     )
                 intermediate_value = closest_value
 
