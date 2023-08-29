@@ -74,6 +74,11 @@ class GpBotorch(botorch.models.SingleTaskGP, Model):
         Returns:
             - Hyperparameters of the model or None if the model is not fitted.
         """
+
+        warnings.filterwarnings(
+            "ignore", category=gpytorch.utils.warnings.GPInputWarning
+        )
+
         mll = ExactMarginalLogLikelihood(self.likelihood, self)
         if settings["multistart_hyperparameter_optimization"]:
             worst_log_likelihood = np.inf
@@ -107,10 +112,11 @@ class GpBotorch(botorch.models.SingleTaskGP, Model):
                         sample_point[3],
                     )
 
-                    warnings.filterwarnings(
-                        "ignore", category=gpytorch.utils.warnings.GPInputWarning
-                    )
-                    fit_gpytorch_mll(mll)
+                    with warnings.catch_warnings(record=True) as w:
+                        warnings.simplefilter("always")
+                        fit_gpytorch_mll(mll)
+                        for warning in w:
+                            sys.stdout.write_to_logfile(f"{str(warning.message)}\n")
                     self.train(), self.likelihood.train()
 
                     mll_val = mll(self(*self.train_inputs), self.train_targets)
@@ -126,8 +132,8 @@ class GpBotorch(botorch.models.SingleTaskGP, Model):
                     if mll_val < worst_log_likelihood:
                         worst_log_likelihood = mll_val
                 except Exception as e:
-                    print(f"Warning: failed to fit in iteration {i}")
-                    print(e)
+                    sys.stdout.write_to_logfile(f"Warning: failed to fit in iteration {i}\n")
+                    sys.stdout.write_to_logfile(f"{e}\n")
 
             if best_GP is None:
                 sys.stdout.write_to_logfile(
@@ -148,10 +154,14 @@ class GpBotorch(botorch.models.SingleTaskGP, Model):
         else:
             mll = ExactMarginalLogLikelihood(self.likelihood, self)
             try:
-                fit_gpytorch_mll(mll)
+                with warnings.catch_warnings(record=True) as w:
+                    warnings.simplefilter("always")
+                    fit_gpytorch_mll(mll)
+                    for warning in w:
+                        sys.stdout.write_to_logfile(f"{str(warning.message)}\n")
             except Exception as e:
-                print("Warning: Failed to fit model.")
-                print(e)
+                sys.stdout.write_to_logfile("Warning: Failed to fit model.\n")
+                sys.stdout.write_to_logfile(f"{e}\n")
                 self._backup_fit(mll)
 
         sys.stdout.write_to_logfile(
@@ -248,12 +258,21 @@ class GpBotorchHeteroskedastic(botorch.models.HeteroskedasticSingleTaskGP, Model
             - settings:
             - previous_hyperparameters: hyperparameters from previous iterations
         """
+
+        warnings.filterwarnings(
+            "ignore", category=gpytorch.utils.warnings.GPInputWarning
+        )
+
         mll = ExactMarginalLogLikelihood(self.likelihood, self)
         try:
-            fit_gpytorch_mll(mll)
+            with warnings.catch_warnings(record=True) as w:
+                warnings.simplefilter("always")
+                fit_gpytorch_mll(mll)
+                for warning in w:
+                    sys.stdout.write_to_logfile(f"{str(warning.message)}\n")
         except Exception as e:
-            print("Warning: Failed to fit model.")
-            print(e)
+            sys.stdout.write_to_logfile("Warning: Failed to fit model.\n")
+            sys.stdout.write_to_logfile(f"{e}\n")
             self._backup_fit(mll)
 
         sys.stdout.write_to_logfile(

@@ -162,6 +162,10 @@ class GpGpytorch(gpytorch.models.ExactGP, Model):
         Returns:
             - Hyperparameters of the model or None if the model is not fitted.
         """
+        warnings.filterwarnings(
+            "ignore", category=gpytorch.utils.warnings.GPInputWarning
+        )
+
         mll = ExactMarginalLogLikelihood(self.likelihood, self)
         if settings["multistart_hyperparameter_optimization"]:
             worst_log_likelihood = np.inf
@@ -197,10 +201,11 @@ class GpGpytorch(gpytorch.models.ExactGP, Model):
                         sample_point[3],
                     )
 
-                    warnings.filterwarnings(
-                        "ignore", category=gpytorch.utils.warnings.GPInputWarning
-                    )
-                    fit_gpytorch_mll(mll)
+                    with warnings.catch_warnings(record=True) as w:
+                        warnings.simplefilter("always")
+                        fit_gpytorch_mll(mll)
+                        for warning in w:
+                            sys.stdout.write_to_logfile(f"{str(warning.message)}\n")
                     self.train(), self.likelihood.train()
 
                     mll_val = mll(self(*self.train_inputs), self.train_targets)
@@ -216,11 +221,11 @@ class GpGpytorch(gpytorch.models.ExactGP, Model):
                     if mll_val < worst_log_likelihood:
                         worst_log_likelihood = mll_val
                 except Exception as e:
-                    print(f"Warning: failed to fit in iteration {i}")
-                    print(e)
+                    sys.stdout.write_to_logfile(f"Warning: failed to fit in iteration {i}\n"
+                                                f"{e}\n")
 
             if best_GP is None:
-                print(
+                sys.stdout.write_to_logfile(
                     f"Failed to fit the GP hyperparameters in all of the {settings['multistart_hyperparameter_optimization_iterations']} iterations."
                 )
                 sys.stdout.write_to_logfile(
@@ -241,10 +246,14 @@ class GpGpytorch(gpytorch.models.ExactGP, Model):
         else:
             mll = ExactMarginalLogLikelihood(self.likelihood, self)
             try:
-                fit_gpytorch_mll(mll)
+                with warnings.catch_warnings(record=True) as w:
+                    warnings.simplefilter("always")
+                    fit_gpytorch_mll(mll)
+                    for warning in w:
+                        sys.stdout.write_to_logfile(f"{str(warning.message)}\n")
             except Exception as e:
-                print(f"Warning: failed to fit model.")
-                print(e)
+                sys.stdout.write_to_logfile(f"Warning: failed to fit model.\n")
+                sys.stdout.write_to_logfile(f"{e}\n")
                 self._backup_fit(mll)
 
         sys.stdout.write_to_logfile(
