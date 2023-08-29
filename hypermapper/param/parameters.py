@@ -476,6 +476,8 @@ class OrdinalParameter(Parameter):
         return self.values
 
     def get_index(self, value: Any) -> int:
+        if not value in self._val_indices:
+            value = min(self._val_indices.keys(), key=lambda x: abs(x - value))
         return self._val_indices[np.round(value, 8)]
 
     def get_values(self) -> List[Any]:
