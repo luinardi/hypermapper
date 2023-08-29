@@ -132,7 +132,9 @@ class GpBotorch(botorch.models.SingleTaskGP, Model):
                     if mll_val < worst_log_likelihood:
                         worst_log_likelihood = mll_val
                 except Exception as e:
-                    sys.stdout.write_to_logfile(f"Warning: failed to fit in iteration {i}\n")
+                    sys.stdout.write_to_logfile(
+                        f"Warning: failed to fit in iteration {i}\n"
+                    )
                     sys.stdout.write_to_logfile(f"{e}\n")
 
             if best_GP is None:
