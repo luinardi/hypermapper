@@ -312,7 +312,7 @@ class Space:
                         node,
                         child_value,
                         child_parameter.name,
-                        child_parameter.val_indices[child_value.item()],
+                        child_parameter.get_index(child_value.item()),
                     )
                     node.add_child(child_node)
                     tree.add_leaf(child_node)
@@ -324,7 +324,7 @@ class Space:
                         node,
                         child_value,
                         child_parameter.name,
-                        child_parameter.val_indices[child_value.item()],
+                        child_parameter.get_index(child_value.item()),
                     )
                     self.build_tree(
                         tree, child_node, child_configuration, tree_order, level + 1

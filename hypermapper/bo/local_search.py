@@ -79,7 +79,7 @@ def get_parameter_neighbors(
     elif isinstance(parameter, OrdinalParameter):
         values = parameter.get_values()
         parameter_value = configuration[parameter_idx]
-        value_idx = parameter.val_indices[parameter_value.item()]
+        value_idx = parameter.get_index(parameter_value.item())
         values_list = (
             [values[value_idx - 1]] if value_idx > 0 and not only_larger else []
         ) + (
