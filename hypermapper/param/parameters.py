@@ -523,9 +523,12 @@ class OrdinalParameter(Parameter):
             ]
         else:
             intermediate_value = input_value
-            
+
         if to_type == "string":
-            if self.int_ordinal and abs(intermediate_value - np.round(intermediate_value)) < 1e-8:
+            if (
+                self.int_ordinal
+                and abs(intermediate_value - np.round(intermediate_value)) < 1e-8
+            ):
                 return f"{int(np.round(intermediate_value))}"
             else:
                 return f"{intermediate_value}"

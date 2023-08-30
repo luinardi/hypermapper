@@ -396,7 +396,9 @@ class Space:
             return None
         default_configuration = torch.tensor([default_configuration])
         if self.conditional_space and not self.evaluate(default_configuration):
-            sys.stdout.write_to_logfile("Warning: the default configuration is infeasible. Are you sure you want this?.")
+            sys.stdout.write_to_logfile(
+                "Warning: the default configuration is infeasible. Are you sure you want this?."
+            )
             return default_configuration
         return default_configuration
 
@@ -650,9 +652,7 @@ class Space:
             print(ve)
             raise SystemError
 
-        new_configurations = self.convert(
-            new_configurations, "string", "internal"
-        )
+        new_configurations = self.convert(new_configurations, "string", "internal")
         timestamps = torch.tensor([self.current_milli_time()] * len(configurations))
         new_data_array = DataArray(new_configurations, metrics, timestamps, feasible)
         write_data_array(self, new_data_array, output_data_file)
