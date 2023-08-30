@@ -357,10 +357,10 @@ class IntegerParameter(Parameter):
             - the converted value
         """
         if from_type in ["string", "internal"]:
-            intermediate_value = int(input_value)
+            intermediate_value = np.float64(input_value)
         elif from_type == "01":
             intermediate_value = (
-                int(
+                np.float64(
                     np.floor(input_value * (self.get_max() + 0.999999 - self.get_min()))
                 )
                 + self.get_min()
@@ -369,6 +369,8 @@ class IntegerParameter(Parameter):
             intermediate_value = input_value
 
         if to_type == "string":
+            if abs(np.round(intermediate_value) - intermediate_value) < 1e-8:
+                return f"{int(np.round(intermediate_value))}"
             return f"{intermediate_value}"
         elif to_type == "01":
             return (intermediate_value - self.get_min()) / (
@@ -521,21 +523,10 @@ class OrdinalParameter(Parameter):
             ]
         else:
             intermediate_value = input_value
-            # this is a fix to safeguard against numerical imprecision
-            if intermediate_value not in self.values:
-                closest_value = min(
-                    self.values, key=lambda x: abs(x - intermediate_value)
-                )
-                if abs(closest_value - intermediate_value) > 1e-6:
-                    raise Exception(
-                        "The input value in OrdinalParameter.convert() is not in the list of values."
-                        f" Value: {intermediate_value} closest value: {closest_value}"
-                    )
-                intermediate_value = closest_value
-
+            
         if to_type == "string":
-            if self.int_ordinal:
-                return f"{int(intermediate_value)}"
+            if self.int_ordinal and abs(intermediate_value - np.round(intermediate_value)) < 1e-8:
+                return f"{int(np.round(intermediate_value))}"
             else:
                 return f"{intermediate_value}"
         elif to_type == "01":

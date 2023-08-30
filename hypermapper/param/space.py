@@ -396,8 +396,8 @@ class Space:
             return None
         default_configuration = torch.tensor([default_configuration])
         if self.conditional_space and not self.evaluate(default_configuration):
-            sys.stdout.write_to_logfile("Warning: infeasible  default configuration.")
-            return None
+            sys.stdout.write_to_logfile("Warning: the default configuration is infeasible. Are you sure you want this?.")
+            return default_configuration
         return default_configuration
 
     def convert(
@@ -625,9 +625,14 @@ class Space:
             metric_indices = [
                 parameters_header.index(name) for name in self.metric_names
             ]
+            param_indices = [
+                parameters_header.index(name) for name in self.parameter_names
+            ]
+            new_configurations = []
             metrics = []
             feasible = []
             for row in parameters_data:
+                new_configurations.append([row[p] for p in param_indices])
                 metrics.append([float(row[m]) for m in metric_indices])
                 if self.enable_feasible_predictor:
                     feasible.append(
@@ -644,8 +649,12 @@ class Space:
             print("Failed to parse received message:")
             print(ve)
             raise SystemError
+
+        new_configurations = self.convert(
+            new_configurations, "string", "internal"
+        )
         timestamps = torch.tensor([self.current_milli_time()] * len(configurations))
-        new_data_array = DataArray(configurations, metrics, timestamps, feasible)
+        new_data_array = DataArray(new_configurations, metrics, timestamps, feasible)
         write_data_array(self, new_data_array, output_data_file)
         return new_data_array
 
