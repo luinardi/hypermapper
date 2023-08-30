@@ -369,7 +369,7 @@ class IntegerParameter(Parameter):
             intermediate_value = input_value
 
         if to_type == "string":
-            if abs(np.round(intermediate_value) - intermediate_value) < 1e-8:
+            if abs(np.round(intermediate_value) - intermediate_value) < 1e-6:
                 return f"{int(np.round(intermediate_value))}"
             return f"{intermediate_value}"
         elif to_type == "01":
@@ -525,12 +525,12 @@ class OrdinalParameter(Parameter):
             intermediate_value = input_value
 
         if to_type == "string":
-            if (
-                self.int_ordinal
-                and abs(intermediate_value - np.round(intermediate_value)) < 1e-8
-            ):
+            if self.int_ordinal and abs(intermediate_value - np.round(intermediate_value)) < 1e-6:
                 return f"{int(np.round(intermediate_value))}"
             else:
+                closest_value = min(self._val_indices.keys(), key=lambda x: abs(x - intermediate_value))
+                if abs(closest_value - intermediate_value) < 1e-6:
+                    intermediate_value = min(self._val_indices.keys(), key=lambda x: abs(x - intermediate_value))
                 return f"{intermediate_value}"
         elif to_type == "01":
             return self.values.index(intermediate_value) / (self.get_size() - 1)
