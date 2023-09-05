@@ -265,6 +265,9 @@ def main(settings, black_box_function=None):
                         )
                         tmp_data_array.cat(fantasized_data_array)
                         tmp_feasible_data_array = tmp_data_array.get_feasible()
+                        objective_means, objective_stds = update_mean_std(
+                            feasible_data_array.metrics_array, settings
+                        )
 
                     local_search_t1 = time.time()
                     sys.stdout.write_to_logfile(

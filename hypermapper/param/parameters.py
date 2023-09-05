@@ -278,7 +278,7 @@ class IntegerParameter(Parameter):
         self.min_value = min_value
         self.max_value = max_value
         self.values = torch.arange(min_value, max_value + 1)
-        self.val_indices = dict(
+        self._val_indices = dict(
             zip(self.values.to(dtype=torch.long).numpy(), list(range(len(self.values))))
         )
         self.transform = transform
@@ -331,6 +331,9 @@ class IntegerParameter(Parameter):
     def get_values(self) -> List[int]:
         return list(range(self.min_value, self.max_value + 1))
 
+    def get_index(self, value: Any) -> int:
+        return self._val_indices[value]
+
     def get_min(self) -> int:
         return self.min_value
 
@@ -354,10 +357,10 @@ class IntegerParameter(Parameter):
             - the converted value
         """
         if from_type in ["string", "internal"]:
-            intermediate_value = int(input_value)
+            intermediate_value = np.float64(input_value)
         elif from_type == "01":
             intermediate_value = (
-                int(
+                np.float64(
                     np.floor(input_value * (self.get_max() + 0.999999 - self.get_min()))
                 )
                 + self.get_min()
@@ -366,6 +369,8 @@ class IntegerParameter(Parameter):
             intermediate_value = input_value
 
         if to_type == "string":
+            if abs(np.round(intermediate_value) - intermediate_value) < 1e-6:
+                return f"{int(np.round(intermediate_value))}"
             return f"{intermediate_value}"
         elif to_type == "01":
             return (intermediate_value - self.get_min()) / (
@@ -406,16 +411,25 @@ class OrdinalParameter(Parameter):
         if constraints is None:
             constraints = []
         Parameter.__init__(self, name, default, constraints, dependencies)
-        self.values = torch.tensor(sorted(values, key=float))  # ascending order
+        self.values = torch.tensor(
+            sorted(values), dtype=torch.float64
+        )  # ascending order
         self.int_ordinal = all([v % 1 == 0 for v in self.values])
-        self.val_indices = dict(
+        self._val_indices = dict(
             zip(
-                self.values.to(dtype=torch.float64).numpy(),
+                np.round(self.values.to(dtype=torch.float64).numpy(), 8),
                 list(range(len(self.values))),
             )
         )
         self.distribution = []
         self.transform = transform
+
+        if min([b - a for a, b in zip(self.values[:-1], self.values[1:])]) < 1e-6:
+            print(
+                "WARNING: for reasons of numerical stability."
+                " HyperMapper will not work properly with ordinal"
+                " parameters with values that are too close to each other."
+            )
 
         if isinstance(probability_distribution, str):
             self.distribution_name = probability_distribution
@@ -452,7 +466,7 @@ class OrdinalParameter(Parameter):
         Returns:
         - the probability of X
         """
-        return torch.tensor([self.distribution[self.val_indices[i.item()]] for i in x])
+        return torch.tensor([self.distribution[self.get_index(i.item())] for i in x])
 
     def get_size(self) -> int:
         return len(self.values)
@@ -462,6 +476,11 @@ class OrdinalParameter(Parameter):
 
     def get_discrete_values(self) -> List[Any]:
         return self.values
+
+    def get_index(self, value: Any) -> int:
+        if not value in self._val_indices:
+            value = min(self._val_indices.keys(), key=lambda x: abs(x - value))
+        return self._val_indices[np.round(value, 8)]
 
     def get_values(self) -> List[Any]:
         return self.values
@@ -497,28 +516,29 @@ class OrdinalParameter(Parameter):
             - the converted value
         """
         if from_type == "string":
-            intermediate_value = float(input_value)
+            intermediate_value = np.float64(input_value)
         elif from_type == "01":
             intermediate_value = self.values[
                 int(np.floor(input_value * self.get_size() * 0.999999))
             ]
         else:
             intermediate_value = input_value
-            # this is a fix to safeguard against numerical imprecision
-            if intermediate_value not in self.values:
-                closest_value = min(
-                    self.values, key=lambda x: abs(x - intermediate_value)
-                )
-                if abs(closest_value - intermediate_value) > 1e-6:
-                    raise Exception(
-                        "The input value in OrdinalParameter.convert() is not in the list of values."
-                    )
-                intermediate_value = closest_value
 
         if to_type == "string":
-            if self.int_ordinal:
-                return f"{int(intermediate_value)}"
+            if (
+                self.int_ordinal
+                and abs(intermediate_value - np.round(intermediate_value)) < 1e-6
+            ):
+                return f"{int(np.round(intermediate_value))}"
             else:
+                closest_value = min(
+                    self._val_indices.keys(), key=lambda x: abs(x - intermediate_value)
+                )
+                if abs(closest_value - intermediate_value) < 1e-6:
+                    intermediate_value = min(
+                        self._val_indices.keys(),
+                        key=lambda x: abs(x - intermediate_value),
+                    )
                 return f"{intermediate_value}"
         elif to_type == "01":
             return self.values.index(intermediate_value) / (self.get_size() - 1)
@@ -562,7 +582,7 @@ class CategoricalParameter(Parameter):
         Parameter.__init__(self, name, values.index(default), constraints, dependencies)
         self.values = torch.arange(len(values))
         self.string_values = values
-        self.val_indices = {i.item(): i.item() for i in self.values}
+        self._val_indices = {i.item(): i.item() for i in self.values}
 
         if isinstance(probability_distribution, str):
             self.distribution_name = probability_distribution
@@ -603,6 +623,9 @@ class CategoricalParameter(Parameter):
             return self.values.index(self.default)
         else:
             return self.default
+
+    def get_index(self, value: Any) -> int:
+        return self._val_indices[value]
 
     def get_size(self) -> int:
         return len(self.values)
@@ -721,7 +744,7 @@ class PermutationParameter(Parameter):
 
         self.parametrization = parametrization.lower()
         self.distribution = torch.ones(len(self.values)) / len(self.values)
-        self.val_indices = {
+        self._val_indices = {
             i.item(): i for i in self.values
         }  # from internal to index (which are the same for permutations)
 
@@ -816,6 +839,9 @@ class PermutationParameter(Parameter):
 
     def get_default(self) -> int:
         return self.default_index
+
+    def get_index(self, value: Any) -> int:
+        return self._val_indices[value]
 
     def get_size(self) -> int:
         return len(self.values)
