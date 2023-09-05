@@ -668,20 +668,40 @@ class Space:
         original_configurations = self.convert(configurations, "internal", "original")
         objective_values = []
         timestamps = []
-        for original_configuration in original_configurations:
-            output = black_box_function(
-                {
-                    name: value
-                    for name, value in zip(self.parameter_names, original_configuration)
-                }
-            )
-            if isinstance(output, tuple):
-                output = list(output)
-            if not (type(output) is list or type(output) is dict):
-                output = [output]
-            objective_values.append(output)
-            timestamps.append(self.current_milli_time() - beginning_of_time)
-
+        configurations_run = 0
+        while configurations_run < len(original_configurations):
+            if len(original_configurations) > 1:
+                outputs = black_box_function(
+                    [
+                        {
+                            name: value 
+                            for name,value in zip(self.parameter_names, config)
+                        }
+                        for config in original_configurations[configurations_run:configurations_run+self.settings["batch_size"]]
+                    ]
+                )
+                for output in outputs:
+                    if isinstance(output, tuple):
+                        output = list(output)
+                    if not (type(output) is list or type(output) is dict):
+                        output = [output]
+                    objective_values.append(output)
+                    timestamps.append(self.current_milli_time() - beginning_of_time)
+            else:
+                output = black_box_function(
+                    {
+                        name: value
+                        for name, value in zip(self.parameter_names, original_configurations[configurations_run:configurations_run+self.settings["batch_size"]])
+                    }
+                )
+                if isinstance(output, tuple):
+                    output = list(output)
+                if not (type(output) is list or type(output) is dict):
+                    output = [output]
+                objective_values.append(output)
+                timestamps.append(self.current_milli_time() - beginning_of_time)
+            configurations_run += self.settings["batch_size"]
+        
         output_names = (
             self.metric_names
             + ([self.feasible_output_name] if self.enable_feasible_predictor else [])
