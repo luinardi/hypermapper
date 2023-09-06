@@ -679,10 +679,13 @@ class Space:
         timestamps = []
         idx = 0
         while idx < len(original_configurations):
-            configurations_to_run = original_configurations[idx:idx+self.settings["batch_size"]]
-            bbf_arguments = [{name: value for name, value in zip(self.parameter_names, config)}
-                             for config in configurations_to_run
-                             ]
+            configurations_to_run = original_configurations[
+                idx : idx + self.settings["batch_size"]
+            ]
+            bbf_arguments = [
+                {name: value for name, value in zip(self.parameter_names, config)}
+                for config in configurations_to_run
+            ]
             if self.settings["batch_size"] > 1:
                 outputs = black_box_function(bbf_arguments)
             else:
