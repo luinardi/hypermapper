@@ -248,11 +248,14 @@ def main(settings, black_box_function=None):
                         (best_configurations, best_configuration.unsqueeze(0)), 0
                     )
                     if batch_idx < settings["batch_size"] - 1:
-                        preprocessed_best_configuration = preprocess_parameters_array(best_configuration.unsqueeze(0), param_space)
+                        preprocessed_best_configuration = preprocess_parameters_array(
+                            best_configuration.unsqueeze(0), param_space
+                        )
                         fantasized_values = torch.tensor(
                             [
                                 model.get_mean_and_std(
-                                    preprocessed_best_configuration[0].unsqueeze(0), False
+                                    preprocessed_best_configuration[0].unsqueeze(0),
+                                    False,
                                 )[0]
                                 for model in regression_models
                             ]
