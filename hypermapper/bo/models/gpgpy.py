@@ -188,11 +188,7 @@ class GpGpy(GPy.models.GPRegression, Model):
         }
         return hyperparameters
 
-    def get_mean_and_std(
-        self,
-        normalized_data,
-        predict_noiseless
-    ):
+    def get_mean_and_std(self, normalized_data, predict_noiseless):
         """
         Compute the predicted mean and uncertainty (either standard deviation or variance) for a number of points with a GP model.
 

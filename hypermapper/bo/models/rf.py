@@ -152,6 +152,7 @@ class RFRegressionModel(RandomForestRegressor):
 
         if self.add_linear_std:
             from sklearn.neighbors import NearestNeighbors
+
             self.neigh = NearestNeighbors(n_neighbors=1)
             self.neigh.fit(X)
 

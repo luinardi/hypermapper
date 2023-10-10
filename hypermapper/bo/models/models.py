@@ -26,11 +26,7 @@ class Model:
         raise NotImplementedError
 
     @abstractmethod
-    def get_mean_and_std(
-        self,
-        normalized_data,
-        predict_noiseless
-    ):
+    def get_mean_and_std(self, normalized_data, predict_noiseless):
         raise NotImplementedError
 
 
