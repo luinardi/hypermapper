@@ -29,8 +29,7 @@ class Model:
     def get_mean_and_std(
         self,
         normalized_data,
-        predict_noiseless,
-        use_var=False,
+        predict_noiseless
     ):
         raise NotImplementedError
 
@@ -121,6 +120,7 @@ def generate_mono_output_regression_models(
                 use_all_data_to_fit_variance=settings["models"][
                     "use_all_data_to_fit_variance"
                 ],
+                add_linear_std=settings["models"]["add_linear_std"],
             )
             model.fit_rf(X, y)
         else:
@@ -168,7 +168,6 @@ def compute_model_mean_and_uncertainty(
     data: torch.Tensor,
     models: list,
     param_space: Space,
-    var: bool = False,
     predict_noiseless: bool = True,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """
@@ -188,7 +187,7 @@ def compute_model_mean_and_uncertainty(
     means = torch.Tensor()
     uncertainties = torch.Tensor()
     for model in models:
-        mean, uncertainty = model.get_mean_and_std(X, predict_noiseless, var)
+        mean, uncertainty = model.get_mean_and_std(X, predict_noiseless)
         means = torch.cat((means, mean.unsqueeze(1)), 1)
         uncertainties = torch.cat((uncertainties, uncertainty.unsqueeze(1)), 1)
 

@@ -156,6 +156,11 @@
           "default": false,
           "description": "Whether to still use all data to fit the variance of the leaves when bootstrapping in Random Forests.",
           "type": "boolean"
+        },
+        "add_linear_std": {
+          "default": true,
+          "description": "Add the distance to the closest data point to the std estimate to promote exploration.",
+          "type": "boolean"
         }
       },
       "required": [

@@ -26,6 +26,7 @@ class RFRegressionModel(RandomForestRegressor):
         self,
         use_all_data_to_fit_mean=False,
         use_all_data_to_fit_variance=False,
+        add_linear_std=False,
         **kwargs
     ):
         """
@@ -39,6 +40,7 @@ class RFRegressionModel(RandomForestRegressor):
         self.leaf_variances = []
         self.use_all_data_to_fit_mean = use_all_data_to_fit_mean
         self.use_all_data_to_fit_variance = use_all_data_to_fit_variance
+        self.add_linear_std = add_linear_std
 
         # This is just to make the code faster. If the min_samples_split is 2, we can just set the internal mean to 0.
         if self.min_samples_split == 2 and not self.use_all_data_to_fit_mean:
@@ -148,7 +150,12 @@ class RFRegressionModel(RandomForestRegressor):
         if self.use_all_data_to_fit_mean:
             self.update_leaf_values(X, y, self.use_all_data_to_fit_variance)
 
-    def get_mean_and_std(self, X: torch.Tensor, _, use_var=False):
+        if self.add_linear_std:
+            from sklearn.neighbors import NearestNeighbors
+            self.neigh = NearestNeighbors(n_neighbors=1)
+            self.neigh.fit(X)
+
+    def get_mean_and_std(self, X: torch.Tensor, _):
         """
         Compute the predicted mean and uncertainty (either standard deviation or variance) for a number of points with an RF model.
 
@@ -179,12 +186,13 @@ class RFRegressionModel(RandomForestRegressor):
         var -= mean**2.0
         var[var < 0.0] = 0.0
 
-        if use_var:
-            uncertainty = var
-        else:
-            uncertainty = np.sqrt(var)
+        if self.add_linear_std:
+            # This is from the BeBOP paper. https://arxiv.org/abs/2310.00971
+            var += np.square(2 * self.neigh.kneighbors(X.numpy())[0].squeeze())
 
-        return torch.tensor(mean), torch.tensor(uncertainty)
+        std = np.sqrt(var)
+
+        return torch.tensor(mean), torch.tensor(std)
 
 
 class RFClassificationModel(RandomForestClassifier):

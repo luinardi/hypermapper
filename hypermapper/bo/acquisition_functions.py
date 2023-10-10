@@ -39,11 +39,10 @@ def ucb(
     beta = np.sqrt(0.125 * np.log(2 * iteration_number + 1))
     number_of_predictions = X.shape[0]
 
-    prediction_means, prediction_variances = models.compute_model_mean_and_uncertainty(
+    prediction_means, prediction_stds = models.compute_model_mean_and_uncertainty(
         X,
         regression_models,
         param_space,
-        var=True,
         predict_noiseless=settings["predict_noiseless"],
     )
 
@@ -53,7 +52,7 @@ def ucb(
         feasibility_indicator = torch.ones(number_of_predictions)
 
     acq_val = (
-        (prediction_means + torch.sqrt(beta * prediction_variances))
+        (prediction_means + beta * prediction_stds)
         @ objective_weights
         * feasibility_indicator
         * (feasibility_indicator >= feasibility_threshold)
@@ -96,11 +95,10 @@ def ei(
         - a tensor of scalarized values for each point in X.
     """
     number_of_predictions = X.shape[0]
-    prediction_means, prediction_variances = models.compute_model_mean_and_uncertainty(
+    prediction_means, prediction_stds = models.compute_model_mean_and_uncertainty(
         X,
         regression_models,
         param_space,
-        var=True,
         predict_noiseless=settings["predict_noiseless"],
     )
 
@@ -118,7 +116,7 @@ def ei(
         best_values = min(best_values, settings["objective_value_target"])
 
     normalized_best_values = (best_values - objective_means) / objective_stds
-    f_stds = torch.sqrt(prediction_variances)
+    f_stds = prediction_stds
     f_means = prediction_means
     v = (normalized_best_values - f_means - xi) / f_stds
     normal = torch.distributions.Normal(torch.zeros_like(v), torch.ones_like(v))

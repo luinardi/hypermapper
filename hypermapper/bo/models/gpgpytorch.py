@@ -286,7 +286,7 @@ class GpGpytorch(gpytorch.models.ExactGP, Model):
             loss.backward()
             optimizer.step()
 
-    def get_mean_and_std(self, normalized_data, predict_noiseless, use_var=False):
+    def get_mean_and_std(self, normalized_data, predict_noiseless):
         """
         Compute the predicted mean and uncertainty (either standard deviation or variance) for a number of points with a GP model.
 
@@ -304,10 +304,6 @@ class GpGpytorch(gpytorch.models.ExactGP, Model):
         if any(var < -1e-12):
             raise Exception(f"GP prediction resulted in negative variance {var}")
         var += 1e-12
+        std = torch.sqrt(var)
 
-        if use_var:
-            uncertainty = var
-        else:
-            uncertainty = torch.sqrt(var)
-
-        return mean, uncertainty
+        return mean, std

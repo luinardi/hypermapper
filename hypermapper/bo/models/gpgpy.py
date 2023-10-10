@@ -191,8 +191,7 @@ class GpGpy(GPy.models.GPRegression, Model):
     def get_mean_and_std(
         self,
         normalized_data,
-        predict_noiseless,
-        use_var=False,
+        predict_noiseless
     ):
         """
         Compute the predicted mean and uncertainty (either standard deviation or variance) for a number of points with a GP model.
@@ -211,9 +210,6 @@ class GpGpy(GPy.models.GPRegression, Model):
         mean = mean.flatten()
         var = var.flatten()
         var[var < 10**-11] = 10**-11
-        if use_var:
-            uncertainty = var
-        else:
-            uncertainty = np.sqrt(var)
+        std = np.sqrt(var)
 
-        return torch.tensor(mean), torch.tensor(uncertainty)
+        return torch.tensor(mean), torch.tensor(std)
