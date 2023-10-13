@@ -8,10 +8,28 @@ import jsonschema
 from pkg_resources import resource_stream
 import torch
 
-from botorch.test_functions.synthetic import Ackley, Beale, Branin, Bukin, Cosine8, \
-    DropWave, DixonPrice, EggHolder, Griewank, Hartmann, HolderTable, Levy, \
-    Michalewicz, Powell, Rastrigin, Rosenbrock, Shekel, SixHumpCamel,StyblinskiTang, \
-    ThreeHumpCamel
+from botorch.test_functions.synthetic import (
+    Ackley,
+    Beale,
+    Branin,
+    Bukin,
+    Cosine8,
+    DropWave,
+    DixonPrice,
+    EggHolder,
+    Griewank,
+    Hartmann,
+    HolderTable,
+    Levy,
+    Michalewicz,
+    Powell,
+    Rastrigin,
+    Rosenbrock,
+    Shekel,
+    SixHumpCamel,
+    StyblinskiTang,
+    ThreeHumpCamel,
+)
 
 
 testing_directory = os.getcwd()
@@ -25,9 +43,7 @@ if not os.path.isdir(os.path.join(f"{testing_directory}", "scenarios")):
 
 
 class BotorchBenchmark:
-
-    def __init__(self, name: str, dim:int = 2, noise_std: float = 0.0):
-
+    def __init__(self, name: str, dim: int = 2, noise_std: float = 0.0):
         self.name = name
         self.dim = dim
         self.noise_std = noise_std
@@ -45,7 +61,7 @@ class BotorchBenchmark:
         elif name == "dropwave":
             self.btbench = DropWave(noise_std=noise_std)
         elif name == "dixonprice":
-            self.btbench = DixonPrice(dim = dim, noise_std=noise_std)
+            self.btbench = DixonPrice(dim=dim, noise_std=noise_std)
         elif self.name == "eggholder":
             self.btbench = EggHolder(noise_std=noise_std)
         elif self.name == "griewank":
@@ -73,10 +89,12 @@ class BotorchBenchmark:
         elif self.name == "threehumpcamel":
             self.btbench = ThreeHumpCamel(noise_std=noise_std)
         else:
-            raise Exception(f"Benchmark name {self.name} not available. Please choose from the following: " +
-                            "ackley, beale, branin, bukin, cosine8, dropwave, dixonprice, eggholder, griewank, " +
-                            "hartmann, holdertable, levy, michalewicz, powell, rastrigin, rosenbrock, shekel, " +
-                            "sixhumpcamel,styblinskitang, threehumpcamel")
+            raise Exception(
+                f"Benchmark name {self.name} not available. Please choose from the following: "
+                + "ackley, beale, branin, bukin, cosine8, dropwave, dixonprice, eggholder, griewank, "
+                + "hartmann, holdertable, levy, michalewicz, powell, rastrigin, rosenbrock, shekel, "
+                + "sixhumpcamel,styblinskitang, threehumpcamel"
+            )
         self.param_names = [f"x{i+1}" for i in range(self.btbench.dim)]
 
     def get_parameters(self):
@@ -85,7 +103,7 @@ class BotorchBenchmark:
             param_dict[f"x{i + 1}"] = {
                 "parameter_type": "real",
                 "values": bound.numpy().tolist(),
-                "parameter_default": ((bound[0] + bound[1]) / 2).item()
+                "parameter_default": ((bound[0] + bound[1]) / 2).item(),
             }
         return param_dict
 
@@ -99,14 +117,13 @@ class BotorchBenchmark:
 
 
 def run_performance_test(
-        benchmark: BotorchBenchmark,
-        doe_samples: int = 10,
-        iterations: int = 50,
-        repetitions: int = 1,
-        additional_settings: Dict = None,
-        run_tag: str = "notag",
+    benchmark: BotorchBenchmark,
+    doe_samples: int = 10,
+    iterations: int = 50,
+    repetitions: int = 1,
+    additional_settings: Dict = None,
+    run_tag: str = "notag",
 ):
-
     if additional_settings is None:
         additional_settings = {}
 
@@ -114,7 +131,10 @@ def run_performance_test(
     settings = {
         "application_name": benchmark.name,
         "optimization_iterations": iterations,
-        "design_of_experiment": {"doe_type": "random sampling", "number_of_samples": doe_samples},
+        "design_of_experiment": {
+            "doe_type": "random sampling",
+            "number_of_samples": doe_samples,
+        },
         "optimization_objectives": ["Value"],
         "input_parameters": benchmark.get_parameters(),
         "hypermapper_mode": {"mode": "default"},
@@ -136,27 +156,50 @@ def run_performance_test(
             f"{testing_directory}", "logs", run_tag, f"log_{benchmark.name}_{rep}.log"
         )
         settings["output_data_file"] = os.path.join(
-            f"{testing_directory}", "outputfiles", run_tag, f"out_{benchmark.name}_{rep}.csv"
+            f"{testing_directory}",
+            "outputfiles",
+            run_tag,
+            f"out_{benchmark.name}_{rep}.csv",
         )
         settings["run_directory"] = testing_directory
-        json.dump(settings, open(os.path.join(f"{testing_directory}", "scenarios", run_tag, f"scenario_{rep}.json"), "w"), indent=4)
+        json.dump(
+            settings,
+            open(
+                os.path.join(
+                    f"{testing_directory}", "scenarios", run_tag, f"scenario_{rep}.json"
+                ),
+                "w",
+            ),
+            indent=4,
+        )
         hypermapper.optimize(settings, benchmark)
 
 
-
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Run benchmark"
-    )
+    parser = argparse.ArgumentParser(description="Run benchmark")
 
     parser.add_argument("benchmark", type=str, help="Name of the benchmark to run")
-    parser.add_argument("--dim", type=int, help="Dimension of the benchmark", default=-1, dest="dim")
-    parser.add_argument("--noise_std", type=float, help="Noise std of the benchmark", default=0, dest="noise_std")
-    parser.add_argument("--doe_samples", type=int, help="DoE samples", dest="doe_samples")
+    parser.add_argument(
+        "--dim", type=int, help="Dimension of the benchmark", default=-1, dest="dim"
+    )
+    parser.add_argument(
+        "--noise_std",
+        type=float,
+        help="Noise std of the benchmark",
+        default=0,
+        dest="noise_std",
+    )
+    parser.add_argument(
+        "--doe_samples", type=int, help="DoE samples", dest="doe_samples"
+    )
     parser.add_argument("--iterations", type=int, help="Iterations", dest="iterations")
-    parser.add_argument("--repetitions", type=int, help="Repetitions", default=1, dest="repetitions")
-    parser.add_argument("--tag", type=str, help="Tag for the run", default="notag", dest="tag")
-    parser.add_argument("--settings", "-s", nargs='*', default=[])
+    parser.add_argument(
+        "--repetitions", type=int, help="Repetitions", default=1, dest="repetitions"
+    )
+    parser.add_argument(
+        "--tag", type=str, help="Tag for the run", default="notag", dest="tag"
+    )
+    parser.add_argument("--settings", "-s", nargs="*", default=[])
 
     args = parser.parse_args()
 
@@ -169,9 +212,15 @@ if __name__ == "__main__":
     run_tag = args.tag
     settings = args.settings
 
-    assert benchmark_name is not None, "Please specify the benchmark name as the first positional argument"
-    assert doe_samples is not None, "Please specify the number of DoE samples using --doe_samples"
-    assert iterations is not None, "Please specify the number of iterations using --iterations"
+    assert (
+        benchmark_name is not None
+    ), "Please specify the benchmark name as the first positional argument"
+    assert (
+        doe_samples is not None
+    ), "Please specify the number of DoE samples using --doe_samples"
+    assert (
+        iterations is not None
+    ), "Please specify the number of iterations using --iterations"
 
     settings_dict = {}
     for s in settings:
@@ -192,6 +241,5 @@ if __name__ == "__main__":
         iterations=iterations,
         repetitions=repetitions,
         additional_settings=settings_dict,
-        run_tag=run_tag
+        run_tag=run_tag,
     )
-
