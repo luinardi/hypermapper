@@ -99,7 +99,7 @@ class BotorchBenchmark:
 
     def get_parameters(self):
         param_dict = {}
-        for i, bound in enumerate(self.btbench.bounds):
+        for i, bound in enumerate(self.btbench.bounds.T):
             param_dict[f"x{i + 1}"] = {
                 "parameter_type": "real",
                 "values": bound.numpy().tolist(),
@@ -151,7 +151,7 @@ def run_performance_test(
         os.mkdir(os.path.join(f"{testing_directory}", "scenarios", run_tag))
 
     for rep in range(repetitions):
-        print("Running:", benchmark.name, "Tag", run_tag, "Repetition:", rep)
+        print("Running:", benchmark.name, "Tag:", run_tag, "Repetition:", rep)
         settings["log_file"] = os.path.join(
             f"{testing_directory}", "logs", run_tag, f"log_{benchmark.name}_{rep}.log"
         )
