@@ -748,6 +748,10 @@ class PermutationParameter(Parameter):
             i.item(): i for i in self.values
         }  # from internal to index (which are the same for permutations)
 
+        self._permutation_indices = {
+            tuple(p): i for i, p in enumerate(self.permutation_values)
+        }
+
     def parametrize(self, data: List[int]) -> Tuple[List[str], List[List[float]]]:
         """
         Provides a parametrization representation of the variable.
@@ -859,7 +863,7 @@ class PermutationParameter(Parameter):
         return self.permutation_values
 
     def get_int_value(self, permutation: Tuple[int]) -> int:
-        return self.permutation_values.index(permutation)
+        return self._permutation_indices[permutation]
 
     def get_permutation_value(self, idx_value: int) -> Tuple[int]:
         return self.permutation_values[int(idx_value)]
