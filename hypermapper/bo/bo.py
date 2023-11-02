@@ -61,61 +61,60 @@ def main(settings, black_box_function=None):
             param_space, settings
         )
         space.write_data_array(param_space, data_array, settings["output_data_file"])
+        absolute_configuration_index = data_array.parameters_array.shape[0]
+    ################################################
+    # DEFAULT
+    ################################################
+    default_parameter_array = torch.Tensor()
+    if (
+            absolute_configuration_index
+            < settings["design_of_experiment"]["number_of_samples"]
+    ):
+        default_configurations = param_space.get_default_configurations()
+        print(default_configurations)
+        if default_configurations is not None:
+            for default_configuration in default_configurations:
+                str_data = param_space.get_unique_hash_string_from_values(
+                    default_configuration
+                )
+                if str_data not in data_array.string_dict:
+                    default_parameter_array = torch.cat((default_parameter_array, default_configuration))
+            default_data_array = param_space.run_configurations(
+                default_parameter_array.reshape(-1, param_space.dimension), beginning_of_time, settings, black_box_function
+            )
+            data_array.cat(default_data_array)
+            absolute_configuration_index = data_array.len
 
     ################################################
     # DOE
     ################################################
+
+    doe_parameter_array = torch.Tensor()
     if (
         absolute_configuration_index
         < settings["design_of_experiment"]["number_of_samples"]
     ):
-        doe_parameter_array = torch.Tensor()
-        default_configuration = param_space.get_default_configuration()
-        if default_configuration is not None:
-            str_data = param_space.get_unique_hash_string_from_values(
-                default_configuration
-            )
-            if str_data not in data_array.string_dict:
-                doe_parameter_array = default_configuration
-                absolute_configuration_index += 1
-                data_array.string_dict[str_data] = len(data_array.string_dict.keys())
-
-        if (
-            absolute_configuration_index
-            < settings["design_of_experiment"]["number_of_samples"]
-        ):
-            doe_parameter_array = torch.cat(
-                (
-                    doe_parameter_array,
-                    get_doe_sample_configurations(
-                        param_space,
-                        data_array,
-                        settings["design_of_experiment"]["number_of_samples"]
-                        - absolute_configuration_index,
-                        settings["design_of_experiment"]["doe_type"],
-                        allow_repetitions=settings["design_of_experiment"][
-                            "allow_repetitions"
-                        ],
-                    ),
-                ),
-                0,
-            )
-            absolute_configuration_index = settings["design_of_experiment"][
-                "number_of_samples"
-            ]
+        doe_parameter_array = get_doe_sample_configurations(
+            param_space,
+            data_array,
+            settings["design_of_experiment"]["number_of_samples"]
+            - absolute_configuration_index,
+            settings["design_of_experiment"]["doe_type"],
+            allow_repetitions=settings["design_of_experiment"][
+                "allow_repetitions"
+            ],
+        )
 
         doe_data_array = param_space.run_configurations(
             doe_parameter_array, beginning_of_time, settings, black_box_function
         )
         data_array.cat(doe_data_array)
-        iteration_number = 1
-    else:
-        # if we have more samples than what we require DoE samples we're already in the learning phase
-        iteration_number = (
-            absolute_configuration_index
-            - settings["design_of_experiment"]["number_of_samples"]
-            + 1
-        )
+        absolute_configuration_index = data_array.len
+    iteration_number = max(
+        absolute_configuration_index
+        - settings["design_of_experiment"]["number_of_samples"]
+        + 1, 1
+    )
 
     # If we have feasibility constraints, we must ensure we have at least one feasible sample before starting optimization
     # If this is not true, continue design of experiment until the condition is met

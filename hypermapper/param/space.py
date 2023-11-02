@@ -130,9 +130,11 @@ class Space:
         """
         for param_name, param in input_parameters.items():
             param_type = param["parameter_type"]
-            param_default = None
+            param_defaults = None
             if "parameter_default" in param:
-                param_default = param["parameter_default"]
+                param_defaults = param["parameter_default"]
+                if not isinstance(param_defaults, list):
+                    param_defaults = [param_defaults]
             param_distribution = param["prior"]
             if param_distribution in ["gaussian"]:
                 param_distribution = (param_distribution, param["prior_parameters"])
@@ -160,7 +162,7 @@ class Space:
                     name=param_name,
                     min_value=param_min,
                     max_value=param_max,
-                    default=param_default,
+                    defaults=param_defaults,
                     preferred_discretization=param_discretization,
                     probability_distribution=param_distribution,
                     constraints=param_constraints,
@@ -184,7 +186,7 @@ class Space:
                     name=param_name,
                     min_value=param_min,
                     max_value=param_max,
-                    default=param_default,
+                    defaults=param_defaults,
                     probability_distribution=param_distribution,
                     constraints=param_constraints,
                     dependencies=param_dependencies,
@@ -200,7 +202,7 @@ class Space:
                 param_obj = OrdinalParameter(
                     name=param_name,
                     values=[np.float64(p) for p in param_values],
-                    default=param_default,
+                    defaults=param_defaults,
                     probability_distribution=param_distribution,
                     constraints=param_constraints,
                     dependencies=param_dependencies,
@@ -216,7 +218,7 @@ class Space:
                 param_obj = CategoricalParameter(
                     name=param_name,
                     values=param_values,
-                    default=param_default,
+                    defaults=param_defaults,
                     probability_distribution=param_distribution,
                     constraints=param_constraints,
                     dependencies=param_dependencies,
@@ -229,10 +231,12 @@ class Space:
             elif param_type == "permutation":
                 n_elements = param["values"][0]
                 parametrization = param["parametrization"]
+                if param_defaults is not None and not isinstance(param_defaults[0], list):
+                    param_defaults = [param_defaults]
                 param_obj = PermutationParameter(
                     name=param_name,
                     n_elements=n_elements,
-                    default=param_default,
+                    defaults=param_defaults,
                     parametrization=parametrization,
                     constraints=param_constraints,
                     dependencies=param_dependencies,
@@ -385,22 +389,34 @@ class Space:
             [configuration for configuration in itertool_cartesian_product]
         )
 
-    def get_default_configuration(self):
+    def get_default_configurations(self):
         """
         Returns:
             - the default configuration (internal) from the input parameters space if complete and feasible.
         """
-        default_configuration = [p.default for p in self.parameters]
-        if None in default_configuration:
+        default_configurations = [p.defaults for p in self.parameters]
+        if None in default_configurations:
             sys.stdout.write_to_logfile("Warning: incomplete default")
             return None
-        default_configuration = torch.tensor([default_configuration])
-        if self.conditional_space and not self.evaluate(default_configuration):
-            sys.stdout.write_to_logfile(
-                "Warning: the default configuration is infeasible. Are you sure you want this?."
-            )
-            return default_configuration
-        return default_configuration
+        number_of_complete_defaults = np.min([len(d) for d in default_configurations])
+        default_configurations = [
+            d[:number_of_complete_defaults] for d in default_configurations
+        ]
+        default_configurations = torch.tensor(default_configurations).T
+
+        if self.conditional_space:
+            feasible_default_bool = self.evaluate(default_configurations)
+            if not all(feasible_default_bool):
+                infeasible_defaults = [
+                    d for i, d in enumerate(default_configurations)
+                    if not feasible_default_bool[i]
+                ]
+                sys.stdout.write_to_logfile(
+                    "Warning: default configurations \n" +
+                    "\n".join([str(d.numpy()) for d in infeasible_defaults]) +
+                    "\n is/are infeasible. Are you sure you want this?."
+                )
+        return default_configurations
 
     def convert(
         self,

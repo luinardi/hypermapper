@@ -27,6 +27,8 @@ def update_mean_std(values: torch.Tensor, settings: Dict):
     else:
         objective_means = torch.mean(values, 0)
         objective_stds = torch.std(values, 0)
+    if torch.any(objective_stds == 0):
+        objective_stds[objective_stds == 0] = 1
     return objective_means, objective_stds
 
 

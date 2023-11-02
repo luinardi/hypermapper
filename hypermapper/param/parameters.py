@@ -18,12 +18,12 @@ class Parameter:
     def __init__(
         self,
         name: str,
-        default: Union[int, float],
+        defaults: Union[List[int], List[float]],
         constraints: List[str],
         dependencies: List[str],
     ):
         self.name = name
-        self.default = default
+        self.defaults = defaults
         self.constraints = constraints
         self.dependencies = dependencies
 
@@ -35,8 +35,8 @@ class Parameter:
     def get_name(self) -> str:
         return self.name
 
-    def get_default(self) -> Any:
-        return self.default
+    def get_defaults(self) -> Any:
+        return self.defaults
 
     def get_dependencies(self) -> List[str]:
         return self.dependencies
@@ -64,7 +64,7 @@ class RealParameter(Parameter):
         name: str,
         min_value: float,
         max_value: float,
-        default: float,
+        defaults: List[float],
         probability_distribution: Union[str, List[float], Tuple],
         preferred_discretization,
         constraints: Optional[List[str]] = None,
@@ -78,7 +78,7 @@ class RealParameter(Parameter):
              - name: variable name
              - min_value: minimum value.
              - max_value: maximum value.
-             - default: default value.
+             - defaults: default values.
              - preferred_discretization: list of discrete values.
              - probability_distribution: a string describing the probability density function.
              - constraints: not yet implemented for RealParameter.
@@ -88,7 +88,7 @@ class RealParameter(Parameter):
             dependencies = []
         if constraints is None:
             constraints = []
-        Parameter.__init__(self, name, default, constraints, dependencies)
+        Parameter.__init__(self, name, defaults, constraints, dependencies)
         self.min_value = min_value
         self.max_value = max_value
         self.preferred_discretization = preferred_discretization
@@ -252,7 +252,7 @@ class IntegerParameter(Parameter):
         name: str,
         min_value: int,
         max_value: int,
-        default: int,
+        defaults: List[int],
         probability_distribution: Union[str, List[float]],
         constraints: Optional[List[str]] = None,
         dependencies: Optional[List[str]] = None,
@@ -265,7 +265,7 @@ class IntegerParameter(Parameter):
              - name: name of the variable
              - min_value: minimum value.
              - max_value: maximum value.
-             - default: default value.
+             - defaults: default values.
              - probability_distribution: a string describing the probability density function.
              - constraints: list of constraints as evaluable strings
              - dependencies: list of strings encoding dependencies
@@ -274,7 +274,7 @@ class IntegerParameter(Parameter):
             dependencies = []
         if constraints is None:
             constraints = []
-        Parameter.__init__(self, name, default, constraints, dependencies)
+        Parameter.__init__(self, name, defaults, constraints, dependencies)
         self.min_value = min_value
         self.max_value = max_value
         self.values = torch.arange(min_value, max_value + 1)
@@ -389,7 +389,7 @@ class OrdinalParameter(Parameter):
         self,
         name: str,
         values: List[float],
-        default: float,
+        defaults: List[float],
         probability_distribution: Union[str, List[float]],
         constraints: List[str] = None,
         dependencies: List[str] = None,
@@ -401,7 +401,7 @@ class OrdinalParameter(Parameter):
         Input:
              - name: variable name
              - values: list of possible value for this parameter.
-             - default: default value.
+             - defaults: default values.
              - probability_distribution: a string describing the probability density function or a list of values describing the probability distribution.
              - constraints: list of constraints as evaluable strings
              - dependencies: list of strings encoding dependencies
@@ -410,7 +410,7 @@ class OrdinalParameter(Parameter):
             dependencies = []
         if constraints is None:
             constraints = []
-        Parameter.__init__(self, name, default, constraints, dependencies)
+        Parameter.__init__(self, name, defaults, constraints, dependencies)
         self.values = torch.tensor(
             sorted(values), dtype=torch.float64
         )  # ascending order
@@ -559,7 +559,7 @@ class CategoricalParameter(Parameter):
         self,
         name: str,
         values: List[str],
-        default: str,
+        defaults: List[str],
         probability_distribution: Union[str, List[float]],
         constraints: Optional[List[str]] = None,
         dependencies: Optional[List[str]] = None,
@@ -570,7 +570,7 @@ class CategoricalParameter(Parameter):
         Input:
              - name: variable name
              - values: list of possible value for this parameter.
-             - default: default value.
+             - defaults: default values.
              - probability_distribution: a string describing the probability density function or a list of values describing the probability distribution.
              - constraints: list of constraints as evaluable strings
              - dependencies: list of strings encoding dependencies
@@ -579,7 +579,7 @@ class CategoricalParameter(Parameter):
             dependencies = []
         if constraints is None:
             constraints = []
-        Parameter.__init__(self, name, values.index(default), constraints, dependencies)
+        Parameter.__init__(self, name, [values.index(d) for d in defaults], constraints, dependencies)
         self.values = torch.arange(len(values))
         self.string_values = values
         self._val_indices = {i.item(): i.item() for i in self.values}
@@ -618,11 +618,14 @@ class CategoricalParameter(Parameter):
         """
         return self.distribution[x_idx.to(dtype=torch.long)]
 
-    def get_default(self) -> int:
-        if isinstance(self.default, str):
-            return self.values.index(self.default)
+    def get_defaults(self) -> List[int]:
+        if self.defaults is None or len(self.defaults) == 0:
+            return None
+
+        if isinstance(self.defaults[0], str):
+            return [self.values.index(d) for d in self.defaults]
         else:
-            return self.default
+            return self.defaults
 
     def get_index(self, value: Any) -> int:
         return self._val_indices[value]
@@ -711,7 +714,7 @@ class PermutationParameter(Parameter):
         self,
         name: str,
         n_elements: int,
-        default: List[int],
+        defaults: List[List[int]],
         parametrization: str,
         constraints: Optional[List[str]] = None,
         dependencies: Optional[List[str]] = None,
@@ -720,7 +723,7 @@ class PermutationParameter(Parameter):
         Initialization method. The possible values for this parameter are defined by the list values.
              - name: variable name
              - n_elements: number of elements in the permutation
-             - default: default value.
+             - defaults: default values.
              - parametrization: how to internally parametrize the permutation. Also defines which kernel is used.
              - constraints: list of constraints as evaluable strings
              - dependencies: list of strings encoding dependencies
@@ -737,10 +740,12 @@ class PermutationParameter(Parameter):
         ]
         self.string_values = [f"{tuple(p)}" for p in self.permutation_values]
         self.values = torch.arange(len(self.permutation_values))
-        self.default_index = None
-        if default:
-            self.default_index = self.permutation_values.index(tuple(default))
-        Parameter.__init__(self, name, self.default_index, constraints, dependencies)
+        self.default_indices = None
+        if defaults:
+            self.default_indices = [
+                self.permutation_values.index(tuple(default)) for default in defaults
+            ]
+        Parameter.__init__(self, name, self.default_indices, constraints, dependencies)
 
         self.parametrization = parametrization.lower()
         self.distribution = torch.ones(len(self.values)) / len(self.values)
@@ -841,8 +846,8 @@ class PermutationParameter(Parameter):
         """
         return self.distribution[x_idx.to(dtype=torch.long)]
 
-    def get_default(self) -> int:
-        return self.default_index
+    def get_defaults(self) -> List[int]:
+        return self.default_indices
 
     def get_index(self, value: Any) -> int:
         return self._val_indices[value]
