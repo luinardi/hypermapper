@@ -231,7 +231,9 @@ class Space:
             elif param_type == "permutation":
                 n_elements = param["values"][0]
                 parametrization = param["parametrization"]
-                if param_defaults is not None and not isinstance(param_defaults[0], list):
+                if param_defaults is not None and not isinstance(
+                    param_defaults[0], list
+                ):
                     param_defaults = [param_defaults]
                 param_obj = PermutationParameter(
                     name=param_name,
@@ -408,13 +410,14 @@ class Space:
             feasible_default_bool = self.evaluate(default_configurations)
             if not all(feasible_default_bool):
                 infeasible_defaults = [
-                    d for i, d in enumerate(default_configurations)
+                    d
+                    for i, d in enumerate(default_configurations)
                     if not feasible_default_bool[i]
                 ]
                 sys.stdout.write_to_logfile(
-                    "Warning: default configurations \n" +
-                    "\n".join([str(d.numpy()) for d in infeasible_defaults]) +
-                    "\n is/are infeasible. Are you sure you want this?."
+                    "Warning: default configurations \n"
+                    + "\n".join([str(d.numpy()) for d in infeasible_defaults])
+                    + "\n is/are infeasible. Are you sure you want this?."
                 )
         return default_configurations
 

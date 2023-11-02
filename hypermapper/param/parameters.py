@@ -579,7 +579,9 @@ class CategoricalParameter(Parameter):
             dependencies = []
         if constraints is None:
             constraints = []
-        Parameter.__init__(self, name, [values.index(d) for d in defaults], constraints, dependencies)
+        Parameter.__init__(
+            self, name, [values.index(d) for d in defaults], constraints, dependencies
+        )
         self.values = torch.arange(len(values))
         self.string_values = values
         self._val_indices = {i.item(): i.item() for i in self.values}

@@ -67,8 +67,8 @@ def main(settings, black_box_function=None):
     ################################################
     default_parameter_array = torch.Tensor()
     if (
-            absolute_configuration_index
-            < settings["design_of_experiment"]["number_of_samples"]
+        absolute_configuration_index
+        < settings["design_of_experiment"]["number_of_samples"]
     ):
         default_configurations = param_space.get_default_configurations()
         print(default_configurations)
@@ -78,9 +78,14 @@ def main(settings, black_box_function=None):
                     default_configuration
                 )
                 if str_data not in data_array.string_dict:
-                    default_parameter_array = torch.cat((default_parameter_array, default_configuration))
+                    default_parameter_array = torch.cat(
+                        (default_parameter_array, default_configuration)
+                    )
             default_data_array = param_space.run_configurations(
-                default_parameter_array.reshape(-1, param_space.dimension), beginning_of_time, settings, black_box_function
+                default_parameter_array.reshape(-1, param_space.dimension),
+                beginning_of_time,
+                settings,
+                black_box_function,
             )
             data_array.cat(default_data_array)
             absolute_configuration_index = data_array.len
@@ -100,9 +105,7 @@ def main(settings, black_box_function=None):
             settings["design_of_experiment"]["number_of_samples"]
             - absolute_configuration_index,
             settings["design_of_experiment"]["doe_type"],
-            allow_repetitions=settings["design_of_experiment"][
-                "allow_repetitions"
-            ],
+            allow_repetitions=settings["design_of_experiment"]["allow_repetitions"],
         )
 
         doe_data_array = param_space.run_configurations(
@@ -113,7 +116,8 @@ def main(settings, black_box_function=None):
     iteration_number = max(
         absolute_configuration_index
         - settings["design_of_experiment"]["number_of_samples"]
-        + 1, 1
+        + 1,
+        1,
     )
 
     # If we have feasibility constraints, we must ensure we have at least one feasible sample before starting optimization
