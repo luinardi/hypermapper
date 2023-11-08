@@ -61,39 +61,27 @@ def main(settings, black_box_function=None):
             param_space, settings
         )
         space.write_data_array(param_space, data_array, settings["output_data_file"])
-        absolute_configuration_index = data_array.parameters_array.shape[0]
+        absolute_configuration_index = data_array.len
     ################################################
     # DEFAULT
     ################################################
     default_parameter_array = torch.Tensor()
-    if (
-        absolute_configuration_index
-        < settings["design_of_experiment"]["number_of_samples"]
-    ):
-        default_configurations = param_space.get_default_configurations()
-        print(default_configurations)
-        if default_configurations is not None:
-            for default_configuration in default_configurations:
-                str_data = param_space.get_unique_hash_string_from_values(
-                    default_configuration
-                )
-                if str_data not in data_array.string_dict:
-                    default_parameter_array = torch.cat(
-                        (default_parameter_array, default_configuration)
-                    )
-            default_data_array = param_space.run_configurations(
-                default_parameter_array.reshape(-1, param_space.dimension),
-                beginning_of_time,
-                settings,
-                black_box_function,
-            )
-            data_array.cat(default_data_array)
-            absolute_configuration_index = data_array.len
-
+    default_configurations = param_space.get_default_configurations()
+    if default_configurations is not None:
+        for default_configuration in default_configurations:
+            if absolute_configuration_index >= settings["design_of_experiment"]["number_of_samples"]:
+                break
+            if not param_space.get_unique_hash_string_from_values(
+                default_configuration
+            ) in data_array.string_dict:
+                default_parameter_array = torch.cat((
+                    default_parameter_array.reshape(-1, param_space.dimension),
+                    default_configuration.reshape(-1, param_space.dimension)
+                ), 0)
+                absolute_configuration_index = default_parameter_array.shape[0]
     ################################################
     # DOE
     ################################################
-
     doe_parameter_array = torch.Tensor()
     if (
         absolute_configuration_index
@@ -102,17 +90,19 @@ def main(settings, black_box_function=None):
         doe_parameter_array = get_doe_sample_configurations(
             param_space,
             data_array,
-            settings["design_of_experiment"]["number_of_samples"]
-            - absolute_configuration_index,
+            settings["design_of_experiment"]["number_of_samples"] - absolute_configuration_index,
             settings["design_of_experiment"]["doe_type"],
             allow_repetitions=settings["design_of_experiment"]["allow_repetitions"],
         )
-
-        doe_data_array = param_space.run_configurations(
-            doe_parameter_array, beginning_of_time, settings, black_box_function
-        )
-        data_array.cat(doe_data_array)
-        absolute_configuration_index = data_array.len
+    default_doe_data_array = param_space.run_configurations(
+        torch.cat((
+            default_parameter_array.reshape(-1, param_space.dimension),
+            doe_parameter_array.reshape(-1, param_space.dimension)
+        ), 0),
+        beginning_of_time, settings, black_box_function
+    )
+    data_array.cat(default_doe_data_array)
+    absolute_configuration_index = data_array.len
     iteration_number = max(
         absolute_configuration_index
         - settings["design_of_experiment"]["number_of_samples"]
