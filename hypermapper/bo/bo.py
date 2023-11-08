@@ -69,15 +69,24 @@ def main(settings, black_box_function=None):
     default_configurations = param_space.get_default_configurations()
     if default_configurations is not None:
         for default_configuration in default_configurations:
-            if absolute_configuration_index >= settings["design_of_experiment"]["number_of_samples"]:
+            if (
+                absolute_configuration_index
+                >= settings["design_of_experiment"]["number_of_samples"]
+            ):
                 break
-            if not param_space.get_unique_hash_string_from_values(
-                default_configuration
-            ) in data_array.string_dict:
-                default_parameter_array = torch.cat((
-                    default_parameter_array.reshape(-1, param_space.dimension),
-                    default_configuration.reshape(-1, param_space.dimension)
-                ), 0)
+            if (
+                not param_space.get_unique_hash_string_from_values(
+                    default_configuration
+                )
+                in data_array.string_dict
+            ):
+                default_parameter_array = torch.cat(
+                    (
+                        default_parameter_array.reshape(-1, param_space.dimension),
+                        default_configuration.reshape(-1, param_space.dimension),
+                    ),
+                    0,
+                )
                 absolute_configuration_index = default_parameter_array.shape[0]
     ################################################
     # DOE
@@ -90,16 +99,22 @@ def main(settings, black_box_function=None):
         doe_parameter_array = get_doe_sample_configurations(
             param_space,
             data_array,
-            settings["design_of_experiment"]["number_of_samples"] - absolute_configuration_index,
+            settings["design_of_experiment"]["number_of_samples"]
+            - absolute_configuration_index,
             settings["design_of_experiment"]["doe_type"],
             allow_repetitions=settings["design_of_experiment"]["allow_repetitions"],
         )
     default_doe_data_array = param_space.run_configurations(
-        torch.cat((
-            default_parameter_array.reshape(-1, param_space.dimension),
-            doe_parameter_array.reshape(-1, param_space.dimension)
-        ), 0),
-        beginning_of_time, settings, black_box_function
+        torch.cat(
+            (
+                default_parameter_array.reshape(-1, param_space.dimension),
+                doe_parameter_array.reshape(-1, param_space.dimension),
+            ),
+            0,
+        ),
+        beginning_of_time,
+        settings,
+        black_box_function,
     )
     data_array.cat(default_doe_data_array)
     absolute_configuration_index = data_array.len
