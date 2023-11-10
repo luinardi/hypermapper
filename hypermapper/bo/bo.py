@@ -104,18 +104,23 @@ def main(settings, black_box_function=None):
             settings["design_of_experiment"]["doe_type"],
             allow_repetitions=settings["design_of_experiment"]["allow_repetitions"],
         )
-    default_doe_data_array = param_space.run_configurations(
-        torch.cat(
-            (
+
+    default_doe_parameter_array = torch.cat((
+        default_parameter_array.reshape(-1, param_space.dimension),
+        doe_parameter_array.reshape(-1, param_space.dimension)
+    ), 0)
+    if default_doe_parameter_array.shape[0] > 0:
+        default_doe_data_array = param_space.run_configurations(
+            torch.cat((
                 default_parameter_array.reshape(-1, param_space.dimension),
-                doe_parameter_array.reshape(-1, param_space.dimension),
-            ),
-            0,
-        ),
-        beginning_of_time,
-        settings,
-        black_box_function,
-    )
+                doe_parameter_array.reshape(-1, param_space.dimension)
+            ), 0),
+            beginning_of_time, settings, black_box_function
+        )
+    else:
+        default_doe_data_array = DataArray(
+            torch.Tensor(), torch.Tensor(), torch.Tensor(), torch.Tensor(), torch.Tensor()
+        )
     data_array.cat(default_doe_data_array)
     absolute_configuration_index = data_array.len
     iteration_number = max(
@@ -164,6 +169,8 @@ def main(settings, black_box_function=None):
         "End of DoE - Time %10.4f sec\n" % (time.time() - doe_t0)
     )
 
+    if data_array.len == 0:
+        raise Exception("Cannot run Hypermapper without any initial data.")
     ################################################
     # MAIN LOOP
     ################################################
