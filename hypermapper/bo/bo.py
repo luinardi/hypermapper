@@ -105,21 +105,33 @@ def main(settings, black_box_function=None):
             allow_repetitions=settings["design_of_experiment"]["allow_repetitions"],
         )
 
-    default_doe_parameter_array = torch.cat((
-        default_parameter_array.reshape(-1, param_space.dimension),
-        doe_parameter_array.reshape(-1, param_space.dimension)
-    ), 0)
+    default_doe_parameter_array = torch.cat(
+        (
+            default_parameter_array.reshape(-1, param_space.dimension),
+            doe_parameter_array.reshape(-1, param_space.dimension),
+        ),
+        0,
+    )
     if default_doe_parameter_array.shape[0] > 0:
         default_doe_data_array = param_space.run_configurations(
-            torch.cat((
-                default_parameter_array.reshape(-1, param_space.dimension),
-                doe_parameter_array.reshape(-1, param_space.dimension)
-            ), 0),
-            beginning_of_time, settings, black_box_function
+            torch.cat(
+                (
+                    default_parameter_array.reshape(-1, param_space.dimension),
+                    doe_parameter_array.reshape(-1, param_space.dimension),
+                ),
+                0,
+            ),
+            beginning_of_time,
+            settings,
+            black_box_function,
         )
     else:
         default_doe_data_array = DataArray(
-            torch.Tensor(), torch.Tensor(), torch.Tensor(), torch.Tensor(), torch.Tensor()
+            torch.Tensor(),
+            torch.Tensor(),
+            torch.Tensor(),
+            torch.Tensor(),
+            torch.Tensor(),
         )
     data_array.cat(default_doe_data_array)
     absolute_configuration_index = data_array.len
