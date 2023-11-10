@@ -114,13 +114,7 @@ def main(settings, black_box_function=None):
     )
     if default_doe_parameter_array.shape[0] > 0:
         default_doe_data_array = param_space.run_configurations(
-            torch.cat(
-                (
-                    default_parameter_array.reshape(-1, param_space.dimension),
-                    doe_parameter_array.reshape(-1, param_space.dimension),
-                ),
-                0,
-            ),
+            default_doe_parameter_array,
             beginning_of_time,
             settings,
             black_box_function,
