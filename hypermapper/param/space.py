@@ -582,7 +582,7 @@ class Space:
                 configurations, settings["output_data_file"]
             )
 
-        if any(torch.isnan(data_array.metrics_array)) or any(
+        if torch.any(torch.isnan(data_array.metrics_array)) or torch.any(
             torch.isnan(data_array.metrics_array)
         ):
             raise Exception("NaN values in output from blackbox function. Exiting.")
@@ -602,7 +602,6 @@ class Space:
             - output_data_file: path to the output file.
         """
         print("Communication protocol: sending message...")
-
         # Write to stdout
         sys.stdout.write_protocol(
             "Request %d\n" % len(configurations)
@@ -699,12 +698,13 @@ class Space:
         idx = 0
         while idx < len(original_configurations):
             configurations_to_run = original_configurations[
-                idx : idx + self.settings["batch_size"]
+                idx: idx + self.settings["batch_size"]
             ]
             bbf_arguments = [
                 {name: value for name, value in zip(self.parameter_names, config)}
                 for config in configurations_to_run
             ]
+
             if self.settings["batch_size"] > 1:
                 outputs = black_box_function(bbf_arguments)
             else:
