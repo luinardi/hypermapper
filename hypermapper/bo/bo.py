@@ -113,12 +113,15 @@ def main(settings, black_box_function=None):
         0,
     )
     if default_doe_parameter_array.shape[0] > 0:
-        default_doe_data_array = param_space.run_configurations(
-            default_doe_parameter_array,
-            beginning_of_time,
-            settings,
-            black_box_function,
-        )
+        if settings["hypermapper_mode"]["mode"] == "stateless":
+            return default_doe_parameter_array, param_space.parameter_names
+        else:
+            default_doe_data_array = param_space.run_configurations(
+                default_doe_parameter_array,
+                beginning_of_time,
+                settings,
+                black_box_function,
+            )
     else:
         default_doe_data_array = DataArray(
             torch.Tensor(),
@@ -153,9 +156,12 @@ def main(settings, black_box_function=None):
                 "random sampling",
                 allow_repetitions=False,
             )
-            tmp_data_array = param_space.run_configurations(
-                tmp_parameter_array, beginning_of_time, settings, black_box_function
-            )
+            if settings["hypermapper_mode"]["mode"] == "stateless":
+                return tmp_parameter_array, param_space.parameter_names
+            else:
+                tmp_data_array = param_space.run_configurations(
+                    tmp_parameter_array, beginning_of_time, settings, black_box_function
+                )
             data_array.cat(tmp_data_array)
             absolute_configuration_index += 1
             iteration_number += 1
@@ -312,12 +318,15 @@ def main(settings, black_box_function=None):
         # Evaluate configs
         ##################
         black_box_function_t0 = time.time()
-        new_data_array = param_space.run_configurations(
-            best_configurations,
-            beginning_of_time,
-            settings,
-            black_box_function,
-        )
+        if settings["hypermapper_mode"]["mode"] == "stateless":
+            return best_configurations, param_space.parameter_names
+        else:
+            new_data_array = param_space.run_configurations(
+                best_configurations,
+                beginning_of_time,
+                settings,
+                black_box_function,
+            )
         data_array.cat(new_data_array)
         feasible_data_array = data_array.get_feasible()
         black_box_function_t1 = time.time()

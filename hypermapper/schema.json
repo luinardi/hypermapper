@@ -100,6 +100,19 @@
         "mode",
         "exhaustive_search_file"
       ]
+    },
+    "stateless": {
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "enum": [
+            "stateless"
+          ]
+        }
+      },
+      "required": [
+        "mode"
+      ]
     }
   },
   "models": {
@@ -264,6 +277,9 @@
         },
         {
           "$ref": "#/hypermapper_modes/client-server"
+        },
+        {
+          "$ref": "#/hypermapper_modes/stateless"
         }
       ],
       "type": "object"

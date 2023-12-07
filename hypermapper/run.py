@@ -3,6 +3,8 @@ import sys
 
 from typing import Union, Dict, Callable, Optional
 
+import torch
+
 from hypermapper.util.util import (
     get_min_configurations,
     get_min_feasible_configurations,
@@ -13,7 +15,7 @@ import argparse
 
 
 def optimize(
-    settings_file: Union[str, Dict], black_box_function: Optional[Callable] = None
+        settings_file: Union[str, Dict], black_box_function: Optional[Callable] = None
 ):
     """
     Optimize is the main method of Hypermapper. It takes a problem to optimize and optimization settings
@@ -52,7 +54,11 @@ def optimize(
     if settings["optimization_method"] in ["bayesian_optimization"]:
         from hypermapper.bo import bo
 
-        data_array = bo.main(settings, black_box_function=black_box_function)
+        out = bo.main(settings, black_box_function=black_box_function)
+        if isinstance(out, tuple):
+            return out[0].numpy(), out[1]  # configurations and parameter names
+        else:
+            data_array = out
 
     elif settings["optimization_method"] == "exhaustive":
         from hypermapper.other import exhaustive
