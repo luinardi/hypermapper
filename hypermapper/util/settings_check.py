@@ -32,7 +32,11 @@ def settings_check_bo(
         print("Using EI acquisition function instead")
         settings["acquisition_function"] = "EI"
 
-    if not settings["hypermapper_mode"]["mode"] in ["default", "client-server", "stateless"]:
+    if not settings["hypermapper_mode"]["mode"] in [
+        "default",
+        "client-server",
+        "stateless",
+    ]:
         print("Unrecognized hypermapper mode:", settings["hypermapper_mode"])
         raise SystemExit
 

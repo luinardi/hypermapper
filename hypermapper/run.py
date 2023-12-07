@@ -15,7 +15,7 @@ import argparse
 
 
 def optimize(
-        settings_file: Union[str, Dict], black_box_function: Optional[Callable] = None
+    settings_file: Union[str, Dict], black_box_function: Optional[Callable] = None
 ):
     """
     Optimize is the main method of Hypermapper. It takes a problem to optimize and optimization settings
