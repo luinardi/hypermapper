@@ -114,7 +114,7 @@ def main(settings, black_box_function=None):
     )
     if default_doe_parameter_array.shape[0] > 0:
         if settings["hypermapper_mode"]["mode"] == "stateless":
-            return default_doe_parameter_array, param_space.parameter_names
+            return default_doe_parameter_array.numpy(), param_space.parameter_names
         else:
             default_doe_data_array = param_space.run_configurations(
                 default_doe_parameter_array,
@@ -157,7 +157,7 @@ def main(settings, black_box_function=None):
                 allow_repetitions=False,
             )
             if settings["hypermapper_mode"]["mode"] == "stateless":
-                return tmp_parameter_array, param_space.parameter_names
+                return tmp_parameter_array.numpy(), param_space.parameter_names
             else:
                 tmp_data_array = param_space.run_configurations(
                     tmp_parameter_array, beginning_of_time, settings, black_box_function
@@ -319,7 +319,7 @@ def main(settings, black_box_function=None):
         ##################
         black_box_function_t0 = time.time()
         if settings["hypermapper_mode"]["mode"] == "stateless":
-            return best_configurations, param_space.parameter_names
+            return best_configurations.numpy(), param_space.parameter_names
         else:
             new_data_array = param_space.run_configurations(
                 best_configurations,
@@ -388,5 +388,8 @@ def main(settings, black_box_function=None):
     sys.stdout.write_to_logfile(
         ("Total script time %10.2f sec\n" % (time.time() - start_time))
     )
+
+    if settings["hypermapper_mode"]["mode"] == "stateless":
+        return None, param_space.parameter_names
 
     return data_array

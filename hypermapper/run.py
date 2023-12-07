@@ -56,7 +56,7 @@ def optimize(
 
         out = bo.main(settings, black_box_function=black_box_function)
         if isinstance(out, tuple):
-            return out[0].numpy(), out[1]  # configurations and parameter names
+            return out  # configurations and parameter names
         else:
             data_array = out
 
