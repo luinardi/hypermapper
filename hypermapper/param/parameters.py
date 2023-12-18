@@ -238,6 +238,8 @@ class RealParameter(Parameter):
             return (intermediate_value - self.get_min()) / (
                 self.get_max() - self.get_min()
             )
+        elif to_type == "original" and isinstance(intermediate_value, torch.Tensor):
+            return intermediate_value.item()
         else:
             return intermediate_value
 
@@ -376,6 +378,8 @@ class IntegerParameter(Parameter):
             return (intermediate_value - self.get_min()) / (
                 self.get_max() - self.get_min()
             )
+        elif to_type == "original" and isinstance(intermediate_value, torch.Tensor):
+            return intermediate_value.item()
         else:
             return intermediate_value
 
@@ -524,12 +528,13 @@ class OrdinalParameter(Parameter):
         else:
             intermediate_value = input_value
 
-        if to_type == "string":
+        if to_type in ["string", "original"]:
+            # this is a correction for numerical errora
             if (
                 self.int_ordinal
                 and abs(intermediate_value - np.round(intermediate_value)) < 1e-6
             ):
-                return f"{int(np.round(intermediate_value))}"
+                corrected_output = int(np.round(intermediate_value))
             else:
                 closest_value = min(
                     self._val_indices.keys(), key=lambda x: abs(x - intermediate_value)
@@ -539,7 +544,13 @@ class OrdinalParameter(Parameter):
                         self._val_indices.keys(),
                         key=lambda x: abs(x - intermediate_value),
                     )
-                return f"{intermediate_value}"
+                corrected_output = intermediate_value
+            if to_type == "string":
+                return f"{corrected_output}"
+            else:
+                if isinstance(corrected_output, torch.Tensor):
+                    corrected_output = corrected_output.item()
+                return corrected_output
         elif to_type == "01":
             return self.values.index(intermediate_value) / (self.get_size() - 1)
         else:
