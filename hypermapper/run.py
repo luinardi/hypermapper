@@ -80,8 +80,14 @@ def optimize(
         else:
             best_point = get_min_configurations(data_array, 1)
 
-    sys.stdout.write_protocol("End of HyperMapper\n")
+        keys = inputs + objectives + (["feasible"] if feasible_output["enable_feasible_predictor"] else [])
+        best_point = list(best_point.parameters_array.numpy()[0]) + list(best_point.metrics_array.numpy()[0]) + (list(best_point.feasible_array.numpy()[0]) if feasible_output["enable_feasible_predictor"] else [])
+        sys.stdout.write_protocol("Best point found:\n")
+        sys.stdout.write_protocol(f"{','.join(keys)}\n")
+        sys.stdout.write_protocol(f"{','.join([str(v) for v in best_point])}\n\n")
 
+    sys.stdout.write_protocol("End of HyperMapper\n")
+    return None
 
 def main():
     parser = argparse.ArgumentParser()
