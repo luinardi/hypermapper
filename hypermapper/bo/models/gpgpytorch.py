@@ -38,13 +38,13 @@ class GpGpytorch(gpytorch.models.ExactGP, Model):
         else:
             # define noise priors
             if settings["noise_prior"]["name"] == "gamma":
-                alpha = float(settings["lengthscale_prior"]["parameters"][0])
-                beta = float(settings["lengthscale_prior"]["parameters"][1])
+                alpha = float(settings["noise_prior"]["parameters"][0])
+                beta = float(settings["noise_prior"]["parameters"][1])
                 noise_prior = GammaPrior(concentration=alpha, rate=beta)
 
             elif settings["noise_prior"]["name"] == "lognormal":
-                mu = float(settings["lengthscale_prior"]["parameters"][0])
-                sigma = float(settings["lengthscale_prior"]["parameters"][1])
+                mu = float(settings["noise_prior"]["parameters"][0])
+                sigma = float(settings["noise_prior"]["parameters"][1])
                 noise_prior = LogNormalPrior(loc=mu, scale=sigma)
 
             else:
