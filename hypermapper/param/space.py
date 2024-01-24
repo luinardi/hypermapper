@@ -479,8 +479,8 @@ class Space:
             - List of booleans
         """
 
-        if CoT and not self.has_real_parameters:
-            return self.evaluate_CoT(configurations)
+        # if CoT and not self.has_real_parameters:
+        #     return self.evaluate_CoT(configurations)
 
         # transform the torch tensor to dict of lists - needed for the numexpr package
         transformed_configurations = {
