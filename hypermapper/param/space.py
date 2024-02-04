@@ -90,7 +90,7 @@ class Space:
         self.normalize_inputs = settings["normalize_inputs"]
         self.normalize_priors = True
 
-        if self.conditional_space:
+        if self.conditional_space and settings["use_cot"]:
             cot_order, tree_orders = self.get_cot_order()
             self.chain_of_trees = ChainOfTrees(
                 cot_order, len(cot_order) == self.dimension
@@ -110,6 +110,11 @@ class Space:
             self.cot_remap = [cot_ordered_names.index(p.name) for p in self.parameters]
             self.non_cot_constraints = []
             for p in self.non_cot_parameters:
+                if p.constraints is not None:
+                    self.non_cot_constraints.extend(p.constraints)
+        else:
+            self.non_cot_constraints = []
+            for p in self.parameters:
                 if p.constraints is not None:
                     self.non_cot_constraints.extend(p.constraints)
 
@@ -479,8 +484,8 @@ class Space:
             - List of booleans
         """
 
-        # if CoT and not self.has_real_parameters:
-        #     return self.evaluate_CoT(configurations)
+        if CoT and not self.has_real_parameters and self.settings["use_cot"]:
+            return self.evaluate_CoT(configurations)
 
         # transform the torch tensor to dict of lists - needed for the numexpr package
         transformed_configurations = {
@@ -793,17 +798,16 @@ class Space:
         configurations = self.convert(data_array.parameters_array, "internal", "string")
         for i in range(len(configurations)):
             print(
-                *(
+                ",".join(
                     configurations[i]
-                    + data_array.metrics_array[i].tolist()
+                    + [str(v.item()) for v in data_array.metrics_array[i]]
                     + (
-                        [data_array.feasible_array[i].item()]
+                        [str(data_array.feasible_array[i].item())]
                         if data_array.feasible_array.tolist()
                         else []
                     )
-                    + [data_array.timestamp_array[i].item()]
-                ),
-                sep=",",
+                    + [str(data_array.timestamp_array[i].item())]
+                )
             )
         print()
 

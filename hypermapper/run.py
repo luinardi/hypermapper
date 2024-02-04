@@ -56,7 +56,7 @@ def optimize(
 
         out = bo.main(settings, black_box_function=black_box_function)
         if isinstance(out, tuple):
-            return out  # configurations and parameter names
+            return "request", out  # configurations and parameter names
         else:
             data_array = out
 
@@ -64,7 +64,6 @@ def optimize(
         from hypermapper.other import exhaustive
 
         data_array = exhaustive.main(settings, black_box_function=black_box_function)
-
     else:
         print("Unrecognized optimization method:", settings["optimization_method"])
         raise SystemExit
@@ -72,34 +71,27 @@ def optimize(
     # If mono-objective, compute the best point found
     objectives = settings["optimization_objectives"]
     inputs = list(settings["input_parameters"].keys())
-    if len(objectives) == 1:
-        feasible_output = settings["feasible_output"]
-        if feasible_output["enable_feasible_predictor"]:
-            feasible_output_name = feasible_output["name"]
-            best_point = get_min_feasible_configurations(data_array, 1)
-        else:
-            best_point = get_min_configurations(data_array, 1)
+    if len(objectives) != 1:
+        raise NotImplementedError("Multi-objective optimization is not supported for this part.")
 
-        keys = (
-            inputs
-            + objectives
-            + (["feasible"] if feasible_output["enable_feasible_predictor"] else [])
-        )
-        best_point = (
-            list(best_point.parameters_array.numpy()[0])
-            + list(best_point.metrics_array.numpy()[0])
-            + (
-                list(best_point.feasible_array.numpy()[0])
-                if feasible_output["enable_feasible_predictor"]
-                else []
-            )
-        )
-        sys.stdout.write_protocol("Best point found:\n")
-        sys.stdout.write_protocol(f"{','.join(keys)}\n")
-        sys.stdout.write_protocol(f"{','.join([str(v) for v in best_point])}\n\n")
+    feasible_output = settings["feasible_output"]
+    if feasible_output["enable_feasible_predictor"]:
+        feasible_output_name = feasible_output["name"]
+        best_point = get_min_feasible_configurations(data_array, 1)
+    else:
+        best_point = get_min_configurations(data_array, 1)
 
-    sys.stdout.write_protocol("End of HyperMapper\n")
-    return None
+    keys = inputs + objectives + ([feasible_output_name] if feasible_output["enable_feasible_predictor"] else [])
+    best_point = [p.item() for p in best_point.parameters_array[0]] + \
+                 [m.item() for m in best_point.metrics_array[0]] + \
+                 ([f.item() for f in best_point.feasible_array] if feasible_output["enable_feasible_predictor"] else [])
+    sys.stdout.write_protocol("Best point found:\n")
+    sys.stdout.write_protocol(f"{','.join(keys)}\n")
+    sys.stdout.write_protocol(f"{','.join([str(v) for v in best_point])}\n\n")
+
+    sys.stdout.write_protocol("End of Optimization\n")
+    if settings["hypermapper_mode"]["mode"] == "stateless":
+        return "complete", [best_point], keys
 
 
 def main():

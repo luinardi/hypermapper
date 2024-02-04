@@ -170,7 +170,7 @@ class RealParameter(Parameter):
         """
         x = x.view(-1)
         if self.distribution_name == "custom_distribution":
-            return np.interp(
+            return torch.tensor(np.interp(
                 x,
                 [
                     self.min_value
@@ -180,7 +180,7 @@ class RealParameter(Parameter):
                     for x in range(len(self.probability_distribution))
                 ],
                 self.probability_distribution,
-            )
+            ))
         elif self.distribution_name == "gaussian":
             mean = self.distribution_parameters[0]
             std = self.distribution_parameters[1]
@@ -552,7 +552,7 @@ class OrdinalParameter(Parameter):
                     corrected_output = corrected_output.item()
                 return corrected_output
         elif to_type == "01":
-            return self.values.index(intermediate_value) / (self.get_size() - 1)
+            return self.get_index(intermediate_value) / (self.get_size() - 1)
         else:
             return intermediate_value
 

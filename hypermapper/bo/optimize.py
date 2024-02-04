@@ -165,13 +165,13 @@ def optimize_acq(
                     param_space,
                     settings["local_search_random_points"],
                     "uniform",
-                    False,
+                    True,
                 )
                 + random_sample(
                     param_space,
                     settings["local_search_random_points"],
                     "using_priors",
-                    False,
+                    True,
                 )
             ),
             0,
@@ -182,7 +182,7 @@ def optimize_acq(
             param_space,
             settings["local_search_random_points"],
             "uniform",
-            False,
+            True,
         )
 
     sys.stdout.write_to_logfile("Total RS time %10.4f sec\n" % (time.time() - t0))

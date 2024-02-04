@@ -189,6 +189,13 @@ def _random_sample_constrained(
     n_previously_run = len(list(previously_run_configurations.keys()))
     n_total_samples = n_samples + n_previously_run
 
+    if not param_space.settings["use_cot"]:
+        if not allow_repetitions and not param_space.has_real_parameters:
+            raise Exception("Hypermapper must be run with atleast one of \"allow_repetitions\" and \"use_cot\" = True")
+        return _non_tree_constrained_sample(
+            param_space, param_space.parameters, n_samples, sampling_method
+        )
+
     if allow_repetitions or param_space.has_real_parameters:
         tree_samples = param_space.chain_of_trees.sample(
             n_samples,

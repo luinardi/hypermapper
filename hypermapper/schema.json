@@ -19,7 +19,7 @@
           "type": "integer"
         },
         "allow_repetitions": {
-          "default": false,
+          "default": true,
           "description": "Whether to allow DoE to sample repeated configurations.",
           "type": "boolean"
         }
@@ -188,7 +188,6 @@
       "enum": [
         "UCB",
         "EI",
-        "EI_BOPRO",
         "EI_PIBO"
       ],
       "type": "string"
@@ -232,21 +231,6 @@
       "maximum": 1,
       "minimum": 0,
       "type": "number"
-    },
-    "evolution_crossover": {
-      "default": false,
-      "description": "whether to use crossover.",
-      "type": "boolean"
-    },
-    "evolution_generations": {
-      "default": 150,
-      "description": "number of iterations through the evolutionary loop.",
-      "type": "integer"
-    },
-    "evolution_population_size": {
-      "default": 50,
-      "description": "number of points the Evolutionary Algorithm keeps track of.",
-      "type": "integer"
     },
     "exploration_augmentation": {
       "default": 0.0001,
@@ -497,11 +481,6 @@
         "description": "Type of GP model to use. gpy, botorch, gpytorch, botorch_fixed botorch_heteroskedastic are available.",
         "type": "string"
     },
-    "mutation_rate": {
-      "default": 1,
-      "description": "number of parameters to mutate.",
-      "type": "integer"
-    },
     "naive_cot_rs": {
       "default": false,
       "description": "Whether to use naive rs for cot.",
@@ -617,16 +596,6 @@
       "description": "Whether to print out the best point according to Hypermapper's posterior model's mean after optimization. The best point is computed using Hypermapper's local search.",
       "type": "boolean"
     },
-    "prior_estimation_file": {
-      "default": "samples.csv",
-      "description": "a csv file containing a set of points to be used for density estimation.",
-      "type": "string"
-    },
-    "prior_estimation_quantile": {
-      "default": 0.1,
-      "description": "quantile of the best points to be used as 'good points' when estimating the prior",
-      "type": "number"
-    },
     "prior_floor": {
       "default": 1e-6,
       "description": "the minimum used for normalization in the acquisition function of prior-guided optimization.",
@@ -683,9 +652,9 @@
       "description": "Name of timestamp variable, this is a float that represents seconds from the linux epoch. This is useful to track the progress of the new samples over time and for comparison with other approaches than Hypermapper.",
       "type": "string"
     },
-    "use_STGP": {
-      "default": true,
-      "description": "whether to use a botorch SingleTaskGP.",
+    "use_cot": {
+      "default": false,
+      "description": "whether to the chain of trees.",
       "type": "boolean"
     }
   },

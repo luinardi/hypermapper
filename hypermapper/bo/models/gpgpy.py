@@ -36,22 +36,30 @@ class GpGpy(GPy.models.GPRegression, Model):
         )
 
         if settings["normalize_inputs"]:
-            if settings["lengthscale_prior"]["name"] == "gamma":
+            if settings["lengthscale_prior"]["name"].lower() == "gamma":
                 alpha = float(settings["lengthscale_prior"]["parameters"][0])
                 beta = float(settings["lengthscale_prior"]["parameters"][1])
                 self.kern.lengthscale.set_prior(GPy.priors.Gamma(alpha, beta))
-            elif settings["lengthscale_prior"]["name"] == "lognormal":
+            elif settings["lengthscale_prior"]["name"].lower() == "lognormal":
                 mu = float(settings["lengthscale_prior"]["parameters"][0])
                 sigma = float(settings["lengthscale_prior"]["parameters"][1])
                 self.kern.lengthscale.set_prior(GPy.priors.LogGaussian(mu, sigma))
-            if settings["outputscale_prior"]["name"] == "gamma":
+            if settings["outputscale_prior"]["name"].lower() == "gamma":
                 alpha = float(settings["outputscale_prior"]["parameters"][0])
                 beta = float(settings["outputscale_prior"]["parameters"][1])
                 self.kern.variance.set_prior(GPy.priors.Gamma(alpha, beta))
-            if settings["noise_prior"]["name"] == "gamma":
+            elif settings["outputscale_prior"]["name"].lower() == "lognormal":
+                mu = float(settings["outputscale_prior"]["parameters"][0])
+                sigma = float(settings["outputscale_prior"]["parameters"][1])
+                self.kern.variance.set_prior(GPy.priors.LogGaussian(mu, sigma))
+            if settings["noise_prior"]["name"].lower() == "gamma":
                 alpha = float(settings["noise_prior"]["parameters"][0])
                 beta = float(settings["noise_prior"]["parameters"][1])
                 self.likelihood.variance.set_prior(GPy.priors.Gamma(alpha, beta))
+            elif settings["noise_prior"]["name"].lower() == "lognormal":
+                mu = float(settings["noise_prior"]["parameters"][0])
+                sigma = float(settings["noise_prior"]["parameters"][1])
+                self.likelihood.variance.set_prior(GPy.priors.LogGaussian(mu, sigma))
         if not settings["noise"]:
             self.likelihood.variance = 1e-6
             self.likelihood.fix()

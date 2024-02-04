@@ -36,23 +36,6 @@ def update_mean_std(values: torch.Tensor, settings: Dict):
 # Data structure handling
 ####################################################
 
-
-def are_configurations_equal(configuration1, configuration2):
-    """
-    Compare two configurations. They are considered equal if they hold the same values for all keys.
-
-    Input:
-         - configuration1: the first configuration in the comparison
-         - configuration2: the second configuration in the comparison
-    Returns:
-        - boolean indicating if configurations are equal or not
-    """
-    for c1, c2 in zip(configuration1, configuration2):
-        if c1 != c2:
-            return False
-    return True
-
-
 def get_min_configurations(
     data_array: DataArray, number_of_configurations: int
 ) -> DataArray:
@@ -74,7 +57,7 @@ def get_min_configurations(
     number_of_configurations = min(
         number_of_configurations, data_array.metrics_array.shape[0]
     )
-    best_indices = torch.sort(data_array.metrics_array[0]).indices[
+    best_indices = torch.sort(data_array.metrics_array[:, 0]).indices[
         :number_of_configurations
     ]
 
@@ -92,125 +75,12 @@ def get_min_feasible_configurations(
         - a dictionary containing the best configurations.
     """
     feasible_data_array = data_array.get_feasible()
-    get_min_configurations(feasible_data_array, number_of_configurations)
-
-
-def lex_sort_unique(matrix: np.ndarray) -> List[bool]:
-    """
-    checks uniqueness by first sorting the array lexicographically and then comparing neighbors.
-    returns a list of bools indicating which indices contain first seen unique values.
-
-    Input:
-        - matrix: an np matrix with cnofigurations for rows and parameters for columns
-    Returns:
-        - a list of bools indicating which indices contain first seen unique values.
-    """
-    order = np.lexsort(matrix.T)
-    matrix = matrix[order]
-    diff = np.diff(matrix, axis=0)
-    is_unique = np.ones(len(matrix), "bool")
-    is_unique[1:] = (diff != 0).any(axis=1)
-    return is_unique[order]
-
-
-def remove_duplicate_configs(
-    configurations: Union[np.ndarray, Tuple[np.ndarray]],
-    ignore_columns=None,
-):
-    """
-    Removes the duplicates from the combined configurations configs, and lets the first configs keep the remaining
-    configurations from the duplicates
-
-    Input:
-        - configurations: the configurations to be checked for duplicates - duplicates are checked across all configurations, with the first occurrence being kept
-        - ignore_column: don't consider the entered columns when checking for duplicates
-
-    Returns:
-        - the configurations with duplicates removed
-    """
-    if isinstance(configurations, tuple):
-        merged_configs = np.concatenate(configurations, axis=0)
-        config_lengths = [len(c) for c in configurations]
-        if ignore_columns is not None:
-            merged_configs = np.delete(merged_configs, ignore_columns, axis=1)
-        # _, unique_indices = np.unique(merged_configs, return_index=True, axis=0)
-        unique_indices = np.arange(len(merged_configs))[lex_sort_unique(merged_configs)]
-
-        split_unique_indices = []
-        for config_length in config_lengths:
-            split_unique_indices.append(
-                [i for i in unique_indices if 0 <= i < config_length]
-            )
-            unique_indices -= config_length
-        return [
-            configurations[i][split_unique_indices[i]]
-            for i in range(len(configurations))
-        ]
-
-    else:
-        configs_copy = copy.copy(configurations)
-        if ignore_columns is not None:
-            configs_copy = np.delete(configs_copy, ignore_columns, axis=1)
-        # _, unique_indices = np.unique(configs_copy, return_index=True, axis=0)
-        unique_indices = np.arange(len(configs_copy))[lex_sort_unique(configs_copy)]
-        return configurations[unique_indices]
-
-
-####################################################
-# Visualization
-####################################################
-def get_next_color():
-    get_next_color.ccycle = [
-        (255, 0, 0),
-        (0, 0, 255),
-        (0, 0, 0),
-        (0, 200, 0),
-        (0, 0, 0),
-        # get_next_color.ccycle = [(101, 153, 255), (0, 0, 0), (100, 100, 100), (150, 100, 150), (150, 150, 150),
-        # (192, 192, 192), (255, 0, 0), (255, 153, 0), (199, 233, 180), (9, 112, 84),
-        (0, 128, 0),
-        (0, 0, 0),
-        (199, 233, 180),
-        (9, 112, 84),
-        (170, 163, 57),
-        (255, 251, 188),
-        (230, 224, 123),
-        (110, 104, 14),
-        (49, 46, 0),
-        (138, 162, 54),
-        (234, 248, 183),
-        (197, 220, 118),
-        (84, 105, 14),
-        (37, 47, 0),
-        (122, 41, 106),
-        (213, 157, 202),
-        (165, 88, 150),
-        (79, 10, 66),
-        (35, 0, 29),
-        (65, 182, 196),
-        (34, 94, 168),
-        (12, 44, 132),
-        (79, 44, 115),
-        (181, 156, 207),
-        (122, 89, 156),
-        (44, 15, 74),
-        (18, 2, 33),
-    ]
-    get_next_color.color_count += 1
-    if get_next_color.color_count > 33:
-        return 0, 0, 0
-    else:
-        a, b, c = get_next_color.ccycle[get_next_color.color_count - 1]
-        return float(a) / 255, float(b) / 255, float(c) / 255
-
-
-get_next_color.color_count = 0
+    return get_min_configurations(feasible_data_array, number_of_configurations)
 
 
 ####################################################
 # Scalarization
 ####################################################
-
 
 def sample_weight_flat(optimization_metrics):
     """

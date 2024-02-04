@@ -1,6 +1,5 @@
 import random
-from os import makedirs
-import graphviz as gz
+import sys
 import numpy as np
 import pickle
 from typing import Optional, Dict, List, Any
@@ -231,9 +230,11 @@ class ChainOfTrees:
                 if sample_type == "uniform":
                     pr = None
                 elif sample_type == "embedding":
-                    pr = [leaf.probability for leaf in tree.get_leaves()]
+                    pr = np.array([leaf.probability for leaf in tree.get_leaves()], dtype=np.float64)
+                    pr = pr / pr.sum()
                 elif sample_type == "using_priors":
-                    pr = [leaf.prior_weighted_probability for leaf in tree.get_leaves()]
+                    pr = np.array([leaf.prior_weighted_probability for leaf in tree.get_leaves()], dtype=np.float64)
+                    pr = pr / pr.sum()
                 else:
                     print(
                         f"incorrect sample type: {sample_type}. Expected on of uniform, embedding and using_priors."
@@ -299,33 +300,6 @@ class ChainOfTrees:
     def read_from_pickle(self, file):
         with open(file, "rb") as f:
             self.trees, self.gaussian_means = pickle.load(f)
-
-    def plot_trees(self, filepath=None):
-        """
-        Quick and dirty plotting of the chain of trees.
-        Input:
-            - filepath: path to save the plots to
-        """
-        if filepath is None:
-            filepath = "chain_of_trees/"
-        elif not filepath[-1] == "/":
-            filepath += "/"
-        makedirs(filepath, exist_ok=True)
-
-        for idx, tree in enumerate(self.get_trees()):
-            tree.set_probabilities()
-            nodes, edges = tree.get_nodes_and_edges()
-            tree_printer = gz.Graph()
-            for node in reversed(nodes):
-                id = str(node[0])
-                label = f"{node[1]}\n{node[2]:.3f}" if node[1] is not None else ""
-                tree_printer.node(id, label)
-            for edge in reversed(edges):
-                nodeA = str(edge[0])
-                nodeB = str(edge[1])
-                tree_printer.edge(nodeA, nodeB)
-            filename = filepath + f"tree{idx}"
-            tree_printer.render(filename, format="pdf", cleanup=True)
 
     def get_size(self) -> int:
         """
@@ -430,31 +404,3 @@ class Tree:
                     )
                 )
 
-    def get_nodes_and_edges(self):
-        """
-        Ranks the nodes and edges for the plotting function.
-        """
-
-        if (self.nodes is not None) and (self.edges is not None):
-            return self.nodes, self.edges
-        self.nodes = []
-        self.edges = []
-        node_id = 0
-        stack = [self.root]
-        while len(stack) > 0:
-            current_node = stack.pop()
-            current_node.set_id(node_id)
-            self.nodes += [
-                (
-                    node_id,
-                    current_node.get_value(),
-                    current_node.get_probability(),
-                    current_node,
-                )
-            ]
-            stack += current_node.get_children()
-            parent = current_node.get_parent()
-            if parent is not None:
-                self.edges += [(parent.get_id(), node_id)]
-            node_id += 1
-        return self.nodes, self.edges

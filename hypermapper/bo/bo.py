@@ -114,10 +114,12 @@ def main(settings, black_box_function=None):
     )
     if default_doe_parameter_array.shape[0] > 0:
         if settings["hypermapper_mode"]["mode"] == "stateless":
+            default_original = param_space.convert(
+                default_doe_parameter_array, "internal", "original"
+            )
+            sys.stdout.write_to_logfile(f"Stateless mode, returning default and doe configurations\n{default_original}")
             return (
-                param_space.convert(
-                    default_doe_parameter_array, "internal", "original"
-                ),
+                default_original,
                 param_space.parameter_names,
             )
         else:
@@ -147,7 +149,7 @@ def main(settings, black_box_function=None):
     # If we have feasibility constraints, we must ensure we have at least one feasible sample before starting optimization
     # If this is not true, continue design of experiment until the condition is met
     if enable_feasible_predictor:
-        while (True not in data_array.feasible_array) and settings[
+        while torch.sum(data_array.feasible_array) <= 1 and settings[
             "optimization_iterations"
         ] >= iteration_number:
             print(
@@ -159,7 +161,7 @@ def main(settings, black_box_function=None):
                 data_array,
                 1,
                 "random sampling",
-                allow_repetitions=False,
+                allow_repetitions=settings["design_of_experiment"]["allow_repetitions"],
             )
             if settings["hypermapper_mode"]["mode"] == "stateless":
                 return (
@@ -241,12 +243,15 @@ def main(settings, black_box_function=None):
                 # optimize
                 ##########
                 if regression_models is None:
-                    best_configuration = random_sample(
+                    sys.stdout.write_to_logfile(
+                        "Warning: the model failed to fit, random sampling more configurations."
+                    )
+                    best_configurations = random_sample(
                         param_space=param_space,
                         n_samples=1,
-                        allow_repetitions=False,
+                        allow_repetitions=True,
                         previously_run=data_array.string_dict,
-                    ).squeeze(0)
+                    )
                 else:
                     classification_model = None
                     if enable_feasible_predictor and False in data_array.feasible_array:
@@ -319,7 +324,7 @@ def main(settings, black_box_function=None):
             best_configurations = random_sample(
                 param_space,
                 n_samples=settings["batch_size"],
-                allow_repetitions=False,
+                allow_repetitions=True,
                 previously_run=data_array.string_dict,
             )
         ##################
@@ -361,46 +366,8 @@ def main(settings, black_box_function=None):
     )
     print("End of Bayesian Optimization")
 
-    ################################################
-    # POST OPTIMIZATION
-    ################################################
-    print_posterior_best = settings["print_posterior_best"]
-    if print_posterior_best:
-        raise NotImplementedError
-        # if len(settings["optimization_objectives"]) > 1:
-        #     print("Warning: print_posterior_best is set to true, but application is not mono-objective.")
-        #     print("Can only compute best according to posterior for mono-objective applications. Ignoring.")
-        # elif enable_feasible_predictor:
-        #     print("Warning: print_posterior_best is set to true, but application has feasibility constraints.")
-        #     print("Cannot compute best according to posterior for applications with feasibility constraints. Ignoring.")
-        # else:
-        #     # Update model with latest data
-        #     regression_models = models.generate_mono_output_regression_models(
-        #         settings,
-        #         data_array,
-        #         param_space,
-        #         objective_means=objective_means,
-        #         objective_stds=objective_stds,
-        #     )
-        #
-        #     best_point = models.minimize_posterior_mean(regression_models, settings, param_space, data_array, objective_means, objective_stds)
-        #     keys = ""
-        #     best_point_string = ""
-        #     for key in best_point:
-        #         keys += f"{key},"
-        #         best_point_string += f"{best_point[key]},"
-        #     keys = keys[:-1]
-        #     best_point_string = best_point_string[:-1]
-        #
-        #     sys.stdout.write_protocol("Minimum of the posterior mean:\n")
-        #     sys.stdout.write_protocol(f"{keys}\n")
-        #     sys.stdout.write_protocol(f"{best_point_string}\n\n")
-
     sys.stdout.write_to_logfile(
         ("Total script time %10.2f sec\n" % (time.time() - start_time))
     )
-
-    if settings["hypermapper_mode"]["mode"] == "stateless":
-        return None, param_space.parameter_names
 
     return data_array

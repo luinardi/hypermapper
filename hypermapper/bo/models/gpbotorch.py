@@ -8,8 +8,8 @@ import torch
 from gpytorch import ExactMarginalLogLikelihood
 from gpytorch.likelihoods import GaussianLikelihood
 from gpytorch.constraints import GreaterThan
-from gpytorch.priors import GammaPrior
-from botorch.fit import fit_gpytorch_mll
+from gpytorch.priors import GammaPrior, LogNormalPrior
+from botorch.fit import fit_gpytorch_mll, fit_gpytorch_mll_torch
 import warnings
 
 from hypermapper.bo.models.models import Model
@@ -36,30 +36,100 @@ class GpBotorch(botorch.models.SingleTaskGP, Model):
 
         if (
             settings["noise_prior"] is not None
-            and settings["noise_prior"]["name"] == "Gamma"
+            and settings["noise_prior"]["name"].lower() == "gamma"
         ):
             noise_prior = GammaPrior(*settings["noise_prior"]["parameters"])
             noise_prior_mode = (noise_prior.concentration - 1) / noise_prior.rate
-            likelihood = GaussianLikelihood(
-                noise_prior=noise_prior,
-                batch_shape=torch.Size(),
-                noise_constraint=GreaterThan(
-                    1e-4,
-                    transform=None,
-                    initial_value=noise_prior_mode,
-                ),
-            )
+        elif settings["noise_prior"] is not None and settings["noise_prior"]["name"].lower() == "lognormal":
+            noise_prior = LogNormalPrior(*settings["noise_prior"]["parameters"])
+            noise_prior_mode = None
         else:
-            likelihood = None
-        botorch.models.SingleTaskGP.__init__(
-            self, X, y.unsqueeze(1), likelihood=likelihood
+            noise_prior = GammaPrior(1.1, 0.05)
+            noise_prior_mode = (noise_prior.concentration - 1) / noise_prior.rate
+
+        likelihood = GaussianLikelihood(
+            noise_prior=noise_prior,
+            batch_shape=torch.Size(),
+            noise_constraint=GreaterThan(
+                1e-4,
+                transform=None,
+                initial_value=noise_prior_mode,
+            ),
         )
 
+        if settings["lengthscale_prior"]["name"].lower() == "gamma":
+            alpha = float(settings["lengthscale_prior"]["parameters"][0])
+            beta = float(settings["lengthscale_prior"]["parameters"][1])
+            lengthscale_prior = GammaPrior(concentration=alpha, rate=beta)
+
+        elif settings["lengthscale_prior"]["name"].lower() == "lognormal":
+            mu = float(settings["lengthscale_prior"]["parameters"][0])
+            sigma = float(settings["lengthscale_prior"]["parameters"][1])
+            lengthscale_prior = LogNormalPrior(loc=mu, scale=sigma)
+
+        else:
+            lengthscale_prior = GammaPrior(3.0, 6.0)
+
+        """
+        Outputscale priors and constraints
+        """
+        # define outputscale priors
+        if settings["outputscale_prior"]["name"].lower() == "gamma":
+            alpha = float(settings["outputscale_prior"]["parameters"][0])
+            beta = float(settings["outputscale_prior"]["parameters"][1])
+            outputscale_prior = GammaPrior(concentration=alpha, rate=beta)
+
+        elif settings["outputscale_prior"]["name"].lower() == "lognormal":
+            mu = float(settings["outputscale_prior"]["parameters"][0])
+            sigma = float(settings["outputscale_prior"]["parameters"][1])
+            outputscale_prior = LogNormalPrior(loc=mu, scale=sigma)
+
+        else:
+            outputscale_prior = GammaPrior(2.0, 0.15)
+
+        """
+        Initialise the kernel
+        """
+        # mean_module = gpytorch.means.ZeroMean()
+        mean_module = gpytorch.means.ConstantMean()
+
+        self.ard_size = X.shape[-1]
+
+        base_kernel = gpytorch.kernels.MaternKernel(
+            lengthscale_prior=lengthscale_prior,
+            ard_num_dims=self.ard_size,
+            nu=2.5,
+        )
+        covar_module = gpytorch.kernels.ScaleKernel(
+            base_kernel,
+            outputscale_prior=outputscale_prior,
+        )
+
+        with warnings.catch_warnings(record=True) as w:  # This catches the non-normalized due to default outside of parameter range warning
+            warnings.filterwarnings(
+                "default", category=botorch.exceptions.InputDataWarning
+            )
+            botorch.models.SingleTaskGP.__init__(
+                self,
+                X,
+                y.unsqueeze(1),
+                likelihood=likelihood,
+                covar_module=covar_module,
+                mean_module=mean_module
+            )
+            for warning in w:
+                sys.stdout.write_to_logfile(f"WARNING: {str(warning.message)}\n")
+
+        self.eval()
+
     def apply_hyperparameters(self, lengthscale, outputscale, noise, mean):
-        self.covar_module.base_kernel.lengthscale = lengthscale
-        self.covar_module.outputscale = outputscale
-        self.likelihood.noise_covar.noise = noise
-        self.mean_module.constant = mean
+        if not (type(lengthscale) is torch.Tensor and type(outputscale) is torch.Tensor and type(noise) is torch.Tensor and type(mean) is torch.Tensor):
+            raise TypeError("Hyperparameters must be torch tensors")
+        self.covar_module.base_kernel.lengthscale = lengthscale.to(dtype=torch.float64)
+        self.covar_module.outputscale = outputscale.to(dtype=torch.float64)
+        self.likelihood.noise_covar.noise = noise.to(dtype=torch.float64)
+        if isinstance(self.mean_module, gpytorch.means.ConstantMean):
+            self.mean_module.constant = mean.to(dtype=torch.float64)
 
     def fit(
         self,
@@ -75,10 +145,10 @@ class GpBotorch(botorch.models.SingleTaskGP, Model):
             - Hyperparameters of the model or None if the model is not fitted.
         """
 
-        warnings.filterwarnings(
-            "ignore", category=gpytorch.utils.warnings.GPInputWarning
-        )
-
+        # warnings.filterwarnings(
+        #     "ignore", category=gpytorch.utils.warnings.GPInputWarning
+        # )
+        self.train()
         mll = ExactMarginalLogLikelihood(self.likelihood, self)
         if settings["multistart_hyperparameter_optimization"]:
             worst_log_likelihood = np.inf
@@ -90,15 +160,15 @@ class GpBotorch(botorch.models.SingleTaskGP, Model):
                 (
                     self.covar_module.base_kernel.lengthscale,
                     self.covar_module.outputscale,
-                    self.likelihood.noise_covar.noise.item(),
-                    self.mean_module.constant.item(),
+                    self.likelihood.noise_covar.noise.data,
+                    (self.mean_module.constant.data if isinstance(self.mean_module, gpytorch.means.ConstantMean) else torch.tensor(0))
                 )
             ] + [
                 (
-                    10 ** (1.5 * np.random.random(self.train_inputs[0].shape[1]) - 1),
-                    10 ** (1.5 * np.random.random() - 1),
-                    10 ** (4 * np.random.random() - 5),
-                    0,
+                    10 ** (1.5 * torch.rand(self.train_inputs[0].shape[1]) - 1),
+                    10 ** (1.5 * torch.rand(1) - 1),
+                    10 ** (4 * torch.rand(1) - 5),
+                    torch.tensor(0)
                 )
                 for _ in range(settings["hyperparameter_optimization_iterations"])
             ]
@@ -125,8 +195,8 @@ class GpBotorch(botorch.models.SingleTaskGP, Model):
                         best_GP = (
                             self.covar_module.base_kernel.lengthscale,
                             self.covar_module.outputscale,
-                            self.likelihood.noise_covar.noise.item(),
-                            self.mean_module.constant.item(),
+                            self.likelihood.noise_covar.noise.data,
+                            (self.mean_module.constant.data if isinstance(self.mean_module, gpytorch.means.ConstantMean) else torch.tensor(0)),
                         )
 
                     if mll_val < worst_log_likelihood:
@@ -179,7 +249,7 @@ class GpBotorch(botorch.models.SingleTaskGP, Model):
             "lengthscale": self.covar_module.base_kernel.lengthscale,
             "variance": self.covar_module.outputscale,
             "noise": self.likelihood.noise_covar.noise,
-            "mean": self.mean_module.constant,
+            "mean": (self.mean_module.constant.data if isinstance(self.mean_module, gpytorch.means.ConstantMean) else torch.tensor(0))
         }
         self.eval()
         return hyperparameters
@@ -191,12 +261,12 @@ class GpBotorch(botorch.models.SingleTaskGP, Model):
         Input:
             - mll: Marginal log likelihood.
         """
-        optimizer = torch.optim.Adam([{"params": self.parameters()}], lr=0.1)
-        for _ in range(100):
-            optimizer.zero_grad()
-            loss = -mll(self(*self.train_inputs), self.train_targets)
-            loss.backward()
-            optimizer.step()
+        mll.train()
+        fit_gpytorch_mll(
+            mll=mll,
+            optimizer=fit_gpytorch_mll_torch
+        )
+        mll.eval()
 
     def get_mean_and_std(self, normalized_data, predict_noiseless):
         """
@@ -209,212 +279,17 @@ class GpBotorch(botorch.models.SingleTaskGP, Model):
         Return:
             - the predicted mean and uncertainty for each point
         """
-        prediction = self(normalized_data)
-        mean = prediction.mean
-        var = prediction.variance
-        if any(var < -1e12):
-            raise Exception(f"GP prediction resulted in negative variance {var}")
-        var += 1e-12
-
-        std = torch.sqrt(var)
-
-        return mean, std
-
-
-class GpBotorchHeteroskedastic(botorch.models.HeteroskedasticSingleTaskGP, Model):
-    """
-    Wrapper for Botorch heteroskedastic GP model. Their implementation is currently not working, so this is WIP.
-    """
-
-    def __init__(
-        self,
-        settings,
-        X: torch.Tensor,
-        y: torch.Tensor,
-        std_estimate: torch.Tensor,
-    ):
-        """
-        input:
-            - settings: Run settings
-            - X: x training data
-            - Y: y training data
-            - std_estimate: estimated standard deviation of the noise
-        """
-        y = y.to(X)
-        yVar = std_estimate.to(X) ** 2
-        botorch.models.HeteroskedasticSingleTaskGP.__init__(
-            self, X, y.unsqueeze(1), yVar.unsqueeze(1)
-        )
-
-    def fit(
-        self,
-        settings: Dict[str, Any],
-        previous_hyperparameters: Union[Dict[str, Any], None],
-    ):
-        """
-        Fits the model hyperparameters.
-        Input:
-            - settings:
-            - previous_hyperparameters: hyperparameters from previous iterations
-        """
-
-        warnings.filterwarnings(
-            "ignore", category=gpytorch.utils.warnings.GPInputWarning
-        )
-
-        mll = ExactMarginalLogLikelihood(self.likelihood, self)
-        try:
-            with warnings.catch_warnings(record=True) as w:
-                warnings.simplefilter("always")
-                fit_gpytorch_mll(mll)
-                for warning in w:
-                    sys.stdout.write_to_logfile(f"{str(warning.message)}\n")
-        except Exception as e:
-            sys.stdout.write_to_logfile("Warning: Failed to fit model.\n")
-            sys.stdout.write_to_logfile(f"{e}\n")
-            self._backup_fit(mll)
-
-        sys.stdout.write_to_logfile(
-            f"lengthscales:\n{self.covar_module.base_kernel.lengthscale.squeeze().detach().numpy()}\n"
-        )
-        sys.stdout.write_to_logfile(
-            f"kernel variance: {self.covar_module.outputscale.squeeze().detach().numpy()}\n"
-        )
-        hyperparameters = {
-            "lengthscale": self.covar_module.base_kernel.lengthscale,
-            "variance": self.covar_module.outputscale,
-            "noise": 0,
-            "mean": self.mean_module.constant,
-        }
-        self.eval()
-        return hyperparameters
-
-    def _backup_fit(self, mll):
-        """
-        Fits the model hyperparameters if the botorch LFBGS fit fails.
-        """
-        self.train()
-        optimizer = torch.optim.Adam([{"params": self.parameters()}], lr=0.1)
-        for _ in range(100):
-            optimizer.zero_grad()
-            out = self(*self.train_inputs)
-            loss = -mll(out, self.train_targets)
-            loss.backward()
-            optimizer.step()
-
-        self.eval()
-
-    def get_mean_and_std(self, normalized_data, predict_noiseless):
-        """
-        Compute the predicted mean and uncertainty (either standard deviation or variance) for a number of points with a GP model.
-
-        Input:
-            - normalized_data: list containing points to predict.
-            - predict_noiseless: ignore noise when calculating variance
-            - var: whether to compute variance or standard deviation.
-        Return:
-            - the predicted mean and uncertainty for each point
-        """
-        prediction = self(normalized_data)
-        mean = prediction.mean
-        var = prediction.variance
-        if any(var < -1e12):
-            raise Exception(f"GP prediction resulted in negative variance {var}")
-        var += 1e-12
-
-        std = torch.sqrt(var)
-
-        return mean, std
-
-
-class GpBotorchFixed(botorch.models.FixedNoiseGP, Model):
-    """
-    Class implementing our version of the gpytorch GP kernel.
-    """
-
-    def __init__(
-        self,
-        settings,
-        X: torch.Tensor,
-        y: torch.Tensor,
-        std_estimate: torch.Tensor,
-    ):
-        """
-        input:
-            - settings: Run settings
-            - X: x training data
-            - Y: y training data
-        """
-        y = y.to(X)
-        yVar = std_estimate.to(X) ** 2
-        botorch.models.FixedNoiseGP.__init__(self, X, y.unsqueeze(1), yVar.unsqueeze(1))
-
-    def fit(
-        self,
-        settings: Dict[str, Any],
-        previous_hyperparameters: Union[Dict[str, Any], None],
-    ):
-        """
-        Fits the model hyperparameters.
-        Input:
-            - settings:
-            - previous_hyperparameters: hyperparameters from previous iterations
-        """
-        mll = ExactMarginalLogLikelihood(self.likelihood, self)
-        try:
-            fit_gpytorch_mll(mll)
-        except Exception as e:
-            print("Warning: Failed to fit model.")
-            print(e)
-            self._backup_fit(mll)
-
-        sys.stdout.write_to_logfile(
-            f"lengthscales:\n{self.covar_module.base_kernel.lengthscale.squeeze().detach().numpy()}\n"
-        )
-        sys.stdout.write_to_logfile(
-            f"kernel variance: {self.covar_module.outputscale.squeeze().detach().numpy()}\n"
-        )
-        hyperparameters = {
-            "lengthscale": self.covar_module.base_kernel.lengthscale,
-            "variance": self.covar_module.outputscale,
-            "noise": 0,
-            "mean": self.mean_module.constant,
-        }
-        self.eval()
-        return hyperparameters
-
-    def _backup_fit(self, mll):
-        """
-        Fits the model hyperparameters if the botorch LFBGS fit fails.
-        """
-        optimizer = torch.optim.Adam([{"params": self.parameters()}], lr=0.1)
-        for _ in range(100):
-            optimizer.zero_grad()
-            loss = -mll(self(*self.train_inputs), self.train_targets)
-            loss.backward()
-            optimizer.step()
-
-    def get_mean_and_std(self, normalized_data, predict_noiseless, use_var=False):
-        """
-        Compute the predicted mean and uncertainty (either standard deviation or variance) for a number of points with a GP model.
-
-        Input:
-            - normalized_data: list containing points to predict.
-            - predict_noiseless: ignore noise when calculating variance
-            - var: whether to compute variance or standard deviation.
-        Return:
-            - the predicted mean and uncertainty for each point
-        """
-        prediction = self(normalized_data)
-        mean = prediction.mean
-        var = prediction.variance
-        if any(var < -1e12):
-            raise Exception(f"GP prediction resulted in negative variance {var}")
-        var += 1e-12
-
-        if use_var:
-            uncertainty = var
+        if predict_noiseless:
+            prediction = self.posterior(normalized_data, observation_noise=False)
         else:
-            uncertainty = np.sqrt(var)
+            prediction = self.posterior(normalized_data, observation_noise=True)
 
-        return mean, uncertainty
+        mean = prediction.mean.reshape(-1)
+        var = prediction.variance.reshape(-1)
+        if any(var < -1e12):
+            raise Exception(f"GP prediction resulted in negative variance {var}")
+        var += 1e-12
+
+        std = torch.sqrt(var)
+
+        return mean, std
