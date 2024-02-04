@@ -170,17 +170,19 @@ class RealParameter(Parameter):
         """
         x = x.view(-1)
         if self.distribution_name == "custom_distribution":
-            return torch.tensor(np.interp(
-                x,
-                [
-                    self.min_value
-                    + x
-                    * (self.max_value - self.min_value)
-                    / (len(self.probability_distribution) - 1)
-                    for x in range(len(self.probability_distribution))
-                ],
-                self.probability_distribution,
-            ))
+            return torch.tensor(
+                np.interp(
+                    x,
+                    [
+                        self.min_value
+                        + x
+                        * (self.max_value - self.min_value)
+                        / (len(self.probability_distribution) - 1)
+                        for x in range(len(self.probability_distribution))
+                    ],
+                    self.probability_distribution,
+                )
+            )
         elif self.distribution_name == "gaussian":
             mean = self.distribution_parameters[0]
             std = self.distribution_parameters[1]

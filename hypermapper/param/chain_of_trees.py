@@ -230,10 +230,16 @@ class ChainOfTrees:
                 if sample_type == "uniform":
                     pr = None
                 elif sample_type == "embedding":
-                    pr = np.array([leaf.probability for leaf in tree.get_leaves()], dtype=np.float64)
+                    pr = np.array(
+                        [leaf.probability for leaf in tree.get_leaves()],
+                        dtype=np.float64,
+                    )
                     pr = pr / pr.sum()
                 elif sample_type == "using_priors":
-                    pr = np.array([leaf.prior_weighted_probability for leaf in tree.get_leaves()], dtype=np.float64)
+                    pr = np.array(
+                        [leaf.prior_weighted_probability for leaf in tree.get_leaves()],
+                        dtype=np.float64,
+                    )
                     pr = pr / pr.sum()
                 else:
                     print(
@@ -403,4 +409,3 @@ class Tree:
                         ]
                     )
                 )
-

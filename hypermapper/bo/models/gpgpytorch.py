@@ -169,7 +169,11 @@ class GpGpytorch(gpytorch.models.ExactGP, Model):
                     self.covar_module.base_kernel.lengthscale,
                     self.covar_module.outputscale,
                     self.likelihood.noise_covar.noise.data,
-                    (self.mean_module.constant.data if isinstance(self.mean_module, gpytorch.means.ConstantMean) else torch.tensor(0))
+                    (
+                        self.mean_module.constant.data
+                        if isinstance(self.mean_module, gpytorch.means.ConstantMean)
+                        else torch.tensor(0)
+                    ),
                 )
             ] + [
                 (
@@ -204,7 +208,13 @@ class GpGpytorch(gpytorch.models.ExactGP, Model):
                             self.covar_module.base_kernel.lengthscale,
                             self.covar_module.outputscale,
                             self.likelihood.noise_covar.noise.data,
-                            (self.mean_module.constant.data if isinstance(self.mean_module, gpytorch.means.ConstantMean) else torch.tensor(0)),
+                            (
+                                self.mean_module.constant.data
+                                if isinstance(
+                                    self.mean_module, gpytorch.means.ConstantMean
+                                )
+                                else torch.tensor(0)
+                            ),
                         )
 
                     if mll_val < worst_log_likelihood:
@@ -259,7 +269,11 @@ class GpGpytorch(gpytorch.models.ExactGP, Model):
             "lengthscale": self.covar_module.base_kernel.lengthscale,
             "variance": self.covar_module.outputscale,
             "noise": self.likelihood.noise_covar.noise.data,
-            "mean": (self.mean_module.constant if isinstance(self.mean_module, gpytorch.means.ConstantMean) else torch.tensor(0))
+            "mean": (
+                self.mean_module.constant
+                if isinstance(self.mean_module, gpytorch.means.ConstantMean)
+                else torch.tensor(0)
+            ),
         }
         self.eval()
         return hyperparameters
@@ -269,10 +283,7 @@ class GpGpytorch(gpytorch.models.ExactGP, Model):
         Fits the model hyperparameters if the botorch LFBGS fit fails.
         """
         mll.train()
-        fit_gpytorch_mll(
-            mll=mll,
-            optimizer=fit_gpytorch_mll_torch
-        )
+        fit_gpytorch_mll(mll=mll, optimizer=fit_gpytorch_mll_torch)
         mll.eval()
 
     def get_mean_and_std(self, normalized_data, predict_noiseless):

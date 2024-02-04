@@ -72,7 +72,9 @@ def optimize(
     objectives = settings["optimization_objectives"]
     inputs = list(settings["input_parameters"].keys())
     if len(objectives) != 1:
-        raise NotImplementedError("Multi-objective optimization is not supported for this part.")
+        raise NotImplementedError(
+            "Multi-objective optimization is not supported for this part."
+        )
 
     feasible_output = settings["feasible_output"]
     if feasible_output["enable_feasible_predictor"]:
@@ -81,10 +83,24 @@ def optimize(
     else:
         best_point = get_min_configurations(data_array, 1)
 
-    keys = inputs + objectives + ([feasible_output_name] if feasible_output["enable_feasible_predictor"] else [])
-    best_point = [p.item() for p in best_point.parameters_array[0]] + \
-                 [m.item() for m in best_point.metrics_array[0]] + \
-                 ([f.item() for f in best_point.feasible_array] if feasible_output["enable_feasible_predictor"] else [])
+    keys = (
+        inputs
+        + objectives
+        + (
+            [feasible_output_name]
+            if feasible_output["enable_feasible_predictor"]
+            else []
+        )
+    )
+    best_point = (
+        [p.item() for p in best_point.parameters_array[0]]
+        + [m.item() for m in best_point.metrics_array[0]]
+        + (
+            [f.item() for f in best_point.feasible_array]
+            if feasible_output["enable_feasible_predictor"]
+            else []
+        )
+    )
     sys.stdout.write_protocol("Best point found:\n")
     sys.stdout.write_protocol(f"{','.join(keys)}\n")
     sys.stdout.write_protocol(f"{','.join([str(v) for v in best_point])}\n\n")

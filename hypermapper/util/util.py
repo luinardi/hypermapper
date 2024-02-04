@@ -36,6 +36,7 @@ def update_mean_std(values: torch.Tensor, settings: Dict):
 # Data structure handling
 ####################################################
 
+
 def get_min_configurations(
     data_array: DataArray, number_of_configurations: int
 ) -> DataArray:
@@ -81,6 +82,7 @@ def get_min_feasible_configurations(
 ####################################################
 # Scalarization
 ####################################################
+
 
 def sample_weight_flat(optimization_metrics):
     """

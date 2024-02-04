@@ -46,9 +46,11 @@ def optimize_scipy(
     ]
     x0 = np.array(start_configuration)
     bounds = [
-        (p.min_value, p.max_value)
-        if isinstance(p, RealParameter)
-        else (-np.inf, np.inf)
+        (
+            (p.min_value, p.max_value)
+            if isinstance(p, RealParameter)
+            else (-np.inf, np.inf)
+        )
         for p in param_space.parameters
     ]
 

@@ -191,7 +191,9 @@ def _random_sample_constrained(
 
     if not param_space.settings["use_cot"]:
         if not allow_repetitions and not param_space.has_real_parameters:
-            raise Exception("Hypermapper must be run with atleast one of \"allow_repetitions\" and \"use_cot\" = True")
+            raise Exception(
+                'Hypermapper must be run with atleast one of "allow_repetitions" and "use_cot" = True'
+            )
         return _non_tree_constrained_sample(
             param_space, param_space.parameters, n_samples, sampling_method
         )

@@ -40,7 +40,10 @@ class GpBotorch(botorch.models.SingleTaskGP, Model):
         ):
             noise_prior = GammaPrior(*settings["noise_prior"]["parameters"])
             noise_prior_mode = (noise_prior.concentration - 1) / noise_prior.rate
-        elif settings["noise_prior"] is not None and settings["noise_prior"]["name"].lower() == "lognormal":
+        elif (
+            settings["noise_prior"] is not None
+            and settings["noise_prior"]["name"].lower() == "lognormal"
+        ):
             noise_prior = LogNormalPrior(*settings["noise_prior"]["parameters"])
             noise_prior_mode = None
         else:
@@ -105,7 +108,9 @@ class GpBotorch(botorch.models.SingleTaskGP, Model):
             outputscale_prior=outputscale_prior,
         )
 
-        with warnings.catch_warnings(record=True) as w:  # This catches the non-normalized due to default outside of parameter range warning
+        with warnings.catch_warnings(
+            record=True
+        ) as w:  # This catches the non-normalized due to default outside of parameter range warning
             warnings.filterwarnings(
                 "default", category=botorch.exceptions.InputDataWarning
             )
@@ -115,7 +120,7 @@ class GpBotorch(botorch.models.SingleTaskGP, Model):
                 y.unsqueeze(1),
                 likelihood=likelihood,
                 covar_module=covar_module,
-                mean_module=mean_module
+                mean_module=mean_module,
             )
             for warning in w:
                 sys.stdout.write_to_logfile(f"WARNING: {str(warning.message)}\n")
@@ -123,7 +128,12 @@ class GpBotorch(botorch.models.SingleTaskGP, Model):
         self.eval()
 
     def apply_hyperparameters(self, lengthscale, outputscale, noise, mean):
-        if not (type(lengthscale) is torch.Tensor and type(outputscale) is torch.Tensor and type(noise) is torch.Tensor and type(mean) is torch.Tensor):
+        if not (
+            type(lengthscale) is torch.Tensor
+            and type(outputscale) is torch.Tensor
+            and type(noise) is torch.Tensor
+            and type(mean) is torch.Tensor
+        ):
             raise TypeError("Hyperparameters must be torch tensors")
         self.covar_module.base_kernel.lengthscale = lengthscale.to(dtype=torch.float64)
         self.covar_module.outputscale = outputscale.to(dtype=torch.float64)
@@ -161,14 +171,18 @@ class GpBotorch(botorch.models.SingleTaskGP, Model):
                     self.covar_module.base_kernel.lengthscale,
                     self.covar_module.outputscale,
                     self.likelihood.noise_covar.noise.data,
-                    (self.mean_module.constant.data if isinstance(self.mean_module, gpytorch.means.ConstantMean) else torch.tensor(0))
+                    (
+                        self.mean_module.constant.data
+                        if isinstance(self.mean_module, gpytorch.means.ConstantMean)
+                        else torch.tensor(0)
+                    ),
                 )
             ] + [
                 (
                     10 ** (1.5 * torch.rand(self.train_inputs[0].shape[1]) - 1),
                     10 ** (1.5 * torch.rand(1) - 1),
                     10 ** (4 * torch.rand(1) - 5),
-                    torch.tensor(0)
+                    torch.tensor(0),
                 )
                 for _ in range(settings["hyperparameter_optimization_iterations"])
             ]
@@ -196,7 +210,13 @@ class GpBotorch(botorch.models.SingleTaskGP, Model):
                             self.covar_module.base_kernel.lengthscale,
                             self.covar_module.outputscale,
                             self.likelihood.noise_covar.noise.data,
-                            (self.mean_module.constant.data if isinstance(self.mean_module, gpytorch.means.ConstantMean) else torch.tensor(0)),
+                            (
+                                self.mean_module.constant.data
+                                if isinstance(
+                                    self.mean_module, gpytorch.means.ConstantMean
+                                )
+                                else torch.tensor(0)
+                            ),
                         )
 
                     if mll_val < worst_log_likelihood:
@@ -249,7 +269,11 @@ class GpBotorch(botorch.models.SingleTaskGP, Model):
             "lengthscale": self.covar_module.base_kernel.lengthscale,
             "variance": self.covar_module.outputscale,
             "noise": self.likelihood.noise_covar.noise,
-            "mean": (self.mean_module.constant.data if isinstance(self.mean_module, gpytorch.means.ConstantMean) else torch.tensor(0))
+            "mean": (
+                self.mean_module.constant.data
+                if isinstance(self.mean_module, gpytorch.means.ConstantMean)
+                else torch.tensor(0)
+            ),
         }
         self.eval()
         return hyperparameters
@@ -262,10 +286,7 @@ class GpBotorch(botorch.models.SingleTaskGP, Model):
             - mll: Marginal log likelihood.
         """
         mll.train()
-        fit_gpytorch_mll(
-            mll=mll,
-            optimizer=fit_gpytorch_mll_torch
-        )
+        fit_gpytorch_mll(mll=mll, optimizer=fit_gpytorch_mll_torch)
         mll.eval()
 
     def get_mean_and_std(self, normalized_data, predict_noiseless):

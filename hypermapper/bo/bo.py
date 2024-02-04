@@ -117,7 +117,9 @@ def main(settings, black_box_function=None):
             default_original = param_space.convert(
                 default_doe_parameter_array, "internal", "original"
             )
-            sys.stdout.write_to_logfile(f"Stateless mode, returning default and doe configurations\n{default_original}")
+            sys.stdout.write_to_logfile(
+                f"Stateless mode, returning default and doe configurations\n{default_original}"
+            )
             return (
                 default_original,
                 param_space.parameter_names,
@@ -149,9 +151,10 @@ def main(settings, black_box_function=None):
     # If we have feasibility constraints, we must ensure we have at least one feasible sample before starting optimization
     # If this is not true, continue design of experiment until the condition is met
     if enable_feasible_predictor:
-        while torch.sum(data_array.feasible_array) <= 1 and settings[
-            "optimization_iterations"
-        ] >= iteration_number:
+        while (
+            torch.sum(data_array.feasible_array) <= 1
+            and settings["optimization_iterations"] >= iteration_number
+        ):
             print(
                 "Warning: all points are invalid, random sampling more configurations."
             )
