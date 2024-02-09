@@ -703,7 +703,7 @@ class Space:
         idx = 0
         while idx < len(original_configurations):
             configurations_to_run = original_configurations[
-                idx: idx + self.settings["batch_size"]
+                idx : idx + self.settings["batch_size"]
             ]
             bbf_arguments = [
                 {name: value for name, value in zip(self.parameter_names, config)}

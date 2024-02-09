@@ -753,9 +753,7 @@ class PermutationParameter(Parameter):
         self.n_elements = n_elements
         self.default_indices = None
         if defaults:
-            self.default_indices = [
-                self.get_int_value(default) for default in defaults
-            ]
+            self.default_indices = [self.get_int_value(default) for default in defaults]
         Parameter.__init__(self, name, self.default_indices, constraints, dependencies)
 
         self.size = self.get_size()
@@ -839,7 +837,7 @@ class PermutationParameter(Parameter):
         Returns:
             - a random number.
         """
-        samples = torch.randint(self.size, size=(size, ))
+        samples = torch.randint(self.size, size=(size,))
         return samples
 
     def pdf(self, x_idx: torch.Tensor) -> float:
