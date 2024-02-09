@@ -59,7 +59,7 @@ def get_parameter_neighbors(
                     # swap i and j (probably sloooow)
                     neighbor = configuration.clone()
                     permutation: List[int] = list(
-                        parameter.get_permutation_value(configuration[parameter_idx])
+                        parameter.get_permutation_value(int(configuration[parameter_idx].item()))
                     )
                     j_val = permutation[j]
                     permutation[j] = permutation[i]

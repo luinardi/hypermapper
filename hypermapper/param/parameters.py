@@ -1,3 +1,4 @@
+import math
 from abc import abstractmethod
 from itertools import permutations
 from typing import Any, List, Optional, Union, Tuple
@@ -750,27 +751,16 @@ class PermutationParameter(Parameter):
         if constraints is None:
             constraints = []
         self.n_elements = n_elements
-        self.permutation_values: List[tuple] = [
-            p for p in permutations([x for x in range(self.n_elements)])
-        ]
-        self.string_values = [f"{tuple(p)}" for p in self.permutation_values]
-        self.values = torch.arange(len(self.permutation_values))
         self.default_indices = None
         if defaults:
             self.default_indices = [
-                self.permutation_values.index(tuple(default)) for default in defaults
+                self.get_int_value(default) for default in defaults
             ]
         Parameter.__init__(self, name, self.default_indices, constraints, dependencies)
 
+        self.size = self.get_size()
         self.parametrization = parametrization.lower()
-        self.distribution = torch.ones(len(self.values)) / len(self.values)
-        self._val_indices = {
-            i.item(): i for i in self.values
-        }  # from internal to index (which are the same for permutations)
-
-        self._permutation_indices = {
-            tuple(p): i for i, p in enumerate(self.permutation_values)
-        }
+        # self.distribution = torch.ones(self.get_size()) / self.get_size()
 
     def parametrize(self, data: List[int]) -> Tuple[List[str], List[List[float]]]:
         """
@@ -787,7 +777,7 @@ class PermutationParameter(Parameter):
                 [f"{self.name}_{i}" for i in range(self.n_elements)],
                 [
                     [
-                        self.permutation_values[int(d)].index(i) / self.n_elements
+                        self.get_permutation_value(int(d)).index(i) / self.n_elements
                         for i in range(self.n_elements)
                     ]
                     for d in data
@@ -803,8 +793,8 @@ class PermutationParameter(Parameter):
                 ],
                 [
                     [
-                        self.permutation_values[int(d)][i]
-                        < self.permutation_values[int(d)][j]
+                        self.get_permutation_value(int(d))[i]
+                        < self.get_permutation_value(int(d))[j]
                         for i in range(self.n_elements)
                         for j in range(i + 1, self.n_elements)
                     ]
@@ -821,7 +811,7 @@ class PermutationParameter(Parameter):
                 ],
                 [
                     [
-                        self.permutation_values[int(d)][i] == j
+                        self.get_permutation_value(int(d))[i] == j
                         for i in range(self.n_elements)
                         for j in range(self.n_elements)
                     ]
@@ -831,8 +821,8 @@ class PermutationParameter(Parameter):
 
         elif self.parametrization == "naive":
             return (
-                [f"{self.name}_{i}" for i in self.values],
-                [[int(int(d) == i) for i in self.values] for d in data],
+                [f"{self.name}_{i}" for i in range(self.get_size())],
+                [[int(int(d) == i) for i in range(self.get_size())] for d in data],
             )
 
         else:
@@ -849,8 +839,7 @@ class PermutationParameter(Parameter):
         Returns:
             - a random number.
         """
-        samples = np.random.choice(self.values, size=size)
-        samples = torch.tensor(samples)
+        samples = torch.randint(self.size, size=(size, ))
         return samples
 
     def pdf(self, x_idx: torch.Tensor) -> float:
@@ -864,11 +853,17 @@ class PermutationParameter(Parameter):
     def get_defaults(self) -> List[int]:
         return self.default_indices
 
-    def get_index(self, value: Any) -> int:
-        return self._val_indices[value]
+    def get_index(self, perm: Any) -> int:
+        perm = [x + 1 for x in perm]
+        n = len(perm)
+        encoded = 0
+        for i in range(n):
+            smaller_elements = sum(1 for j in range(i + 1, n) if perm[j] < perm[i])
+            encoded += smaller_elements * math.factorial(n - i - 1)
+        return encoded
 
     def get_size(self) -> int:
-        return len(self.values)
+        return math.factorial(self.n_elements)
 
     def get_discrete_size(self) -> int:
         return self.get_size()
@@ -877,16 +872,21 @@ class PermutationParameter(Parameter):
         return self.get_values()
 
     def get_values(self) -> List[int]:
-        return self.values
-
-    def get_permutation_values(self) -> List[Tuple[int]]:
-        return self.permutation_values
+        raise Exception("PermutationParameter does not have a list of values.")
 
     def get_int_value(self, permutation: Tuple[int]) -> int:
-        return self._permutation_indices[permutation]
+        return self.get_index(permutation)
 
-    def get_permutation_value(self, idx_value: int) -> Tuple[int]:
-        return self.permutation_values[int(idx_value)]
+    def get_permutation_value(self, idx: int) -> Tuple[int]:
+        perm = []
+        n = self.n_elements
+        nums = list(range(1, n + 1))
+        for i in range(n):
+            index = idx // math.factorial(n - i - 1)
+            perm.append(nums[index])
+            del nums[index]
+            idx %= math.factorial(n - i - 1)
+        return tuple([x - 1 for x in perm])
 
     def string_to_int(self, string: str) -> int:
         if string[0] == "(":
@@ -914,18 +914,18 @@ class PermutationParameter(Parameter):
             - the converted value
         """
         if from_type == "string":
-            intermediate_value = self.string_values.index(input_value)
+            intermediate_value = self.string_to_int(input_value)
         elif from_type == "original":
-            intermediate_value = self.permutation_values.index(input_value)
+            intermediate_value = self.get_int_value(input_value)
         elif from_type == "01":
-            intermediate_value = int(np.floor(input_value * self.get_size() * 0.999999))
+            intermediate_value = int(np.floor(input_value * self.get_size() * 0.99999))
         else:
             intermediate_value = int(input_value)
 
         if to_type == "string":
-            return self.string_values[intermediate_value]
+            return self.int_to_string(intermediate_value)
         if to_type == "original":
-            return self.permutation_values[intermediate_value]
+            return self.get_permutation_value(intermediate_value)
         elif to_type == "01":
             return intermediate_value / (self.get_size() - 1)
         else:

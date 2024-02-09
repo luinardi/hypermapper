@@ -55,7 +55,6 @@ class GpBotorch(botorch.models.SingleTaskGP, Model):
             batch_shape=torch.Size(),
             noise_constraint=GreaterThan(
                 1e-4,
-                transform=None,
                 initial_value=noise_prior_mode,
             ),
         )
